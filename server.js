@@ -11,7 +11,7 @@ const app = express();
 const server = http.createServer(app);
 const io = new Server(server, {
   cors: {
-    origin: "*", // для простоты; в продакшне лучше ограничить
+    origin: "*",
     methods: ["GET", "POST"]
   }
 });
@@ -20,9 +20,9 @@ app.use(cors());
 app.use(express.json());
 app.use(express.static('public'));
 
-// Проверка наличия обязательных переменных окружения
+// Проверка переменных окружения
 if (!process.env.MONGODB_URI || !process.env.JWT_SECRET) {
-  console.error('❌ Missing required environment variables: MONGODB_URI, JWT_SECRET');
+  console.error('❌ Missing required environment variables');
   process.exit(1);
 }
 
@@ -45,7 +45,9 @@ const UserSchema = new mongoose.Schema({
   color: { type: String, default: '#2c3e50' },
   online: { type: Boolean, default: false },
   socketId: { type: String, default: null },
-  lastSeen: { type: Date, default: Date.now }
+  lastSeen: { type: Date, default: Date.now },
+  friends: [{ type: String }],           // Массив username друзей
+  friendRequests: [{ type: String }]      // Массив username, отправивших запрос
 });
 
 const MessageSchema = new mongoose.Schema({
@@ -58,7 +60,7 @@ const MessageSchema = new mongoose.Schema({
 const User = mongoose.model('User', UserSchema);
 const Message = mongoose.model('Message', MessageSchema);
 
-// Middleware для проверки JWT
+// Middleware JWT
 const authenticateJWT = (req, res, next) => {
   const authHeader = req.headers.authorization;
   if (authHeader) {
@@ -73,7 +75,7 @@ const authenticateJWT = (req, res, next) => {
   }
 };
 
-// API: регистрация
+// Регистрация
 app.post('/api/register', async (req, res) => {
   const { username, password } = req.body;
   if (!username || !password) return res.status(400).json({ error: 'All fields required' });
@@ -86,7 +88,7 @@ app.post('/api/register', async (req, res) => {
   res.json({ token, user: { username: user.username, avatar: user.avatar, color: user.color } });
 });
 
-// API: логин
+// Логин
 app.post('/api/login', async (req, res) => {
   const { username, password } = req.body;
   const user = await User.findOne({ username });
@@ -97,13 +99,68 @@ app.post('/api/login', async (req, res) => {
   res.json({ token, user: { username: user.username, avatar: user.avatar, color: user.color } });
 });
 
-// API: список пользователей
+// Список всех пользователей (без деталей)
 app.get('/api/users', authenticateJWT, async (req, res) => {
   const users = await User.find({}, 'username avatar color online lastSeen');
   res.json(users);
 });
 
-// API: поиск сообщений
+// Поиск пользователей по нику (частичное совпадение)
+app.get('/api/users/search', authenticateJWT, async (req, res) => {
+  const q = req.query.q || '';
+  const regex = new RegExp(q, 'i');
+  const users = await User.find({ username: regex }, 'username avatar color online lastSeen');
+  const filtered = users.filter(u => u.username !== req.user.username);
+  res.json(filtered);
+});
+
+// Список друзей текущего пользователя
+app.get('/api/friends', authenticateJWT, async (req, res) => {
+  const user = await User.findOne({ username: req.user.username });
+  const friends = await User.find({ username: { $in: user.friends } }, 'username avatar color online lastSeen');
+  res.json(friends);
+});
+
+// Отправить запрос в друзья
+app.post('/api/friend-request', authenticateJWT, async (req, res) => {
+  const { to } = req.body;
+  if (!to) return res.status(400).json({ error: 'Username required' });
+  if (to === req.user.username) return res.status(400).json({ error: 'Cannot add yourself' });
+  const target = await User.findOne({ username: to });
+  if (!target) return res.status(404).json({ error: 'User not found' });
+  if (target.friends.includes(req.user.username)) return res.status(400).json({ error: 'Already friends' });
+  if (target.friendRequests.includes(req.user.username)) return res.status(400).json({ error: 'Request already sent' });
+  await User.updateOne({ username: to }, { $push: { friendRequests: req.user.username } });
+  if (target.socketId) {
+    io.to(target.socketId).emit('friend_request', { from: req.user.username });
+  }
+  res.json({ message: 'Friend request sent' });
+});
+
+// Принять запрос в друзья
+app.post('/api/friend-request/accept', authenticateJWT, async (req, res) => {
+  const { from } = req.body;
+  if (!from) return res.status(400).json({ error: 'Username required' });
+  const currentUser = await User.findOne({ username: req.user.username });
+  if (!currentUser.friendRequests.includes(from)) return res.status(400).json({ error: 'No request from this user' });
+  await User.updateOne({ username: req.user.username }, { $pull: { friendRequests: from }, $push: { friends: from } });
+  await User.updateOne({ username: from }, { $push: { friends: req.user.username } });
+  const fromUser = await User.findOne({ username: from });
+  if (fromUser.socketId) {
+    io.to(fromUser.socketId).emit('friend_accepted', { by: req.user.username });
+  }
+  res.json({ message: 'Friend added' });
+});
+
+// Отклонить запрос
+app.post('/api/friend-request/reject', authenticateJWT, async (req, res) => {
+  const { from } = req.body;
+  if (!from) return res.status(400).json({ error: 'Username required' });
+  await User.updateOne({ username: req.user.username }, { $pull: { friendRequests: from } });
+  res.json({ message: 'Request rejected' });
+});
+
+// Поиск сообщений
 app.get('/api/search', authenticateJWT, async (req, res) => {
   const q = req.query.q;
   if (!q) return res.json([]);
@@ -117,7 +174,7 @@ app.get('/api/search', authenticateJWT, async (req, res) => {
   res.json(messages);
 });
 
-// API: история сообщений с конкретным пользователем (для личных чатов)
+// История сообщений с конкретным пользователем
 app.get('/api/messages', authenticateJWT, async (req, res) => {
   const { with: otherUser } = req.query;
   if (!otherUser) return res.json([]);
@@ -149,17 +206,14 @@ io.use(async (socket, next) => {
 
 io.on('connection', async (socket) => {
   const user = socket.user;
-  // Обновляем статус онлайн
   await User.updateOne({ username: user.username }, { online: true, socketId: socket.id, lastSeen: new Date() });
-  
-  // Отправляем обновлённый список пользователей всем
+
   const updateUserList = async () => {
     const users = await User.find({}, 'username avatar color online lastSeen');
     io.emit('user_list', users);
   };
   await updateUserList();
 
-  // Отправляем историю сообщений (последние 50 общих и личных для этого пользователя)
   const recentMessages = await Message.find({
     $or: [
       { to: 'all' },
@@ -169,7 +223,6 @@ io.on('connection', async (socket) => {
   }).sort({ timestamp: -1 }).limit(50);
   socket.emit('history', recentMessages.reverse());
 
-  // Обработка отправки сообщений
   socket.on('send_message', async (data) => {
     const { to, text } = data;
     if (!text.trim()) return;
@@ -182,23 +235,20 @@ io.on('connection', async (socket) => {
     await message.save();
 
     if (to && to !== 'all') {
-      // Личное сообщение
       const recipient = await User.findOne({ username: to });
       if (recipient && recipient.socketId) {
         io.to(recipient.socketId).emit('private_message', message);
       }
       socket.emit('private_message', message);
     } else {
-      // Общий чат
       io.emit('public_message', message);
     }
   });
 
-  // Индикатор печатания
   socket.on('typing', (data) => {
     const { to } = data;
     if (to && to !== 'all') {
-      const recipient = io.sockets.sockets.get(to); // упрощённо, можно по socketId, но для демо
+      const recipient = io.sockets.sockets.get(to);
       if (recipient) recipient.emit('typing', { from: user.username });
     } else {
       socket.broadcast.emit('typing', { from: user.username });
