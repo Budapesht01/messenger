@@ -1,12 +1,215 @@
+require('dotenv').config();
 const express = require('express');
+const http = require('http');
+const { Server } = require('socket.io');
+const mongoose = require('mongoose');
+const bcrypt = require('bcrypt');
+const jwt = require('jsonwebtoken');
+const cors = require('cors');
+
 const app = express();
+const server = http.createServer(app);
+const io = new Server(server, {
+  cors: {
+    origin: "*", // для простоты; в продакшне лучше ограничить
+    methods: ["GET", "POST"]
+  }
+});
 
-console.log('MONGODB_URI is', process.env.MONGODB_URI ? 'SET' : 'NOT SET');
-console.log('JWT_SECRET is', process.env.JWT_SECRET ? 'SET' : 'NOT SET');
+app.use(cors());
+app.use(express.json());
+app.use(express.static('public'));
 
-app.get('/', (req, res) => res.send('Server is running'));
+// Проверка наличия обязательных переменных окружения
+if (!process.env.MONGODB_URI || !process.env.JWT_SECRET) {
+  console.error('❌ Missing required environment variables: MONGODB_URI, JWT_SECRET');
+  process.exit(1);
+}
+
+// Подключение к MongoDB
+mongoose.connect(process.env.MONGODB_URI, {
+  useNewUrlParser: true,
+  useUnifiedTopology: true,
+}).then(() => {
+  console.log('✅ MongoDB connected');
+}).catch(err => {
+  console.error('❌ MongoDB connection error:', err);
+  process.exit(1);
+});
+
+// Модели
+const UserSchema = new mongoose.Schema({
+  username: { type: String, unique: true, required: true },
+  password: { type: String, required: true },
+  avatar: { type: String, default: '😀' },
+  color: { type: String, default: '#2c3e50' },
+  online: { type: Boolean, default: false },
+  socketId: { type: String, default: null },
+  lastSeen: { type: Date, default: Date.now }
+});
+
+const MessageSchema = new mongoose.Schema({
+  from: { type: String, required: true },
+  to: { type: String, default: 'all' },
+  text: { type: String, required: true },
+  timestamp: { type: Date, default: Date.now }
+});
+
+const User = mongoose.model('User', UserSchema);
+const Message = mongoose.model('Message', MessageSchema);
+
+// Middleware для проверки JWT
+const authenticateJWT = (req, res, next) => {
+  const authHeader = req.headers.authorization;
+  if (authHeader) {
+    const token = authHeader.split(' ')[1];
+    jwt.verify(token, process.env.JWT_SECRET, (err, user) => {
+      if (err) return res.sendStatus(403);
+      req.user = user;
+      next();
+    });
+  } else {
+    res.sendStatus(401);
+  }
+};
+
+// API: регистрация
+app.post('/api/register', async (req, res) => {
+  const { username, password } = req.body;
+  if (!username || !password) return res.status(400).json({ error: 'All fields required' });
+  const existing = await User.findOne({ username });
+  if (existing) return res.status(400).json({ error: 'Username taken' });
+  const hashed = await bcrypt.hash(password, 10);
+  const user = new User({ username, password: hashed });
+  await user.save();
+  const token = jwt.sign({ username: user.username }, process.env.JWT_SECRET, { expiresIn: '7d' });
+  res.json({ token, user: { username: user.username, avatar: user.avatar, color: user.color } });
+});
+
+// API: логин
+app.post('/api/login', async (req, res) => {
+  const { username, password } = req.body;
+  const user = await User.findOne({ username });
+  if (!user) return res.status(400).json({ error: 'Invalid credentials' });
+  const valid = await bcrypt.compare(password, user.password);
+  if (!valid) return res.status(400).json({ error: 'Invalid credentials' });
+  const token = jwt.sign({ username: user.username }, process.env.JWT_SECRET, { expiresIn: '7d' });
+  res.json({ token, user: { username: user.username, avatar: user.avatar, color: user.color } });
+});
+
+// API: список пользователей
+app.get('/api/users', authenticateJWT, async (req, res) => {
+  const users = await User.find({}, 'username avatar color online lastSeen');
+  res.json(users);
+});
+
+// API: поиск сообщений
+app.get('/api/search', authenticateJWT, async (req, res) => {
+  const q = req.query.q;
+  if (!q) return res.json([]);
+  const messages = await Message.find({
+    $or: [
+      { from: req.user.username, text: { $regex: q, $options: 'i' } },
+      { to: req.user.username, text: { $regex: q, $options: 'i' } },
+      { to: 'all', text: { $regex: q, $options: 'i' } }
+    ]
+  }).sort({ timestamp: -1 }).limit(50);
+  res.json(messages);
+});
+
+// API: история сообщений с конкретным пользователем (для личных чатов)
+app.get('/api/messages', authenticateJWT, async (req, res) => {
+  const { with: otherUser } = req.query;
+  if (!otherUser) return res.json([]);
+  const messages = await Message.find({
+    $or: [
+      { from: req.user.username, to: otherUser },
+      { from: otherUser, to: req.user.username },
+      { from: req.user.username, to: 'all' },
+      { from: otherUser, to: 'all' }
+    ]
+  }).sort({ timestamp: 1 }).limit(100);
+  res.json(messages);
+});
+
+// Socket.IO аутентификация
+io.use(async (socket, next) => {
+  const token = socket.handshake.auth.token;
+  if (!token) return next(new Error('Authentication error'));
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const user = await User.findOne({ username: decoded.username });
+    if (!user) return next(new Error('User not found'));
+    socket.user = user;
+    next();
+  } catch (err) {
+    next(new Error('Invalid token'));
+  }
+});
+
+io.on('connection', async (socket) => {
+  const user = socket.user;
+  // Обновляем статус онлайн
+  await User.updateOne({ username: user.username }, { online: true, socketId: socket.id, lastSeen: new Date() });
+  
+  // Отправляем обновлённый список пользователей всем
+  const updateUserList = async () => {
+    const users = await User.find({}, 'username avatar color online lastSeen');
+    io.emit('user_list', users);
+  };
+  await updateUserList();
+
+  // Отправляем историю сообщений (последние 50 общих и личных для этого пользователя)
+  const recentMessages = await Message.find({
+    $or: [
+      { to: 'all' },
+      { to: user.username },
+      { from: user.username }
+    ]
+  }).sort({ timestamp: -1 }).limit(50);
+  socket.emit('history', recentMessages.reverse());
+
+  // Обработка отправки сообщений
+  socket.on('send_message', async (data) => {
+    const { to, text } = data;
+    if (!text.trim()) return;
+    const message = new Message({
+      from: user.username,
+      to: to || 'all',
+      text: text.trim(),
+      timestamp: new Date()
+    });
+    await message.save();
+
+    if (to && to !== 'all') {
+      // Личное сообщение
+      const recipient = await User.findOne({ username: to });
+      if (recipient && recipient.socketId) {
+        io.to(recipient.socketId).emit('private_message', message);
+      }
+      socket.emit('private_message', message);
+    } else {
+      // Общий чат
+      io.emit('public_message', message);
+    }
+  });
+
+  // Индикатор печатания
+  socket.on('typing', (data) => {
+    const { to } = data;
+    if (to && to !== 'all') {
+      const recipient = io.sockets.sockets.get(to); // упрощённо, можно по socketId, но для демо
+      if (recipient) recipient.emit('typing', { from: user.username });
+    } else {
+      socket.broadcast.emit('typing', { from: user.username });
+    }
+  });
+
+  socket.on('disconnect', async () => {
+    await User.updateOne({ username: user.username }, { online: false, socketId: null, lastSeen: new Date() });
+    await updateUserList();
+  });
+});
 
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
-    console.log(`Server running on port ${PORT}`);
-});
+server.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
