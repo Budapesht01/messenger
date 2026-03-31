@@ -1,12 +1,14 @@
 let socket;
 let currentUser = null;
-let currentChat = 'all'; // 'all' или username
+let currentChat = 'all';
 let typingTimeout;
 let messagesContainer;
 
+// DOM элементы
 const authDiv = document.getElementById('auth');
 const chatDiv = document.getElementById('chat');
 
+// Функции аутентификации
 function showError(msg) {
     document.getElementById('authError').innerText = msg;
 }
@@ -50,9 +52,12 @@ function loginSuccess(token, user) {
     authDiv.style.display = 'none';
     chatDiv.style.display = 'flex';
     initSocket(token);
-    loadUsers();
+    loadFriends();
+    loadFriendRequests();
+    document.getElementById('userInfo').innerHTML = `👤 ${user.username}`;
 }
 
+// Socket
 function initSocket(token) {
     socket = io({
         auth: { token }
@@ -71,13 +76,12 @@ function initSocket(token) {
         if (currentChat === msg.from || currentChat === msg.to) {
             addMessageToChat(msg);
         } else {
-            // Уведомление о новом личном сообщении
             showNotification(`Новое сообщение от ${msg.from}`);
         }
         notify(msg);
     });
     socket.on('user_list', (users) => {
-        renderUsersList(users);
+        // не используется напрямую, но можно для обновления друзей
     });
     socket.on('typing', (data) => {
         document.getElementById('typingIndicator').innerHTML = `${data.from} печатает...`;
@@ -86,8 +90,17 @@ function initSocket(token) {
             document.getElementById('typingIndicator').innerHTML = '';
         }, 2000);
     });
+    socket.on('friend_request', (data) => {
+        showNotification(`Запрос в друзья от ${data.from}`);
+        loadFriendRequests(); // обновляем список запросов
+    });
+    socket.on('friend_accepted', (data) => {
+        showNotification(`${data.by} принял(а) ваш запрос в друзья!`);
+        loadFriends();
+    });
 }
 
+// Сообщения
 function sendMessage() {
     const input = document.getElementById('messageInput');
     const text = input.value.trim();
@@ -103,9 +116,8 @@ function addMessageToChat(msg) {
     div.className = 'message';
     if (msg.to !== 'all') div.classList.add('private');
     if (msg.from === 'system') div.classList.add('system');
-    const usernameColor = getUserColor(msg.from);
     div.innerHTML = `
-        <span class="username" style="color:${usernameColor}">${escapeHtml(msg.from)}</span>
+        <span class="username" style="color:${getUserColor(msg.from)}">${escapeHtml(msg.from)}</span>
         <span class="time">${new Date(msg.timestamp).toLocaleTimeString()}</span>
         <div>${escapeHtml(msg.text)}</div>
     `;
@@ -119,33 +131,140 @@ function renderMessages(messages) {
     messages.forEach(msg => addMessageToChat(msg));
 }
 
-function renderUsersList(users) {
-    const container = document.getElementById('usersContainer');
+function getUserColor(username) {
+    return '#2c3e50';
+}
+
+// Друзья и запросы
+async function loadFriends() {
+    const token = localStorage.getItem('token');
+    const res = await fetch('/api/friends', {
+        headers: { 'Authorization': `Bearer ${token}` }
+    });
+    const friends = await res.json();
+    const container = document.getElementById('friendsList');
     container.innerHTML = '';
-    users.forEach(user => {
+    if (friends.length === 0) {
+        container.innerHTML = '<div class="info">Нет друзей. Найдите их в поиске!</div>';
+        return;
+    }
+    friends.forEach(friend => {
         const div = document.createElement('div');
-        div.className = `user-item ${user.online ? 'online' : ''}`;
-        div.setAttribute('data-username', user.username);
-        div.onclick = () => switchChat(user.username);
+        div.className = 'user-item';
+        div.onclick = () => switchChat(friend.username);
         div.innerHTML = `
-            <span class="user-avatar">${escapeHtml(user.avatar || '😀')}</span>
-            <span class="user-name">${escapeHtml(user.username)}</span>
-            ${user.online ? '<span class="online-dot">●</span>' : ''}
+            <span class="user-avatar">${escapeHtml(friend.avatar || '😀')}</span>
+            <span class="user-name">${escapeHtml(friend.username)}</span>
+            ${friend.online ? '<span class="online-dot">●</span>' : ''}
         `;
         container.appendChild(div);
     });
-    // Обновляем активный чат в заголовке
-    updateChatHeader();
 }
+
+async function loadFriendRequests() {
+    const token = localStorage.getItem('token');
+    const res = await fetch('/api/users', {
+        headers: { 'Authorization': `Bearer ${token}` }
+    });
+    const allUsers = await res.json();
+    const currentUserObj = allUsers.find(u => u.username === currentUser.username);
+    const requests = currentUserObj ? currentUserObj.friendRequests || [] : [];
+    const container = document.getElementById('requestsList');
+    container.innerHTML = '';
+    if (requests.length === 0) {
+        container.innerHTML = '<div class="info">Нет входящих запросов.</div>';
+        return;
+    }
+    requests.forEach(from => {
+        const div = document.createElement('div');
+        div.className = 'user-item';
+        div.innerHTML = `
+            <span class="user-name">${escapeHtml(from)}</span>
+            <div>
+                <button class="accept-btn" data-from="${from}">Принять</button>
+                <button class="reject-btn" data-from="${from}">Отклонить</button>
+            </div>
+        `;
+        container.appendChild(div);
+    });
+    document.querySelectorAll('.accept-btn').forEach(btn => {
+        btn.addEventListener('click', async (e) => {
+            e.stopPropagation();
+            const from = btn.getAttribute('data-from');
+            await fetch('/api/friend-request/accept', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${localStorage.getItem('token')}`
+                },
+                body: JSON.stringify({ from })
+            });
+            loadFriendRequests();
+            loadFriends();
+        });
+    });
+    document.querySelectorAll('.reject-btn').forEach(btn => {
+        btn.addEventListener('click', async (e) => {
+            e.stopPropagation();
+            const from = btn.getAttribute('data-from');
+            await fetch('/api/friend-request/reject', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${localStorage.getItem('token')}`
+                },
+                body: JSON.stringify({ from })
+            });
+            loadFriendRequests();
+        });
+    });
+}
+
+// Поиск пользователей
+document.getElementById('searchUserInput').addEventListener('input', async (e) => {
+    const q = e.target.value;
+    if (q.length < 2) {
+        document.getElementById('searchResults').innerHTML = '';
+        return;
+    }
+    const token = localStorage.getItem('token');
+    const res = await fetch(`/api/users/search?q=${encodeURIComponent(q)}`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+    });
+    const users = await res.json();
+    const container = document.getElementById('searchResults');
+    container.innerHTML = '';
+    users.forEach(user => {
+        const div = document.createElement('div');
+        div.className = 'user-item';
+        div.innerHTML = `
+            <span class="user-avatar">${escapeHtml(user.avatar || '😀')}</span>
+            <span class="user-name">${escapeHtml(user.username)}</span>
+            <button class="friend-request-btn" data-username="${user.username}">➕ Добавить</button>
+        `;
+        container.appendChild(div);
+    });
+    document.querySelectorAll('.friend-request-btn').forEach(btn => {
+        btn.addEventListener('click', async (e) => {
+            e.stopPropagation();
+            const to = btn.getAttribute('data-username');
+            const res = await fetch('/api/friend-request', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${localStorage.getItem('token')}`
+                },
+                body: JSON.stringify({ to })
+            });
+            const data = await res.json();
+            alert(data.message || data.error);
+        });
+    });
+});
 
 function switchChat(username) {
     currentChat = username;
     updateChatHeader();
-    // Загрузить историю личных сообщений с этим пользователем
-    // (можно запросить через API, но для простоты используем уже полученные сообщения)
-    // В реальном проекте стоит сделать запрос на сервер для получения истории личного чата.
-    // Здесь мы просто фильтруем уже имеющиеся в DOM сообщения? Проще перезапросить.
-    // Для демонстрации: отправим запрос на сервер.
     fetchHistoryForUser(username);
 }
 
@@ -159,7 +278,6 @@ function updateChatHeader() {
 }
 
 async function fetchHistoryForUser(user) {
-    // Получаем историю сообщений с этим пользователем через API
     const token = localStorage.getItem('token');
     const res = await fetch(`/api/messages?with=${user}`, {
         headers: { 'Authorization': `Bearer ${token}` }
@@ -179,16 +297,9 @@ function escapeHtml(str) {
     });
 }
 
-function getUserColor(username) {
-    // можно вытащить из списка пользователей, но для простоты вернём чёрный
-    return '#2c3e50';
-}
-
 function notify(msg) {
-    // Звук (простой)
     const audio = new Audio('https://www.soundjay.com/misc/sounds/bell-ringing-05.mp3');
     audio.play().catch(e => console.log('Audio play failed'));
-    // Мигание вкладки
     document.title = '✉️ Новое сообщение';
     setTimeout(() => { document.title = 'Мессенджер'; }, 2000);
 }
@@ -201,39 +312,28 @@ function showNotification(text) {
     }
 }
 
-// Отправка индикатора печатания
+// Индикатор печатания
 let typingTimer;
 document.getElementById('messageInput').addEventListener('input', () => {
     if (typingTimer) clearTimeout(typingTimer);
     socket.emit('typing', { to: currentChat });
-    typingTimer = setTimeout(() => {
-        // Можно отправить остановку печатания, но не обязательно
-    }, 1000);
+    typingTimer = setTimeout(() => {}, 1000);
 });
 
-// Загрузка пользователей
-async function loadUsers() {
-    const token = localStorage.getItem('token');
-    const res = await fetch('/api/users', {
-        headers: { 'Authorization': `Bearer ${token}` }
+// Переключение вкладок
+document.querySelectorAll('.tab-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+        const tabId = btn.getAttribute('data-tab');
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+        document.getElementById(`${tabId}-tab`).classList.add('active');
+        if (tabId === 'friends') loadFriends();
+        if (tabId === 'requests') loadFriendRequests();
     });
-    const users = await res.json();
-    renderUsersList(users);
-}
-
-// Поиск сообщений
-document.getElementById('searchInput').addEventListener('input', async (e) => {
-    const q = e.target.value;
-    if (q.length < 2) return;
-    const token = localStorage.getItem('token');
-    const res = await fetch(`/api/search?q=${encodeURIComponent(q)}`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-    });
-    const messages = await res.json();
-    renderMessages(messages);
 });
 
-// Проверка сохранённого токена при загрузке
+// Загрузка при старте
 window.onload = () => {
     const token = localStorage.getItem('token');
     const savedUser = localStorage.getItem('user');
@@ -242,7 +342,9 @@ window.onload = () => {
         authDiv.style.display = 'none';
         chatDiv.style.display = 'flex';
         initSocket(token);
-        loadUsers();
+        loadFriends();
+        loadFriendRequests();
+        document.getElementById('userInfo').innerHTML = `👤 ${currentUser.username}`;
     }
     if (Notification.permission !== 'granted') {
         Notification.requestPermission();
