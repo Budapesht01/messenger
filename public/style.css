@@ -487,3 +487,183 @@ body {
 #requestsList .user-item .user-name {
     color: var(--text-primary) !important;
 }
+
+/* ========== АДАПТИВ ========== */
+
+/* Планшеты и небольшие десктопы */
+@media (max-width: 768px) {
+    /* Боковая панель становится выдвижной */
+    .sidebar {
+        position: fixed;
+        left: 0;
+        top: 0;
+        bottom: 0;
+        width: 280px;
+        transform: translateX(-100%);
+        transition: transform 0.3s ease;
+        z-index: 1000;
+        background: var(--bg-sidebar);
+        box-shadow: 2px 0 10px rgba(0,0,0,0.2);
+    }
+    .sidebar.open {
+        transform: translateX(0);
+    }
+
+    /* Кнопка меню */
+    .menu-toggle {
+        display: block;
+    }
+
+    /* Сообщения занимают больше ширины */
+    .message {
+        max-width: 85%;
+    }
+
+    /* Уменьшаем отступы в шапке */
+    .chat-header {
+        padding: 10px 12px;
+    }
+
+    /* Поле ввода – чуть меньше отступы */
+    .input-area {
+        padding: 10px 12px;
+        gap: 8px;
+    }
+    #messageInput {
+        padding: 10px 14px;
+        font-size: 16px;
+    }
+    .send-btn {
+        padding: 10px 18px;
+        font-size: 14px;
+    }
+
+    /* Настройки профиля: компактнее */
+    .avatar-selector {
+        gap: 8px;
+    }
+    .avatar-preview {
+        width: 40px;
+        height: 40px;
+        font-size: 28px;
+    }
+    .secondary-btn {
+        padding: 6px 12px;
+    }
+}
+
+/* Телефоны (ширина до 480px) */
+@media (max-width: 480px) {
+    .sidebar {
+        width: 260px;
+    }
+
+    .message {
+        max-width: 90%;
+    }
+
+    .message-bubble {
+        padding: 6px 10px;
+    }
+    .message-text {
+        font-size: 13px;
+    }
+
+    .chat-title {
+        font-size: 16px;
+    }
+
+    .user-avatar {
+        font-size: 24px;
+        width: 36px;
+    }
+    .user-name {
+        font-size: 14px;
+    }
+
+    .input-area {
+        padding: 8px 10px;
+        gap: 6px;
+    }
+    #messageInput {
+        padding: 8px 12px;
+        font-size: 16px;
+    }
+    .send-btn {
+        padding: 8px 14px;
+        font-size: 13px;
+    }
+
+    /* Вкладки */
+    .tab-btn {
+        padding: 10px;
+        font-size: 12px;
+    }
+    .user-info {
+        font-size: 16px;
+        padding: 12px;
+    }
+}
+
+/* Маленькие телефоны (ширина до 375px) */
+@media (max-width: 375px) {
+    .sidebar {
+        width: 100%;
+        max-width: 260px;
+    }
+
+    .message {
+        max-width: 95%;
+    }
+
+    .message-bubble {
+        padding: 6px 8px;
+    }
+    .message-header {
+        font-size: 12px;
+        gap: 6px;
+    }
+    .time {
+        font-size: 9px;
+    }
+    .message-text {
+        font-size: 12px;
+    }
+
+    .chat-header {
+        padding: 8px 12px;
+    }
+    .menu-toggle {
+        font-size: 22px;
+    }
+    .chat-title {
+        font-size: 15px;
+    }
+
+    .input-area {
+        padding: 6px 8px;
+        gap: 4px;
+    }
+    #messageInput {
+        padding: 6px 8px;
+        font-size: 14px;
+    }
+    .send-btn {
+        padding: 6px 10px;
+        font-size: 12px;
+    }
+
+    .typing-indicator {
+        font-size: 10px;
+        padding: 4px 12px;
+    }
+
+    .user-info {
+        font-size: 14px;
+        padding: 10px;
+    }
+    .tab-btn {
+        padding: 8px;
+        font-size: 11px;
+    }
+}
