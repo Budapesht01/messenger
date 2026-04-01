@@ -103,6 +103,7 @@ body {
     height: 100vh;
     background: var(--bg-page);
     position: relative;
+    overflow: hidden;
 }
 
 /* Sidebar */
@@ -320,6 +321,7 @@ body {
     background: var(--bg-main);
     position: relative;
     min-width: 0;
+    overflow-x: hidden;
 }
 
 .chat-header {
@@ -450,7 +452,7 @@ body {
     min-height: 32px;
 }
 
-/* Input area – теперь поле ввода всегда видимо */
+/* Input area – базовая версия */
 .input-area {
     display: flex;
     align-items: center;
@@ -459,13 +461,13 @@ body {
     border-top: 1px solid var(--border-color);
     gap: 8px;
     position: relative;
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
     z-index: 10;
 }
 
 #messageInput {
-    flex: 1 1 auto;
-    min-width: 120px;
+    flex: 1;
+    min-width: 0;
     padding: 10px 16px;
     border: none;
     border-radius: 24px;
@@ -491,7 +493,25 @@ body {
     color: var(--text-primary) !important;
 }
 
-/* Адаптив для телефонов */
+/* Жёсткий фикс поля ввода для всех устройств */
+.input-area {
+    display: flex !important;
+    flex-wrap: nowrap !important;
+    background: var(--bg-sidebar) !important;
+    border-top: 1px solid var(--border-color) !important;
+}
+#messageInput {
+    flex: 1 !important;
+    min-width: 0 !important;
+    width: auto !important;
+    background: var(--input-bg) !important;
+    color: var(--text-primary) !important;
+}
+.send-btn {
+    flex-shrink: 0 !important;
+}
+
+/* Мобильная адаптация */
 @media (max-width: 768px) {
     .sidebar {
         position: fixed;
@@ -527,17 +547,16 @@ body {
         font-size: 12px;
     }
     .input-area {
-        padding: 8px 12px;
-        gap: 6px;
-    }
-    .send-btn {
-        padding: 6px 16px;
-        font-size: 13px;
+        padding: 8px 12px !important;
+        gap: 8px !important;
     }
     #messageInput {
-        min-width: 100px;
-        padding: 8px 12px;
-        font-size: 13px;
+        padding: 10px 12px !important;
+        font-size: 16px !important;
+    }
+    .send-btn {
+        padding: 10px 16px !important;
+        font-size: 14px !important;
     }
 }
 
@@ -562,17 +581,16 @@ body {
         font-size: 14px;
     }
     .input-area {
-        padding: 6px 10px;
-        gap: 5px;
-    }
-    .send-btn {
-        padding: 5px 12px;
-        font-size: 12px;
+        padding: 6px 10px !important;
+        gap: 6px !important;
     }
     #messageInput {
-        min-width: 80px;
-        padding: 6px 10px;
-        font-size: 12px;
+        padding: 8px 10px !important;
+        font-size: 16px !important;
+    }
+    .send-btn {
+        padding: 8px 14px !important;
+        font-size: 13px !important;
     }
 }
 
@@ -615,57 +633,19 @@ body {
         font-size: 11px;
     }
     .input-area {
-        padding: 6px 8px;
-        gap: 4px;
+        padding: 6px 8px !important;
+        gap: 4px !important;
     }
     #messageInput {
-        min-width: 60px;
-        padding: 6px 8px;
-        font-size: 11px;
+        padding: 6px 8px !important;
+        font-size: 14px !important;
     }
     .send-btn {
-        padding: 4px 8px;
-        font-size: 11px;
+        padding: 6px 10px !important;
+        font-size: 12px !important;
     }
     .typing-indicator {
         font-size: 10px;
         padding: 4px 12px;
     }
-}
-
-/* Жёсткий фикс поля ввода */
-.input-area {
-    display: flex !important;
-    flex-wrap: wrap !important;
-    padding: 12px 16px !important;
-    background: var(--bg-sidebar) !important;
-    border-top: 1px solid var(--border-color) !important;
-    visibility: visible !important;
-    min-height: 60px !important;
-}
-#messageInput {
-    flex: 1 !important;
-    min-width: 100px !important;
-    padding: 10px 16px !important;
-    background: var(--input-bg) !important;
-    color: var(--text-primary) !important;
-    font-size: 14px !important;
-    display: block !important;
-    visibility: visible !important;
-}
-.send-btn {
-    display: inline-flex !important;
-    visibility: visible !important;
-}
-
-/* Жёсткий фикс текста запросов */
-#requestsList .user-item .user-name {
-    color: var(--text-primary) !important;
-    background: transparent !important;
-}
-
-/* Жёсткий фикс кнопки Сохранить */
-.primary-btn {
-    outline: none !important;
-    box-shadow: none !important;
 }
