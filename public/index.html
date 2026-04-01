@@ -2,8 +2,11 @@
 <html>
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <title>Мессенджер</title>
     <link rel="stylesheet" href="style.css">
+    <!-- Подключаем эмодзи-пикер -->
+    <script type="module" src="https://cdn.jsdelivr.net/npm/emoji-picker-element@1.18.0/index.js"></script>
 </head>
 <body>
     <div id="auth" class="auth-container">
@@ -20,7 +23,7 @@
     </div>
 
     <div id="chat" class="chat-container" style="display:none;">
-        <div class="sidebar">
+        <div class="sidebar" id="sidebar">
             <div class="user-info" id="userInfo"></div>
             <div class="tabs">
                 <button class="tab-btn active" data-tab="friends">Друзья</button>
@@ -41,29 +44,34 @@
             <div class="tab-content" id="settings-tab">
                 <div class="settings-panel">
                     <h4>Профиль</h4>
-                    <label>Аватар (эмодзи):</label>
-                    <input type="text" id="avatarInput" maxlength="2" placeholder="😀">
-                    <label>Цвет ника:</label>
-                    <input type="color" id="colorInput">
-                    <button onclick="updateProfile()">Сохранить</button>
+                    <div class="avatar-selector">
+                        <label>Аватар:</label>
+                        <div class="avatar-preview" id="avatarPreview">😀</div>
+                        <button id="pickAvatarBtn" class="secondary-btn">Выбрать эмодзи</button>
+                    </div>
+                    <div class="color-selector">
+                        <label>Цвет ника:</label>
+                        <input type="color" id="colorInput">
+                    </div>
+                    <button id="saveProfileBtn" class="primary-btn">Сохранить</button>
                     <hr>
-                    <button onclick="logout()" class="logout-btn">Выйти из аккаунта</button>
+                    <button id="logoutBtn" class="logout-btn">Выйти из аккаунта</button>
                 </div>
             </div>
         </div>
         <div class="main">
             <div class="chat-header" id="chatHeader">
-                Общий чат
-                <span class="header-actions">
-                    <button id="clearChatBtn" style="display:none;">Очистить чат</button>
-                </span>
+                <button id="menuToggleBtn" class="menu-toggle">☰</button>
+                <span class="chat-title">Общий чат</span>
             </div>
             <div class="messages" id="messages"></div>
             <div class="typing-indicator" id="typingIndicator"></div>
             <div class="input-area">
-                <input type="text" id="messageInput" placeholder="Введите сообщение...">
-                <button id="sendBtn">Отправить</button>
+                <button id="emojiBtn" class="emoji-btn">😀</button>
+                <input type="text" id="messageInput" placeholder="Сообщение...">
+                <button id="sendBtn" class="send-btn">Отправить</button>
             </div>
+            <div id="emojiPickerContainer" style="display: none;"></div>
         </div>
     </div>
 
