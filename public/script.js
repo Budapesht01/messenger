@@ -373,47 +373,8 @@ async function updateProfile(avatar, color) {
     }
 }
 
-// ========== Эмодзи ==========
+// ========== Выбор аватара ==========
 const commonEmojis = ['😀','😃','😄','😁','😆','😅','😂','🤣','😊','😇','🙂','🙃','😉','😌','😍','🥰','😘','😗','😙','😚','😋','😛','😝','😜','🤪','🤨','🧐','🤓','😎','🤩','🥳','😏','😒','😞','😔','😟','😕','🙁','☹️','😣','😖','😫','😩','🥺','😢','😭','😤','😠','😡','🤬','🤯','😳','🥵','🥶','😱','😨','😰','😥','😓','🤗','🤔','🤭','🤫','🤥','😶','😐','😑','😬','🙄','😯','😦','😧','😮','😲','🥱','😴','🤤','😪','😵','🤐','🥴','🤢','🤮','🤧','😷','🤒','🤕','🤑','🤠','😈','👿','👹','👺','🤡','💩','👻','💀','☠️','👽','👾','🤖','🎃','😺','😸','😹','😻','😼','😽','🙀','😿','😾','👍','👎','👌','✌️','🤞','🤟','🤘','🤙','👈','👉','👆','🖕','👇','☝️','✋','🤚','🖐️','🖖','👋','🤏','✍️','💅','🤳','💪','🦵','🦶','🦷','🦻','👂','👃','🧠','🫀','🫁','👀','👁️','👅','👄'];
-
-function initSimpleEmojiPicker() {
-    const panel = document.getElementById('emojiPanel');
-    if (!panel) return;
-    const grid = panel.querySelector('.emoji-grid');
-    if (!grid) return;
-    grid.innerHTML = commonEmojis.map(emoji => `<span>${emoji}</span>`).join('');
-    grid.querySelectorAll('span').forEach(span => {
-        span.addEventListener('click', (e) => {
-            const emoji = e.target.innerText;
-            const input = document.getElementById('messageInput');
-            input.value += emoji;
-            input.focus();
-            panel.classList.remove('open');
-            panel.style.display = 'none';
-        });
-    });
-    const emojiBtn = document.getElementById('emojiBtn');
-    if (emojiBtn) {
-        emojiBtn.addEventListener('click', () => {
-            const isVisible = panel.style.display === 'block' || getComputedStyle(panel).display !== 'none';
-            if (!isVisible) {
-                panel.style.display = 'block';
-                // Небольшая задержка, чтобы браузер успел применить display: block перед добавлением класса
-                setTimeout(() => panel.classList.add('open'), 10);
-            } else {
-                panel.classList.remove('open');
-                setTimeout(() => panel.style.display = 'none', 300);
-            }
-        });
-    }
-    const closeBtn = document.getElementById('closeEmojiPanel');
-    if (closeBtn) {
-        closeBtn.addEventListener('click', () => {
-            panel.classList.remove('open');
-            setTimeout(() => panel.style.display = 'none', 300);
-        });
-    }
-}
 
 function initAvatarPicker() {
     const avatarPreview = document.getElementById('avatarPreview');
@@ -544,8 +505,7 @@ window.onload = () => {
         loadFriendRequests();
         loadProfile();
         document.getElementById('userInfo').innerHTML = `👤 ${currentUser.username}`;
-        initSimpleEmojiPicker();
-        initAvatarPicker();
+        initAvatarPicker(); // только аватарка
     }
     if (Notification.permission !== 'granted') {
         Notification.requestPermission();
