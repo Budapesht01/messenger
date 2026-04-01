@@ -517,3 +517,25 @@ document.getElementById('messageInput').onkeypress = (e) => {
     if (e.key === 'Enter') sendMessage();
 };
 document.getElementById('logoutBtn').onclick = logout;
+
+// Принудительное отображение поля ввода на мобильных
+function forceShowInput() {
+    const inputArea = document.querySelector('.input-area');
+    const messageInput = document.getElementById('messageInput');
+    if (inputArea && messageInput) {
+        inputArea.style.display = 'flex';
+        inputArea.style.visibility = 'visible';
+        inputArea.style.height = 'auto';
+        messageInput.style.display = 'block';
+        messageInput.style.visibility = 'visible';
+        console.log('✅ Поле ввода принудительно отображено');
+    } else {
+        console.warn('⚠️ Элементы поля ввода не найдены');
+    }
+}
+
+// Вызываем при загрузке и через задержку
+window.addEventListener('load', function() {
+    setTimeout(forceShowInput, 100);
+    setTimeout(forceShowInput, 500);
+});
