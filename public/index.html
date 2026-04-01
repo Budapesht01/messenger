@@ -5,8 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <title>Мессенджер</title>
     <link rel="stylesheet" href="style.css">
-    <!-- Подключаем эмодзи-пикер -->
-    <script type="module" src="https://cdn.jsdelivr.net/npm/emoji-picker-element@1.18.0/index.js"></script>
 </head>
 <body>
     <div id="auth" class="auth-container">
@@ -60,7 +58,7 @@
             </div>
         </div>
         <div class="main">
-            <div class="chat-header" id="chatHeader">
+            <div class="chat-header">
                 <button id="menuToggleBtn" class="menu-toggle">☰</button>
                 <span class="chat-title">Общий чат</span>
             </div>
@@ -71,12 +69,9 @@
                 <input type="text" id="messageInput" placeholder="Сообщение...">
                 <button id="sendBtn" class="send-btn">Отправить</button>
             </div>
-           <!-- Вместо <div id="emojiPickerContainer"></div> -->
-<div id="emojiMenu" style="display: none; position: absolute; background: var(--bg-sidebar); border-radius: 12px; padding: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.3); z-index: 1000; width: 280px;">
-    <div style="display: grid; grid-template-columns: repeat(8, 1fr); gap: 6px; max-height: 200px; overflow-y: auto;">
-        <!-- эмодзи будут вставлены скриптом -->
-    </div>
-</div>
+            <div id="emojiMenu" style="display: none; position: absolute; background: var(--bg-sidebar); border-radius: 12px; padding: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.3); z-index: 1000; width: 280px;">
+                <div class="emoji-grid" style="display: grid; grid-template-columns: repeat(8, 1fr); gap: 6px; max-height: 200px; overflow-y: auto;"></div>
+            </div>
         </div>
     </div>
 
