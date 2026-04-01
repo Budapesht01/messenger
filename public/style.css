@@ -330,7 +330,7 @@ body {
 }
 
 .menu-toggle {
-    display: none;
+    display: none; /* не скрываем, но оставляем для возможного будущего использования */
     background: none;
     border: none;
     font-size: 24px;
@@ -448,7 +448,7 @@ body {
     min-height: 32px;
 }
 
-/* Input area */
+/* Input area – без адаптива, всегда одинаково */
 .input-area {
     display: flex;
     align-items: center;
@@ -483,52 +483,7 @@ body {
     flex-shrink: 0;
 }
 
+/* Текст в запросах – светлый */
 #requestsList .user-item .user-name {
     color: var(--text-primary) !important;
-}
-
-/* ===============================================
-Адаптив в стиле Telegram (Мобильные устройства)
-=============================================== 
-*/
-
-@media (max-width: 768px) {
-    /* Делаем сайдбар на всю ширину */
-    .sidebar {
-        width: 100%;
-        border-right: none;
-    }
-
-    /* Скрываем сам чат по умолчанию (пока не выбран контакт) */
-    .main {
-        display: none;
-        width: 100%;
-    }
-
-    /* Карточка авторизации лучше смотрится с относительной шириной на мобилках */
-    .auth-card {
-        width: 90%;
-        max-width: 320px;
-    }
-
-    /* Сообщения могут занимать больше пространства */
-    .message {
-        max-width: 85%;
-    }
-
-    /* Когда через JS родительскому контейнеру добавляется класс .chat-active,
-      мы прячем список контактов и показываем переписку 
-    */
-    .chat-container.chat-active .sidebar {
-        display: none;
-    }
-
-    .chat-container.chat-active .main {
-        display: flex;
-    }
-
-    /* Отображаем кнопку "Назад/Меню" в хедере чата */
-    .chat-container.chat-active .menu-toggle {
-        display: block;
-    }
 }
