@@ -52,7 +52,6 @@ body {
     background: var(--bg-sidebar);
     padding: 2rem;
     border-radius: 28px;
-    box-shadow: 0 8px 20px rgba(0,0,0,0.1);
     width: 320px;
     text-align: center;
 }
@@ -102,7 +101,6 @@ body {
     display: flex;
     height: 100vh;
     background: var(--bg-page);
-    position: relative;
 }
 
 /* Sidebar */
@@ -126,7 +124,6 @@ body {
 .tabs {
     display: flex;
     border-bottom: 1px solid var(--border-color);
-    background: var(--bg-sidebar);
 }
 
 .tab-btn {
@@ -156,14 +153,12 @@ body {
     display: block;
 }
 
-/* User list items */
 .user-item {
     display: flex;
     align-items: center;
     padding: 10px 12px;
     border-radius: 12px;
     cursor: pointer;
-    transition: background 0.2s;
     margin: 2px 0;
 }
 
@@ -190,7 +185,6 @@ body {
     margin-left: 8px;
 }
 
-/* Search input */
 #searchUserInput {
     width: 100%;
     padding: 10px 16px;
@@ -203,14 +197,12 @@ body {
     outline: none;
 }
 
-/* Buttons */
 .friend-request-btn, .accept-btn, .reject-btn {
     padding: 4px 12px;
     border: none;
     border-radius: 20px;
     cursor: pointer;
     font-size: 12px;
-    transition: 0.2s;
 }
 
 .friend-request-btn {
@@ -316,8 +308,8 @@ body {
     display: flex;
     flex-direction: column;
     background: var(--bg-main);
-    position: relative;
     min-width: 0;
+    position: relative;
 }
 
 .chat-header {
@@ -330,7 +322,7 @@ body {
 }
 
 .menu-toggle {
-    display: none; /* не скрываем, но оставляем для возможного будущего использования */
+    display: none;
     background: none;
     border: none;
     font-size: 24px;
@@ -439,7 +431,6 @@ body {
     color: var(--text-primary);
 }
 
-/* Typing indicator */
 .typing-indicator {
     padding: 8px 16px;
     font-style: italic;
@@ -448,7 +439,7 @@ body {
     min-height: 32px;
 }
 
-/* Input area – без адаптива, всегда одинаково */
+/* Input area (базовый) */
 .input-area {
     display: flex;
     align-items: center;
@@ -456,8 +447,6 @@ body {
     background: var(--bg-sidebar);
     border-top: 1px solid var(--border-color);
     gap: 8px;
-    position: relative;
-    flex-wrap: nowrap;
 }
 
 #messageInput {
@@ -468,7 +457,7 @@ body {
     border-radius: 24px;
     background: var(--input-bg);
     color: var(--text-primary);
-    font-size: 14px;
+    font-size: 16px;
     outline: none;
 }
 
@@ -488,11 +477,9 @@ body {
     color: var(--text-primary) !important;
 }
 
-/* ========== АДАПТИВ ========== */
-
-/* Планшеты и небольшие десктопы */
+/* ========== АДАПТИВ (телефон) ========== */
 @media (max-width: 768px) {
-    /* Боковая панель становится выдвижной */
+    /* Боковая панель выдвигается */
     .sidebar {
         position: fixed;
         left: 0;
@@ -514,65 +501,71 @@ body {
         display: block;
     }
 
-    /* Сообщения занимают больше ширины */
+    /* Сообщения шире */
     .message {
         max-width: 85%;
     }
 
-    /* Уменьшаем отступы в шапке */
-    .chat-header {
-        padding: 10px 12px;
+    /* Поле ввода фиксируется внизу, не перекрывает сообщения */
+    .main {
+        position: relative;
+        padding-bottom: 70px;
     }
-
-    /* Поле ввода – чуть меньше отступы */
     .input-area {
-        padding: 10px 12px;
-        gap: 8px;
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        background: var(--bg-sidebar);
+        border-top: 1px solid var(--border-color);
+        padding: 8px 12px;
+        z-index: 999;
+        margin: 0;
+        border-radius: 0;
+        box-shadow: 0 -2px 10px rgba(0,0,0,0.1);
     }
     #messageInput {
-        padding: 10px 14px;
+        padding: 12px 14px;
         font-size: 16px;
     }
     .send-btn {
-        padding: 10px 18px;
+        padding: 12px 20px;
         font-size: 14px;
     }
+    .messages {
+        margin-bottom: 70px;
+    }
 
-    /* Настройки профиля: компактнее */
-    .avatar-selector {
-        gap: 8px;
+    /* Шапка компактнее */
+    .chat-header {
+        padding: 10px 12px;
     }
-    .avatar-preview {
-        width: 40px;
-        height: 40px;
-        font-size: 28px;
+    .user-info {
+        font-size: 16px;
+        padding: 12px;
     }
-    .secondary-btn {
-        padding: 6px 12px;
+    .tab-btn {
+        padding: 10px;
+        font-size: 12px;
     }
 }
 
-/* Телефоны (ширина до 480px) */
 @media (max-width: 480px) {
     .sidebar {
         width: 260px;
     }
-
     .message {
         max-width: 90%;
     }
-
     .message-bubble {
         padding: 6px 10px;
     }
     .message-text {
         font-size: 13px;
     }
-
     .chat-title {
         font-size: 16px;
     }
-
     .user-avatar {
         font-size: 24px;
         width: 36px;
@@ -580,42 +573,27 @@ body {
     .user-name {
         font-size: 14px;
     }
-
     .input-area {
-        padding: 8px 10px;
-        gap: 6px;
+        padding: 6px 10px;
     }
     #messageInput {
-        padding: 8px 12px;
+        padding: 10px 12px;
         font-size: 16px;
     }
     .send-btn {
-        padding: 8px 14px;
+        padding: 10px 16px;
         font-size: 13px;
-    }
-
-    /* Вкладки */
-    .tab-btn {
-        padding: 10px;
-        font-size: 12px;
-    }
-    .user-info {
-        font-size: 16px;
-        padding: 12px;
     }
 }
 
-/* Маленькие телефоны (ширина до 375px) */
 @media (max-width: 375px) {
     .sidebar {
         width: 100%;
         max-width: 260px;
     }
-
     .message {
         max-width: 95%;
     }
-
     .message-bubble {
         padding: 6px 8px;
     }
@@ -629,7 +607,6 @@ body {
     .message-text {
         font-size: 12px;
     }
-
     .chat-header {
         padding: 8px 12px;
     }
@@ -639,25 +616,21 @@ body {
     .chat-title {
         font-size: 15px;
     }
-
     .input-area {
         padding: 6px 8px;
-        gap: 4px;
     }
     #messageInput {
-        padding: 6px 8px;
+        padding: 8px 10px;
         font-size: 14px;
     }
     .send-btn {
-        padding: 6px 10px;
+        padding: 8px 12px;
         font-size: 12px;
     }
-
     .typing-indicator {
         font-size: 10px;
         padding: 4px 12px;
     }
-
     .user-info {
         font-size: 14px;
         padding: 10px;
@@ -666,50 +639,4 @@ body {
         padding: 8px;
         font-size: 11px;
     }
-}
-
-/* ===== ЖЁСТКИЙ ФИКС ДЛЯ ПОЛЯ ВВОДА (работает на всех устройствах) ===== */
-.input-area {
-    display: flex !important;
-    flex-wrap: nowrap !important;
-    visibility: visible !important;
-    opacity: 1 !important;
-    height: auto !important;
-    min-height: 54px !important;
-    padding: 8px 12px !important;
-    background: var(--bg-sidebar) !important;
-    border-top: 1px solid var(--border-color) !important;
-    position: relative !important;
-    z-index: 10 !important;
-}
-#messageInput {
-    display: block !important;
-    visibility: visible !important;
-    opacity: 1 !important;
-    flex: 1 !important;
-    min-width: 50px !important;
-    width: auto !important;
-    padding: 10px 12px !important;
-    margin: 0 !important;
-    background: var(--input-bg) !important;
-    color: var(--text-primary) !important;
-    font-size: 16px !important;
-    border: none !important;
-    outline: none !important;
-    box-sizing: border-box !important;
-}
-.send-btn {
-    display: inline-block !important;
-    visibility: visible !important;
-    flex-shrink: 0 !important;
-    padding: 8px 16px !important;
-    font-size: 14px !important;
-}
-
-/* Дополнительно: убираем возможное перекрытие */
-.main {
-    overflow: visible !important;
-}
-.chat-container {
-    overflow: hidden !important;
 }
