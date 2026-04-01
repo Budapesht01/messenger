@@ -667,3 +667,49 @@ body {
         font-size: 11px;
     }
 }
+
+/* ===== ЖЁСТКИЙ ФИКС ДЛЯ ПОЛЯ ВВОДА (работает на всех устройствах) ===== */
+.input-area {
+    display: flex !important;
+    flex-wrap: nowrap !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    height: auto !important;
+    min-height: 54px !important;
+    padding: 8px 12px !important;
+    background: var(--bg-sidebar) !important;
+    border-top: 1px solid var(--border-color) !important;
+    position: relative !important;
+    z-index: 10 !important;
+}
+#messageInput {
+    display: block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    flex: 1 !important;
+    min-width: 50px !important;
+    width: auto !important;
+    padding: 10px 12px !important;
+    margin: 0 !important;
+    background: var(--input-bg) !important;
+    color: var(--text-primary) !important;
+    font-size: 16px !important;
+    border: none !important;
+    outline: none !important;
+    box-sizing: border-box !important;
+}
+.send-btn {
+    display: inline-block !important;
+    visibility: visible !important;
+    flex-shrink: 0 !important;
+    padding: 8px 16px !important;
+    font-size: 14px !important;
+}
+
+/* Дополнительно: убираем возможное перекрытие */
+.main {
+    overflow: visible !important;
+}
+.chat-container {
+    overflow: hidden !important;
+}
