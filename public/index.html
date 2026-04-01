@@ -26,6 +26,7 @@
                 <button class="tab-btn active" data-tab="friends">Друзья</button>
                 <button class="tab-btn" data-tab="search">Поиск</button>
                 <button class="tab-btn" data-tab="requests">Запросы</button>
+                <button class="tab-btn" data-tab="settings">Настройки</button>
             </div>
             <div class="tab-content active" id="friends-tab">
                 <div id="friendsList"></div>
@@ -37,9 +38,26 @@
             <div class="tab-content" id="requests-tab">
                 <div id="requestsList"></div>
             </div>
+            <div class="tab-content" id="settings-tab">
+                <div class="settings-panel">
+                    <h4>Профиль</h4>
+                    <label>Аватар (эмодзи):</label>
+                    <input type="text" id="avatarInput" maxlength="2" placeholder="😀">
+                    <label>Цвет ника:</label>
+                    <input type="color" id="colorInput">
+                    <button onclick="updateProfile()">Сохранить</button>
+                    <hr>
+                    <button onclick="logout()" class="logout-btn">Выйти из аккаунта</button>
+                </div>
+            </div>
         </div>
         <div class="main">
-            <div class="chat-header" id="chatHeader">Общий чат</div>
+            <div class="chat-header" id="chatHeader">
+                Общий чат
+                <span class="header-actions">
+                    <button id="clearChatBtn" style="display:none;">Очистить чат</button>
+                </span>
+            </div>
             <div class="messages" id="messages"></div>
             <div class="typing-indicator" id="typingIndicator"></div>
             <div class="input-area">
