@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <title>Мессенджер</title>
-    <link rel="stylesheet" href="style.css?v=8">
+    <link rel="stylesheet" href="style.css?v=final">
 </head>
 <body>
     <div id="auth" class="auth-container">
@@ -63,7 +63,7 @@
                 <span class="chat-title">Общий чат</span>
             </div>
             <div class="messages" id="messages"></div>
-        
+            <div class="typing-indicator" id="typingIndicator"></div>
             <div class="input-area">
                 <input type="text" id="messageInput" placeholder="Сообщение...">
                 <button id="sendBtn" class="send-btn">Отправить</button>
@@ -72,6 +72,6 @@
     </div>
 
     <script src="/socket.io/socket.io.js"></script>
-    <script src="script.js?v=8"></script>
+    <script src="script.js?v=final"></script>
 </body>
 </html>
