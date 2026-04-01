@@ -447,7 +447,7 @@ body {
     min-height: 32px;
 }
 
-/* Input area */
+/* Input area - теперь поле ввода всегда видимо */
 .input-area {
     display: flex;
     align-items: center;
@@ -456,6 +456,7 @@ body {
     border-top: 1px solid var(--border-color);
     gap: 8px;
     position: relative;
+    flex-wrap: wrap;
 }
 
 .emoji-btn {
@@ -469,7 +470,8 @@ body {
 }
 
 #messageInput {
-    flex: 1;
+    flex: 1 1 auto;
+    min-width: 120px;
     padding: 10px 16px;
     border: none;
     border-radius: 24px;
@@ -477,7 +479,6 @@ body {
     color: var(--text-primary);
     font-size: 14px;
     outline: none;
-    min-width: 0;
 }
 
 .send-btn {
@@ -497,6 +498,32 @@ body {
     bottom: 70px;
     right: 10px;
     left: auto;
+    background: var(--bg-sidebar);
+    border-radius: 12px;
+    padding: 8px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    z-index: 1000;
+    width: 280px;
+}
+
+.emoji-grid {
+    display: grid;
+    grid-template-columns: repeat(8, 1fr);
+    gap: 6px;
+    max-height: 200px;
+    overflow-y: auto;
+}
+
+.emoji-grid span {
+    font-size: 24px;
+    cursor: pointer;
+    text-align: center;
+    padding: 4px;
+}
+
+.emoji-grid span:hover {
+    background: rgba(106, 176, 243, 0.2);
+    border-radius: 8px;
 }
 
 /* Responsive */
@@ -574,6 +601,7 @@ body {
     }
     .input-area {
         padding: 6px 10px;
+        gap: 5px;
     }
     .emoji-btn {
         font-size: 20px;
@@ -582,6 +610,17 @@ body {
     .send-btn {
         padding: 5px 12px;
         font-size: 12px;
+    }
+    #messageInput {
+        flex: 1 1 auto;
+        min-width: 100px;
+        padding: 6px 10px;
+        font-size: 12px;
+    }
+    #emojiMenu {
+        width: 260px;
+        right: 5px;
+        bottom: 65px;
     }
 }
 
@@ -625,18 +664,20 @@ body {
     }
     .input-area {
         padding: 6px 8px;
-        gap: 5px;
+        gap: 4px;
     }
     .emoji-btn {
         font-size: 18px;
         padding: 4px;
     }
     #messageInput {
-        padding: 6px 10px;
-        font-size: 12px;
+        flex: 1 1 auto;
+        min-width: 80px;
+        padding: 6px 8px;
+        font-size: 11px;
     }
     .send-btn {
-        padding: 4px 10px;
+        padding: 4px 8px;
         font-size: 11px;
     }
     .typing-indicator {
@@ -644,8 +685,8 @@ body {
         padding: 4px 12px;
     }
     #emojiMenu {
-        width: 260px;
-        right: 5px;
-        bottom: 65px;
+        width: 240px;
+        right: 3px;
+        bottom: 60px;
     }
 }
