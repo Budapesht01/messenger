@@ -3,11 +3,12 @@ let currentUser = null;
 let currentChat = 'all';
 let typingTimeout;
 let messagesContainer;
-let currentEditingMessageId = null;
+let emojiPicker = null;
 
 // DOM элементы
 const authDiv = document.getElementById('auth');
 const chatDiv = document.getElementById('chat');
+const sidebar = document.getElementById('sidebar');
 
 // ========== Аутентификация ==========
 function showError(msg) {
@@ -121,7 +122,6 @@ function initSocket(token) {
         }
     });
     socket.on('friend_status', (data) => {
-        // Обновляем статус в списке друзей
         updateFriendStatus(data.username, data.online, data.lastSeen);
     });
     socket.on('friend_request', (data) => {
@@ -154,15 +154,19 @@ function sendMessage() {
 function addMessageToChat(msg) {
     const container = messagesContainer;
     const div = document.createElement('div');
-    div.className = 'message';
-    if (msg.to !== 'all') div.classList.add('private');
-    if (msg.from === 'system') div.classList.add('system');
+    div.className = `message ${msg.from === currentUser.username ? 'own' : 'other'}`;
     div.setAttribute('data-id', msg._id);
+    const avatar = msg.avatar || '😀';
+    const color = msg.color || '#6ab0f3';
     div.innerHTML = `
-        <span class="username" style="color:${getUserColor(msg.from)}">${escapeHtml(msg.from)}</span>
-        <span class="time">${new Date(msg.timestamp).toLocaleTimeString()}</span>
-        ${msg.edited ? '<span class="edited-badge"> (ред.)</span>' : ''}
-        <div class="message-text">${escapeHtml(msg.text)}</div>
+        <div class="message-bubble">
+            <div class="message-header">
+                <span class="username" style="color:${color}">${escapeHtml(msg.from)}</span>
+                <span class="time">${new Date(msg.timestamp).toLocaleTimeString()}</span>
+                ${msg.edited ? '<span class="edited-badge">ред.</span>' : ''}
+            </div>
+            <div class="message-text">${escapeHtml(msg.text)}</div>
+        </div>
         <div class="message-actions">
             ${msg.from === currentUser.username ? `
                 <button class="edit-msg" data-id="${msg._id}">✏️</button>
@@ -173,7 +177,6 @@ function addMessageToChat(msg) {
     container.appendChild(div);
     container.scrollTop = container.scrollHeight;
 
-    // Обработчики для кнопок редактирования/удаления
     if (msg.from === currentUser.username) {
         div.querySelector('.edit-msg')?.addEventListener('click', (e) => {
             e.stopPropagation();
@@ -195,10 +198,6 @@ function renderMessages(messages) {
     messagesContainer = document.getElementById('messages');
     messagesContainer.innerHTML = '';
     messages.forEach(msg => addMessageToChat(msg));
-}
-
-function getUserColor(username) {
-    return '#2c3e50';
 }
 
 // ========== Друзья и запросы ==========
@@ -285,7 +284,6 @@ async function loadFriendRequests() {
 }
 
 function updateFriendStatus(username, online, lastSeen) {
-    // Обновляем список друзей
     const friendDivs = document.querySelectorAll('#friendsList .user-item');
     friendDivs.forEach(div => {
         const nameSpan = div.querySelector('.user-name');
@@ -297,7 +295,6 @@ function updateFriendStatus(username, online, lastSeen) {
             } else {
                 if (dot) dot.style.display = 'none';
             }
-            // Можно добавить подсказку "был в сети"
             if (!online && lastSeen) {
                 div.setAttribute('title', `Был(а) в сети ${new Date(lastSeen).toLocaleString()}`);
             }
@@ -354,13 +351,11 @@ async function loadProfile() {
         headers: { 'Authorization': `Bearer ${token}` }
     });
     const data = await res.json();
-    document.getElementById('avatarInput').value = data.avatar || '😀';
-    document.getElementById('colorInput').value = data.color || '#2c3e50';
+    document.getElementById('avatarPreview').innerText = data.avatar || '😀';
+    document.getElementById('colorInput').value = data.color || '#6ab0f3';
 }
 
-async function updateProfile() {
-    const avatar = document.getElementById('avatarInput').value;
-    const color = document.getElementById('colorInput').value;
+async function updateProfile(avatar, color) {
     const token = localStorage.getItem('token');
     const res = await fetch('/api/me/update', {
         method: 'POST',
@@ -374,10 +369,41 @@ async function updateProfile() {
         alert('Профиль обновлён');
         currentUser.avatar = avatar;
         currentUser.color = color;
-        // Обновляем отображение в списках
+        // Обновляем превью
+        document.getElementById('avatarPreview').innerText = avatar;
     } else {
         alert('Ошибка обновления');
     }
+}
+
+// ========== Эмодзи-пикер ==========
+function initEmojiPicker() {
+    if (!window.EmojiPicker) return;
+    emojiPicker = new window.EmojiPicker({
+        dataSource: 'https://cdn.jsdelivr.net/npm/emoji-picker-element@1.18.0/data/emojis.json',
+        locale: 'ru'
+    });
+    const container = document.getElementById('emojiPickerContainer');
+    container.appendChild(emojiPicker);
+    emojiPicker.addEventListener('emoji-click', event => {
+        const input = document.getElementById('messageInput');
+        input.value += event.detail.unicode;
+        input.focus();
+        container.style.display = 'none';
+    });
+    document.getElementById('emojiBtn').addEventListener('click', () => {
+        if (container.style.display === 'none') {
+            container.style.display = 'block';
+        } else {
+            container.style.display = 'none';
+        }
+    });
+    // Закрывать при клике вне
+    document.addEventListener('click', (e) => {
+        if (!container.contains(e.target) && e.target.id !== 'emojiBtn') {
+            container.style.display = 'none';
+        }
+    });
 }
 
 // ========== Смена чата ==========
@@ -385,14 +411,17 @@ function switchChat(username) {
     currentChat = username;
     updateChatHeader();
     fetchHistoryForUser(username);
+    if (window.innerWidth <= 768) {
+        sidebar.classList.remove('open');
+    }
 }
 
 function updateChatHeader() {
-    const header = document.getElementById('chatHeader');
+    const titleElem = document.querySelector('.chat-title');
     if (currentChat === 'all') {
-        header.innerText = 'Общий чат';
+        titleElem.innerText = 'Общий чат';
     } else {
-        header.innerText = `Чат с ${currentChat}`;
+        titleElem.innerText = `Чат с ${currentChat}`;
     }
 }
 
@@ -435,7 +464,7 @@ function showNotification(text) {
 let typingTimer;
 document.getElementById('messageInput').addEventListener('input', () => {
     if (typingTimer) clearTimeout(typingTimer);
-    socket.emit('typing', { to: currentChat });
+    if (socket) socket.emit('typing', { to: currentChat });
     typingTimer = setTimeout(() => {}, 1000);
 });
 
@@ -452,6 +481,52 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
     });
 });
 
+// ========== Мобильное меню ==========
+document.getElementById('menuToggleBtn').addEventListener('click', () => {
+    sidebar.classList.toggle('open');
+});
+
+// ========== Сохранение профиля ==========
+document.getElementById('saveProfileBtn').addEventListener('click', () => {
+    const avatar = document.getElementById('avatarPreview').innerText;
+    const color = document.getElementById('colorInput').value;
+    updateProfile(avatar, color);
+});
+
+// Выбор аватара через эмодзи-пикер
+let avatarPicker = null;
+function initAvatarPicker() {
+    if (!window.EmojiPicker) return;
+    avatarPicker = new window.EmojiPicker({
+        dataSource: 'https://cdn.jsdelivr.net/npm/emoji-picker-element@1.18.0/data/emojis.json',
+        locale: 'ru'
+    });
+    const pickerContainer = document.createElement('div');
+    pickerContainer.style.position = 'absolute';
+    pickerContainer.style.zIndex = 1000;
+    pickerContainer.style.background = 'var(--bg-sidebar)';
+    pickerContainer.style.borderRadius = '12px';
+    pickerContainer.style.boxShadow = '0 4px 12px rgba(0,0,0,0.3)';
+    pickerContainer.style.display = 'none';
+    pickerContainer.appendChild(avatarPicker);
+    document.body.appendChild(pickerContainer);
+    document.getElementById('pickAvatarBtn').addEventListener('click', (e) => {
+        const rect = e.target.getBoundingClientRect();
+        pickerContainer.style.left = rect.left + 'px';
+        pickerContainer.style.top = (rect.bottom + 5) + 'px';
+        pickerContainer.style.display = pickerContainer.style.display === 'none' ? 'block' : 'none';
+    });
+    avatarPicker.addEventListener('emoji-click', event => {
+        document.getElementById('avatarPreview').innerText = event.detail.unicode;
+        pickerContainer.style.display = 'none';
+    });
+    document.addEventListener('click', (e) => {
+        if (!pickerContainer.contains(e.target) && e.target.id !== 'pickAvatarBtn') {
+            pickerContainer.style.display = 'none';
+        }
+    });
+}
+
 // ========== Загрузка при старте ==========
 window.onload = () => {
     const token = localStorage.getItem('token');
@@ -465,6 +540,8 @@ window.onload = () => {
         loadFriendRequests();
         loadProfile();
         document.getElementById('userInfo').innerHTML = `👤 ${currentUser.username}`;
+        initEmojiPicker();
+        initAvatarPicker();
     }
     if (Notification.permission !== 'granted') {
         Notification.requestPermission();
@@ -475,3 +552,4 @@ document.getElementById('sendBtn').onclick = sendMessage;
 document.getElementById('messageInput').onkeypress = (e) => {
     if (e.key === 'Enter') sendMessage();
 };
+document.getElementById('logoutBtn').onclick = logout;
