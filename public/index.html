@@ -71,7 +71,12 @@
                 <input type="text" id="messageInput" placeholder="Сообщение...">
                 <button id="sendBtn" class="send-btn">Отправить</button>
             </div>
-            <div id="emojiPickerContainer" style="display: none;"></div>
+           <!-- Вместо <div id="emojiPickerContainer"></div> -->
+<div id="emojiMenu" style="display: none; position: absolute; background: var(--bg-sidebar); border-radius: 12px; padding: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.3); z-index: 1000; width: 280px;">
+    <div style="display: grid; grid-template-columns: repeat(8, 1fr); gap: 6px; max-height: 200px; overflow-y: auto;">
+        <!-- эмодзи будут вставлены скриптом -->
+    </div>
+</div>
         </div>
     </div>
 
