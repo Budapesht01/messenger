@@ -292,3 +292,68 @@ body {
     from { opacity: 0; transform: translateY(5px); }
     to { opacity: 1; transform: translateY(0); }
 }
+
+/* Сообщения с возможностью редактирования/удаления */
+.message {
+    position: relative;
+    margin-bottom: 15px;
+    padding: 8px 12px;
+    border-radius: 12px;
+    background: #fff;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+}
+.message.private {
+    background: #fef9e6;
+}
+.message.system {
+    text-align: center;
+    color: #6c757d;
+    background: none;
+    box-shadow: none;
+}
+.message-actions {
+    position: absolute;
+    right: 8px;
+    top: 8px;
+    display: none;
+    gap: 8px;
+}
+.message:hover .message-actions {
+    display: flex;
+}
+.message-actions button {
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 12px;
+    color: #6c757d;
+}
+.message-actions button:hover {
+    color: #007bff;
+}
+.edited-badge {
+    font-size: 10px;
+    color: #6c757d;
+    margin-left: 5px;
+}
+.deleted-message {
+    font-style: italic;
+    color: #adb5bd;
+}
+.settings-panel {
+    padding: 10px;
+}
+.settings-panel label {
+    display: block;
+    margin: 10px 0 5px;
+}
+.logout-btn {
+    background: #dc3545;
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 20px;
+    cursor: pointer;
+    width: 100%;
+    margin-top: 20px;
+}
