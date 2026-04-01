@@ -389,14 +389,16 @@ function initSimpleEmojiPicker() {
             input.value += emoji;
             input.focus();
             panel.classList.remove('open');
-            setTimeout(() => panel.style.display = 'none', 300);
+            panel.style.display = 'none';
         });
     });
     const emojiBtn = document.getElementById('emojiBtn');
     if (emojiBtn) {
         emojiBtn.addEventListener('click', () => {
-            if (panel.style.display === 'none') {
+            const isVisible = panel.style.display === 'block' || getComputedStyle(panel).display !== 'none';
+            if (!isVisible) {
                 panel.style.display = 'block';
+                // Небольшая задержка, чтобы браузер успел применить display: block перед добавлением класса
                 setTimeout(() => panel.classList.add('open'), 10);
             } else {
                 panel.classList.remove('open');
@@ -411,7 +413,6 @@ function initSimpleEmojiPicker() {
             setTimeout(() => panel.style.display = 'none', 300);
         });
     }
-    console.log('✅ Эмодзи-панель инициализирована');
 }
 
 function initAvatarPicker() {
