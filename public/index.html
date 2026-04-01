@@ -69,11 +69,13 @@
                 <input type="text" id="messageInput" placeholder="Сообщение...">
                 <button id="sendBtn" class="send-btn">Отправить</button>
             </div>
-            <!-- Контейнер для эмодзи-меню (будет заполнен скриптом) -->
-            <div id="emojiMenu" style="display: none; position: absolute; bottom: 70px; right: 10px; left: auto; background: var(--bg-sidebar); border-radius: 12px; padding: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.3); z-index: 1000; width: 280px;">
-                <div class="emoji-grid" style="display: grid; grid-template-columns: repeat(8, 1fr); gap: 6px; max-height: 200px; overflow-y: auto;"></div>
-            </div>
         </div>
+    </div>
+
+    <!-- Панель эмодзи (выезжающая снизу) -->
+    <div id="emojiPanel" style="display: none; position: fixed; bottom: 0; left: 0; right: 0; background: var(--bg-sidebar); border-top: 1px solid var(--border-color); z-index: 1001; padding: 12px; transform: translateY(100%); transition: transform 0.3s ease;">
+        <div class="emoji-grid" style="display: grid; grid-template-columns: repeat(8, 1fr); gap: 8px; max-height: 300px; overflow-y: auto; padding: 8px;"></div>
+        <button id="closeEmojiPanel" style="margin-top: 12px; width: 100%; padding: 10px; background: var(--accent); border: none; border-radius: 24px; color: white; cursor: pointer;">Закрыть</button>
     </div>
 
     <script src="/socket.io/socket.io.js"></script>
