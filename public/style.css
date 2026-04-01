@@ -675,3 +675,40 @@ body {
         padding: 4px 12px;
     }
 }
+
+/* Жёсткий фикс поля ввода */
+.input-area {
+    display: flex !important;
+    flex-wrap: wrap !important;
+    padding: 12px 16px !important;
+    background: var(--bg-sidebar) !important;
+    border-top: 1px solid var(--border-color) !important;
+    visibility: visible !important;
+    min-height: 60px !important;
+}
+#messageInput {
+    flex: 1 !important;
+    min-width: 100px !important;
+    padding: 10px 16px !important;
+    background: var(--input-bg) !important;
+    color: var(--text-primary) !important;
+    font-size: 14px !important;
+    display: block !important;
+    visibility: visible !important;
+}
+.emoji-btn, .send-btn {
+    display: inline-flex !important;
+    visibility: visible !important;
+}
+
+/* Жёсткий фикс текста запросов */
+#requestsList .user-item .user-name {
+    color: var(--text-primary) !important;
+    background: transparent !important;
+}
+
+/* Жёсткий фикс кнопки Сохранить */
+.primary-btn {
+    outline: none !important;
+    box-shadow: none !important;
+}
