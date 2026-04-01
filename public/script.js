@@ -381,7 +381,7 @@ function initSimpleEmojiPicker() {
     if (!menu) return;
     const grid = menu.querySelector('.emoji-grid');
     if (!grid) return;
-    grid.innerHTML = commonEmojis.map(emoji => `<span style="font-size:24px; cursor:pointer; text-align:center;">${emoji}</span>`).join('');
+    grid.innerHTML = commonEmojis.map(emoji => `<span>${emoji}</span>`).join('');
     grid.querySelectorAll('span').forEach(span => {
         span.addEventListener('click', (e) => {
             const emoji = e.target.innerText;
