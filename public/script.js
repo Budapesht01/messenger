@@ -3,7 +3,6 @@ let currentUser = null;
 let currentChat = 'all';
 let typingTimeout;
 let messagesContainer;
-let emojiPicker = null;
 
 // DOM элементы
 const authDiv = document.getElementById('auth');
@@ -156,7 +155,6 @@ function addMessageToChat(msg) {
     const div = document.createElement('div');
     div.className = `message ${msg.from === currentUser.username ? 'own' : 'other'}`;
     div.setAttribute('data-id', msg._id);
-    const avatar = msg.avatar || '😀';
     const color = msg.color || '#6ab0f3';
     div.innerHTML = `
         <div class="message-bubble">
@@ -369,39 +367,72 @@ async function updateProfile(avatar, color) {
         alert('Профиль обновлён');
         currentUser.avatar = avatar;
         currentUser.color = color;
-        // Обновляем превью
         document.getElementById('avatarPreview').innerText = avatar;
     } else {
         alert('Ошибка обновления');
     }
 }
 
-// ========== Эмодзи-пикер ==========
-function initEmojiPicker() {
-    if (!window.EmojiPicker) return;
-    emojiPicker = new window.EmojiPicker({
-        dataSource: 'https://cdn.jsdelivr.net/npm/emoji-picker-element@1.18.0/data/emojis.json',
-        locale: 'ru'
+// ========== Простой эмодзи-пикер ==========
+const commonEmojis = ['😀','😃','😄','😁','😆','😅','😂','🤣','😊','😇','🙂','🙃','😉','😌','😍','🥰','😘','😗','😙','😚','😋','😛','😝','😜','🤪','🤨','🧐','🤓','😎','🤩','🥳','😏','😒','😞','😔','😟','😕','🙁','☹️','😣','😖','😫','😩','🥺','😢','😭','😤','😠','😡','🤬','🤯','😳','🥵','🥶','😱','😨','😰','😥','😓','🤗','🤔','🤭','🤫','🤥','😶','😐','😑','😬','🙄','😯','😦','😧','😮','😲','🥱','😴','🤤','😪','😵','🤐','🥴','🤢','🤮','🤧','😷','🤒','🤕','🤑','🤠','😈','👿','👹','👺','🤡','💩','👻','💀','☠️','👽','👾','🤖','🎃','😺','😸','😹','😻','😼','😽','🙀','😿','😾','👍','👎','👌','✌️','🤞','🤟','🤘','🤙','👈','👉','👆','🖕','👇','☝️','✋','🤚','🖐️','🖖','👋','🤏','✍️','💅','🤳','💪','🦵','🦶','🦷','🦻','👂','👃','🧠','🫀','🫁','👀','👁️','👅','👄'];
+
+function initSimpleEmojiPicker() {
+    const menu = document.getElementById('emojiMenu');
+    if (!menu) return;
+    const grid = menu.querySelector('.emoji-grid');
+    if (!grid) return;
+    grid.innerHTML = commonEmojis.map(emoji => `<span style="font-size:24px; cursor:pointer; text-align:center;">${emoji}</span>`).join('');
+    grid.querySelectorAll('span').forEach(span => {
+        span.addEventListener('click', (e) => {
+            const emoji = e.target.innerText;
+            const input = document.getElementById('messageInput');
+            input.value += emoji;
+            input.focus();
+            menu.style.display = 'none';
+        });
     });
-    const container = document.getElementById('emojiPickerContainer');
-    container.appendChild(emojiPicker);
-    emojiPicker.addEventListener('emoji-click', event => {
-        const input = document.getElementById('messageInput');
-        input.value += event.detail.unicode;
-        input.focus();
-        container.style.display = 'none';
-    });
-    document.getElementById('emojiBtn').addEventListener('click', () => {
-        if (container.style.display === 'none') {
-            container.style.display = 'block';
-        } else {
-            container.style.display = 'none';
+    const emojiBtn = document.getElementById('emojiBtn');
+    if (emojiBtn) {
+        emojiBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const rect = emojiBtn.getBoundingClientRect();
+            menu.style.left = rect.left + 'px';
+            menu.style.top = (rect.bottom + 5) + 'px';
+            menu.style.display = menu.style.display === 'none' ? 'block' : 'none';
+        });
+    }
+    document.addEventListener('click', (e) => {
+        if (menu && !menu.contains(e.target) && e.target.id !== 'emojiBtn') {
+            menu.style.display = 'none';
         }
     });
-    // Закрывать при клике вне
+}
+
+function initAvatarPicker() {
+    const avatarPreview = document.getElementById('avatarPreview');
+    const pickerBtn = document.getElementById('pickAvatarBtn');
+    if (!avatarPreview || !pickerBtn) return;
+    const avatarMenu = document.createElement('div');
+    avatarMenu.className = 'emoji-menu';
+    avatarMenu.style.cssText = 'display:none; position:absolute; background:var(--bg-sidebar); border-radius:12px; padding:8px; box-shadow:0 4px 12px rgba(0,0,0,0.3); z-index:1000; width:280px;';
+    avatarMenu.innerHTML = `<div style="display:grid; grid-template-columns:repeat(8,1fr); gap:6px; max-height:200px; overflow-y:auto;">${commonEmojis.map(e => `<span style="font-size:24px; cursor:pointer; text-align:center;">${e}</span>`).join('')}</div>`;
+    document.body.appendChild(avatarMenu);
+    avatarMenu.querySelectorAll('span').forEach(span => {
+        span.addEventListener('click', () => {
+            avatarPreview.innerText = span.innerText;
+            avatarMenu.style.display = 'none';
+        });
+    });
+    pickerBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const rect = pickerBtn.getBoundingClientRect();
+        avatarMenu.style.left = rect.left + 'px';
+        avatarMenu.style.top = (rect.bottom + 5) + 'px';
+        avatarMenu.style.display = avatarMenu.style.display === 'none' ? 'block' : 'none';
+    });
     document.addEventListener('click', (e) => {
-        if (!container.contains(e.target) && e.target.id !== 'emojiBtn') {
-            container.style.display = 'none';
+        if (!avatarMenu.contains(e.target) && e.target !== pickerBtn) {
+            avatarMenu.style.display = 'none';
         }
     });
 }
@@ -493,40 +524,6 @@ document.getElementById('saveProfileBtn').addEventListener('click', () => {
     updateProfile(avatar, color);
 });
 
-// Выбор аватара через эмодзи-пикер
-let avatarPicker = null;
-function initAvatarPicker() {
-    if (!window.EmojiPicker) return;
-    avatarPicker = new window.EmojiPicker({
-        dataSource: 'https://cdn.jsdelivr.net/npm/emoji-picker-element@1.18.0/data/emojis.json',
-        locale: 'ru'
-    });
-    const pickerContainer = document.createElement('div');
-    pickerContainer.style.position = 'absolute';
-    pickerContainer.style.zIndex = 1000;
-    pickerContainer.style.background = 'var(--bg-sidebar)';
-    pickerContainer.style.borderRadius = '12px';
-    pickerContainer.style.boxShadow = '0 4px 12px rgba(0,0,0,0.3)';
-    pickerContainer.style.display = 'none';
-    pickerContainer.appendChild(avatarPicker);
-    document.body.appendChild(pickerContainer);
-    document.getElementById('pickAvatarBtn').addEventListener('click', (e) => {
-        const rect = e.target.getBoundingClientRect();
-        pickerContainer.style.left = rect.left + 'px';
-        pickerContainer.style.top = (rect.bottom + 5) + 'px';
-        pickerContainer.style.display = pickerContainer.style.display === 'none' ? 'block' : 'none';
-    });
-    avatarPicker.addEventListener('emoji-click', event => {
-        document.getElementById('avatarPreview').innerText = event.detail.unicode;
-        pickerContainer.style.display = 'none';
-    });
-    document.addEventListener('click', (e) => {
-        if (!pickerContainer.contains(e.target) && e.target.id !== 'pickAvatarBtn') {
-            pickerContainer.style.display = 'none';
-        }
-    });
-}
-
 // ========== Загрузка при старте ==========
 window.onload = () => {
     const token = localStorage.getItem('token');
@@ -540,7 +537,7 @@ window.onload = () => {
         loadFriendRequests();
         loadProfile();
         document.getElementById('userInfo').innerHTML = `👤 ${currentUser.username}`;
-        initEmojiPicker();
+        initSimpleEmojiPicker();
         initAvatarPicker();
     }
     if (Notification.permission !== 'granted') {
