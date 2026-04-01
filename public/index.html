@@ -69,7 +69,8 @@
                 <input type="text" id="messageInput" placeholder="Сообщение...">
                 <button id="sendBtn" class="send-btn">Отправить</button>
             </div>
-            <div id="emojiMenu" style="display: none; position: absolute; background: var(--bg-sidebar); border-radius: 12px; padding: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.3); z-index: 1000; width: 280px;">
+            <!-- Контейнер для эмодзи-меню (будет заполнен скриптом) -->
+            <div id="emojiMenu" style="display: none; position: absolute; bottom: 70px; right: 10px; left: auto; background: var(--bg-sidebar); border-radius: 12px; padding: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.3); z-index: 1000; width: 280px;">
                 <div class="emoji-grid" style="display: grid; grid-template-columns: repeat(8, 1fr); gap: 6px; max-height: 200px; overflow-y: auto;"></div>
             </div>
         </div>
