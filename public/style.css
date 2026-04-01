@@ -277,6 +277,7 @@ body {
     cursor: pointer;
 }
 
+/* Кнопка Сохранить – убираем белую полосу */
 .primary-btn {
     width: 100%;
     padding: 10px;
@@ -286,8 +287,8 @@ body {
     color: white;
     font-weight: bold;
     cursor: pointer;
-    outline: none;
-    box-shadow: none;
+    outline: none !important;
+    box-shadow: none !important;
 }
 
 .secondary-btn {
@@ -449,7 +450,7 @@ body {
     min-height: 32px;
 }
 
-/* Input area */
+/* Input area – теперь поле ввода всегда видимо */
 .input-area {
     display: flex;
     align-items: center;
@@ -459,6 +460,7 @@ body {
     gap: 8px;
     position: relative;
     flex-wrap: wrap;
+    z-index: 10;
 }
 
 .emoji-btn {
@@ -515,12 +517,12 @@ body {
     border-radius: 12px;
 }
 
-/* Текст в запросах */
+/* Текст в запросах – светлый */
 #requestsList .user-item .user-name {
-    color: var(--text-primary);
+    color: var(--text-primary) !important;
 }
 
-/* Responsive */
+/* Адаптив для телефонов */
 @media (max-width: 768px) {
     .sidebar {
         position: fixed;
@@ -568,6 +570,7 @@ body {
         font-size: 13px;
     }
     #messageInput {
+        min-width: 100px;
         padding: 8px 12px;
         font-size: 13px;
     }
@@ -606,8 +609,7 @@ body {
         font-size: 12px;
     }
     #messageInput {
-        flex: 1 1 auto;
-        min-width: 100px;
+        min-width: 80px;
         padding: 6px 10px;
         font-size: 12px;
     }
@@ -660,8 +662,7 @@ body {
         padding: 4px;
     }
     #messageInput {
-        flex: 1 1 auto;
-        min-width: 80px;
+        min-width: 60px;
         padding: 6px 8px;
         font-size: 11px;
     }
@@ -672,128 +673,5 @@ body {
     .typing-indicator {
         font-size: 10px;
         padding: 4px 12px;
-    }
-}
-
-/* ... (остальные стили остаются как были) ... */
-
-/* Дополнительные исправления */
-.input-area {
-    display: flex;
-    align-items: center;
-    padding: 12px 16px;
-    background: var(--bg-sidebar);
-    border-top: 1px solid var(--border-color);
-    gap: 8px;
-    position: relative;
-    flex-wrap: wrap;
-    z-index: 10;
-}
-
-.emoji-btn {
-    background: none;
-    border: none;
-    font-size: 24px;
-    cursor: pointer;
-    padding: 8px;
-    border-radius: 50%;
-    flex-shrink: 0;
-}
-
-#messageInput {
-    flex: 1 1 auto;
-    min-width: 120px;
-    padding: 10px 16px;
-    border: none;
-    border-radius: 24px;
-    background: var(--input-bg);
-    color: var(--text-primary);
-    font-size: 14px;
-    outline: none;
-}
-
-.send-btn {
-    background: var(--accent);
-    border: none;
-    border-radius: 24px;
-    padding: 8px 20px;
-    color: white;
-    font-weight: bold;
-    cursor: pointer;
-    flex-shrink: 0;
-}
-
-/* Кнопка Сохранить – убираем белую полосу */
-.primary-btn {
-    width: 100%;
-    padding: 10px;
-    background: var(--accent);
-    border: none;
-    border-radius: 24px;
-    color: white;
-    font-weight: bold;
-    cursor: pointer;
-    outline: none !important;
-    box-shadow: none !important;
-}
-
-/* Текст в запросах – светлый */
-#requestsList .user-item .user-name {
-    color: var(--text-primary) !important;
-}
-
-/* Адаптив для поля ввода на телефонах */
-@media (max-width: 768px) {
-    .input-area {
-        padding: 8px 12px;
-    }
-    #messageInput {
-        min-width: 100px;
-        padding: 8px 12px;
-    }
-    .emoji-btn {
-        padding: 6px;
-    }
-    .send-btn {
-        padding: 6px 16px;
-    }
-}
-
-@media (max-width: 480px) {
-    .input-area {
-        padding: 6px 10px;
-    }
-    #messageInput {
-        min-width: 80px;
-        padding: 6px 10px;
-        font-size: 13px;
-    }
-    .emoji-btn {
-        padding: 5px;
-        font-size: 22px;
-    }
-    .send-btn {
-        padding: 5px 12px;
-        font-size: 12px;
-    }
-}
-
-@media (max-width: 375px) {
-    .input-area {
-        padding: 6px 8px;
-        gap: 4px;
-    }
-    #messageInput {
-        min-width: 60px;
-        padding: 6px 8px;
-        font-size: 12px;
-    }
-    .emoji-btn {
-        padding: 4px;
-        font-size: 20px;
-    }
-    .send-btn {
-        padding: 4px 8px;
-        font-size: 11px;
     }
 }
