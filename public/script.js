@@ -373,13 +373,13 @@ async function updateProfile(avatar, color) {
     }
 }
 
-// ========== Простой эмодзи-пикер ==========
+// ========== Эмодзи ==========
 const commonEmojis = ['😀','😃','😄','😁','😆','😅','😂','🤣','😊','😇','🙂','🙃','😉','😌','😍','🥰','😘','😗','😙','😚','😋','😛','😝','😜','🤪','🤨','🧐','🤓','😎','🤩','🥳','😏','😒','😞','😔','😟','😕','🙁','☹️','😣','😖','😫','😩','🥺','😢','😭','😤','😠','😡','🤬','🤯','😳','🥵','🥶','😱','😨','😰','😥','😓','🤗','🤔','🤭','🤫','🤥','😶','😐','😑','😬','🙄','😯','😦','😧','😮','😲','🥱','😴','🤤','😪','😵','🤐','🥴','🤢','🤮','🤧','😷','🤒','🤕','🤑','🤠','😈','👿','👹','👺','🤡','💩','👻','💀','☠️','👽','👾','🤖','🎃','😺','😸','😹','😻','😼','😽','🙀','😿','😾','👍','👎','👌','✌️','🤞','🤟','🤘','🤙','👈','👉','👆','🖕','👇','☝️','✋','🤚','🖐️','🖖','👋','🤏','✍️','💅','🤳','💪','🦵','🦶','🦷','🦻','👂','👃','🧠','🫀','🫁','👀','👁️','👅','👄'];
 
 function initSimpleEmojiPicker() {
-    const menu = document.getElementById('emojiMenu');
-    if (!menu) return;
-    const grid = menu.querySelector('.emoji-grid');
+    const panel = document.getElementById('emojiPanel');
+    if (!panel) return;
+    const grid = panel.querySelector('.emoji-grid');
     if (!grid) return;
     grid.innerHTML = commonEmojis.map(emoji => `<span>${emoji}</span>`).join('');
     grid.querySelectorAll('span').forEach(span => {
@@ -388,24 +388,29 @@ function initSimpleEmojiPicker() {
             const input = document.getElementById('messageInput');
             input.value += emoji;
             input.focus();
-            menu.style.display = 'none';
+            panel.classList.remove('open');
+            setTimeout(() => panel.style.display = 'none', 300);
         });
     });
     const emojiBtn = document.getElementById('emojiBtn');
     if (emojiBtn) {
-        emojiBtn.addEventListener('click', (e) => {
-            e.stopPropagation();
-            const rect = emojiBtn.getBoundingClientRect();
-            menu.style.left = rect.left + 'px';
-            menu.style.top = (rect.bottom + 5) + 'px';
-            menu.style.display = menu.style.display === 'none' ? 'block' : 'none';
+        emojiBtn.addEventListener('click', () => {
+            if (panel.style.display === 'none') {
+                panel.style.display = 'block';
+                setTimeout(() => panel.classList.add('open'), 10);
+            } else {
+                panel.classList.remove('open');
+                setTimeout(() => panel.style.display = 'none', 300);
+            }
         });
     }
-    document.addEventListener('click', (e) => {
-        if (menu && !menu.contains(e.target) && e.target.id !== 'emojiBtn') {
-            menu.style.display = 'none';
-        }
-    });
+    const closeBtn = document.getElementById('closeEmojiPanel');
+    if (closeBtn) {
+        closeBtn.addEventListener('click', () => {
+            panel.classList.remove('open');
+            setTimeout(() => panel.style.display = 'none', 300);
+        });
+    }
 }
 
 function initAvatarPicker() {
