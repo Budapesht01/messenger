@@ -3,12 +3,13 @@ let currentUser = null;
 let currentChat = 'all';
 let typingTimeout;
 let messagesContainer;
+let currentEditingMessageId = null;
 
 // DOM элементы
 const authDiv = document.getElementById('auth');
 const chatDiv = document.getElementById('chat');
 
-// Функции аутентификации
+// ========== Аутентификация ==========
 function showError(msg) {
     document.getElementById('authError').innerText = msg;
 }
@@ -54,10 +55,21 @@ function loginSuccess(token, user) {
     initSocket(token);
     loadFriends();
     loadFriendRequests();
+    loadProfile();
     document.getElementById('userInfo').innerHTML = `👤 ${user.username}`;
 }
 
-// Socket
+function logout() {
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+    if (socket) socket.disconnect();
+    authDiv.style.display = 'flex';
+    chatDiv.style.display = 'none';
+    currentUser = null;
+    currentChat = 'all';
+}
+
+// ========== Socket ==========
 function initSocket(token) {
     socket = io({
         auth: { token }
@@ -80,8 +92,45 @@ function initSocket(token) {
         }
         notify(msg);
     });
-    socket.on('user_list', (users) => {
-        // не используется напрямую, но можно для обновления друзей
+    socket.on('message_edited', (data) => {
+        const { messageId, newText } = data;
+        const messageDiv = document.querySelector(`.message[data-id="${messageId}"]`);
+        if (messageDiv) {
+            const textDiv = messageDiv.querySelector('.message-text');
+            if (textDiv) {
+                textDiv.innerHTML = escapeHtml(newText);
+                let editedSpan = messageDiv.querySelector('.edited-badge');
+                if (!editedSpan) {
+                    editedSpan = document.createElement('span');
+                    editedSpan.className = 'edited-badge';
+                    editedSpan.innerText = ' (ред.)';
+                    messageDiv.querySelector('.username').after(editedSpan);
+                }
+            }
+        }
+    });
+    socket.on('message_deleted', (data) => {
+        const { messageId } = data;
+        const messageDiv = document.querySelector(`.message[data-id="${messageId}"]`);
+        if (messageDiv) {
+            messageDiv.classList.add('deleted-message');
+            const textDiv = messageDiv.querySelector('.message-text');
+            if (textDiv) textDiv.innerHTML = '<em>Сообщение удалено</em>';
+            const actions = messageDiv.querySelector('.message-actions');
+            if (actions) actions.style.display = 'none';
+        }
+    });
+    socket.on('friend_status', (data) => {
+        // Обновляем статус в списке друзей
+        updateFriendStatus(data.username, data.online, data.lastSeen);
+    });
+    socket.on('friend_request', (data) => {
+        showNotification(`Запрос в друзья от ${data.from}`);
+        loadFriendRequests();
+    });
+    socket.on('friend_accepted', (data) => {
+        showNotification(`${data.by} принял(а) ваш запрос в друзья!`);
+        loadFriends();
     });
     socket.on('typing', (data) => {
         document.getElementById('typingIndicator').innerHTML = `${data.from} печатает...`;
@@ -90,17 +139,9 @@ function initSocket(token) {
             document.getElementById('typingIndicator').innerHTML = '';
         }, 2000);
     });
-    socket.on('friend_request', (data) => {
-        showNotification(`Запрос в друзья от ${data.from}`);
-        loadFriendRequests(); // обновляем список запросов
-    });
-    socket.on('friend_accepted', (data) => {
-        showNotification(`${data.by} принял(а) ваш запрос в друзья!`);
-        loadFriends();
-    });
 }
 
-// Сообщения
+// ========== Сообщения ==========
 function sendMessage() {
     const input = document.getElementById('messageInput');
     const text = input.value.trim();
@@ -116,13 +157,38 @@ function addMessageToChat(msg) {
     div.className = 'message';
     if (msg.to !== 'all') div.classList.add('private');
     if (msg.from === 'system') div.classList.add('system');
+    div.setAttribute('data-id', msg._id);
     div.innerHTML = `
         <span class="username" style="color:${getUserColor(msg.from)}">${escapeHtml(msg.from)}</span>
         <span class="time">${new Date(msg.timestamp).toLocaleTimeString()}</span>
-        <div>${escapeHtml(msg.text)}</div>
+        ${msg.edited ? '<span class="edited-badge"> (ред.)</span>' : ''}
+        <div class="message-text">${escapeHtml(msg.text)}</div>
+        <div class="message-actions">
+            ${msg.from === currentUser.username ? `
+                <button class="edit-msg" data-id="${msg._id}">✏️</button>
+                <button class="delete-msg" data-id="${msg._id}">🗑️</button>
+            ` : ''}
+        </div>
     `;
     container.appendChild(div);
     container.scrollTop = container.scrollHeight;
+
+    // Обработчики для кнопок редактирования/удаления
+    if (msg.from === currentUser.username) {
+        div.querySelector('.edit-msg')?.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const newText = prompt('Редактировать сообщение:', msg.text);
+            if (newText && newText.trim()) {
+                socket.emit('edit_message', { messageId: msg._id, newText: newText.trim() });
+            }
+        });
+        div.querySelector('.delete-msg')?.addEventListener('click', (e) => {
+            e.stopPropagation();
+            if (confirm('Удалить сообщение для всех?')) {
+                socket.emit('delete_message', { messageId: msg._id });
+            }
+        });
+    }
 }
 
 function renderMessages(messages) {
@@ -135,7 +201,7 @@ function getUserColor(username) {
     return '#2c3e50';
 }
 
-// Друзья и запросы
+// ========== Друзья и запросы ==========
 async function loadFriends() {
     const token = localStorage.getItem('token');
     const res = await fetch('/api/friends', {
@@ -163,12 +229,10 @@ async function loadFriends() {
 
 async function loadFriendRequests() {
     const token = localStorage.getItem('token');
-    const res = await fetch('/api/users', {
+    const res = await fetch('/api/friend-requests', {
         headers: { 'Authorization': `Bearer ${token}` }
     });
-    const allUsers = await res.json();
-    const currentUserObj = allUsers.find(u => u.username === currentUser.username);
-    const requests = currentUserObj ? currentUserObj.friendRequests || [] : [];
+    const requests = await res.json();
     const container = document.getElementById('requestsList');
     container.innerHTML = '';
     if (requests.length === 0) {
@@ -220,7 +284,28 @@ async function loadFriendRequests() {
     });
 }
 
-// Поиск пользователей
+function updateFriendStatus(username, online, lastSeen) {
+    // Обновляем список друзей
+    const friendDivs = document.querySelectorAll('#friendsList .user-item');
+    friendDivs.forEach(div => {
+        const nameSpan = div.querySelector('.user-name');
+        if (nameSpan && nameSpan.innerText === username) {
+            const dot = div.querySelector('.online-dot');
+            if (online) {
+                if (!dot) div.insertAdjacentHTML('beforeend', '<span class="online-dot">●</span>');
+                else dot.style.display = 'inline';
+            } else {
+                if (dot) dot.style.display = 'none';
+            }
+            // Можно добавить подсказку "был в сети"
+            if (!online && lastSeen) {
+                div.setAttribute('title', `Был(а) в сети ${new Date(lastSeen).toLocaleString()}`);
+            }
+        }
+    });
+}
+
+// ========== Поиск пользователей ==========
 document.getElementById('searchUserInput').addEventListener('input', async (e) => {
     const q = e.target.value;
     if (q.length < 2) {
@@ -262,6 +347,40 @@ document.getElementById('searchUserInput').addEventListener('input', async (e) =
     });
 });
 
+// ========== Настройки профиля ==========
+async function loadProfile() {
+    const token = localStorage.getItem('token');
+    const res = await fetch('/api/me', {
+        headers: { 'Authorization': `Bearer ${token}` }
+    });
+    const data = await res.json();
+    document.getElementById('avatarInput').value = data.avatar || '😀';
+    document.getElementById('colorInput').value = data.color || '#2c3e50';
+}
+
+async function updateProfile() {
+    const avatar = document.getElementById('avatarInput').value;
+    const color = document.getElementById('colorInput').value;
+    const token = localStorage.getItem('token');
+    const res = await fetch('/api/me/update', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ avatar, color })
+    });
+    if (res.ok) {
+        alert('Профиль обновлён');
+        currentUser.avatar = avatar;
+        currentUser.color = color;
+        // Обновляем отображение в списках
+    } else {
+        alert('Ошибка обновления');
+    }
+}
+
+// ========== Смена чата ==========
 function switchChat(username) {
     currentChat = username;
     updateChatHeader();
@@ -286,7 +405,7 @@ async function fetchHistoryForUser(user) {
     renderMessages(messages);
 }
 
-// Утилиты
+// ========== Утилиты ==========
 function escapeHtml(str) {
     if (!str) return '';
     return str.replace(/[&<>]/g, function(m) {
@@ -312,7 +431,7 @@ function showNotification(text) {
     }
 }
 
-// Индикатор печатания
+// ========== Индикатор печатания ==========
 let typingTimer;
 document.getElementById('messageInput').addEventListener('input', () => {
     if (typingTimer) clearTimeout(typingTimer);
@@ -320,7 +439,7 @@ document.getElementById('messageInput').addEventListener('input', () => {
     typingTimer = setTimeout(() => {}, 1000);
 });
 
-// Переключение вкладок
+// ========== Переключение вкладок ==========
 document.querySelectorAll('.tab-btn').forEach(btn => {
     btn.addEventListener('click', () => {
         const tabId = btn.getAttribute('data-tab');
@@ -333,7 +452,7 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
     });
 });
 
-// Загрузка при старте
+// ========== Загрузка при старте ==========
 window.onload = () => {
     const token = localStorage.getItem('token');
     const savedUser = localStorage.getItem('user');
@@ -344,6 +463,7 @@ window.onload = () => {
         initSocket(token);
         loadFriends();
         loadFriendRequests();
+        loadProfile();
         document.getElementById('userInfo').innerHTML = `👤 ${currentUser.username}`;
     }
     if (Notification.permission !== 'granted') {
