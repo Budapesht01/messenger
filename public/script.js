@@ -411,6 +411,7 @@ function initSimpleEmojiPicker() {
             setTimeout(() => panel.style.display = 'none', 300);
         });
     }
+    console.log('✅ Эмодзи-панель инициализирована');
 }
 
 function initAvatarPicker() {
