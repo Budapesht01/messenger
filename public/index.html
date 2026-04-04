@@ -60,11 +60,11 @@
         <div class="main">
             <div class="chat-header">
                 <button id="menuToggleBtn" class="menu-toggle">☰</button>
-                <span class="chat-title">Общий чат</span>
+                <span class="chat-title" id="chatTitle">Выберите чат</span>
             </div>
             <div class="messages" id="messages"></div>
             <div class="typing-indicator" id="typingIndicator"></div>
-            <div class="input-area">
+            <div class="input-area" id="inputArea" style="display: none;">
                 <input type="text" id="messageInput" placeholder="Сообщение...">
                 <button id="sendBtn" class="send-btn">Отправить</button>
             </div>
