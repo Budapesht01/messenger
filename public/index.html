@@ -10,8 +10,8 @@
     <div id="auth" class="auth-container">
         <div class="auth-card">
             <h2>Добро пожаловать</h2>
-            <input type="text" id="authUsername" placeholder="Имя пользователя" autocomplete="username">
-            <input type="password" id="authPassword" placeholder="Пароль" autocomplete="current-password">
+            <input type="text" id="authUsername" placeholder="Имя пользователя">
+            <input type="password" id="authPassword" placeholder="Пароль">
             <div class="auth-buttons">
                 <button onclick="register()">Зарегистрироваться</button>
                 <button onclick="login()">Войти</button>
@@ -53,18 +53,18 @@
                     </div>
                     <button id="saveProfileBtn" class="primary-btn">Сохранить</button>
                     <hr>
-                    <button id="logoutBtn" class="logout-btn">Выйти</button>
+                    <button id="logoutBtn" class="logout-btn">Выйти из аккаунта</button>
                 </div>
             </div>
         </div>
         <div class="main">
             <div class="chat-header">
                 <button id="menuToggleBtn" class="menu-toggle">☰</button>
-                <span class="chat-title" id="chatTitle">Выберите чат</span>
+                <span class="chat-title">Общий чат</span>
             </div>
             <div class="messages" id="messages"></div>
             <div class="typing-indicator" id="typingIndicator"></div>
-            <div class="input-area" id="inputArea" style="display: none;">
+            <div class="input-area">
                 <input type="text" id="messageInput" placeholder="Сообщение...">
                 <button id="sendBtn" class="send-btn">Отправить</button>
             </div>
