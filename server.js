@@ -11,7 +11,7 @@ const app = express();
 const server = http.createServer(app);
 const io = new Server(server, {
   cors: {
-    origin: "*",
+    origin: "*", // Для продакшена замени на свой домен
     methods: ["GET", "POST"]
   }
 });
@@ -44,17 +44,32 @@ const UserSchema = new mongoose.Schema({
 
 const MessageSchema = new mongoose.Schema({
   from: { type: String, required: true },
-  to: { type: String, default: 'all' },
+  to: { type: String, required: true },
   text: { type: String, required: true },
   timestamp: { type: Date, default: Date.now },
-  edited: { type: Boolean, default: false },
-  deleted: { type: Boolean, default: false },
-  color: { type: String, default: '#6ab0f3' },   // цвет отправителя
-  avatar: { type: String, default: '😀' }        // аватар отправителя
+  edited: { type: Boolean, default: false }
+  // color, avatar и deleted удалены!
 });
 
 const User = mongoose.model('User', UserSchema);
 const Message = mongoose.model('Message', MessageSchema);
+
+// ========== Хелпер для подтягивания актуальных аватаров/цветов ==========
+async function populateMessages(messages) {
+  if (!messages || messages.length === 0) return [];
+  // Собираем всех уникальных отправителей
+  const usernames = [...new Set(messages.map(m => m.from))];
+  const users = await User.find({ username: { $in: usernames } }, 'username avatar color').lean();
+  
+  const userMap = {};
+  users.forEach(u => userMap[u.username] = u);
+  
+  return messages.map(m => ({
+    ...m,
+    avatar: userMap[m.from]?.avatar || '😀',
+    color: userMap[m.from]?.color || '#6ab0f3'
+  }));
+}
 
 // ========== Middleware JWT ==========
 const authenticateJWT = (req, res, next) => {
@@ -177,12 +192,12 @@ app.get('/api/search', authenticateJWT, async (req, res) => {
   const messages = await Message.find({
     $or: [
       { from: req.user.username, text: { $regex: q, $options: 'i' } },
-      { to: req.user.username, text: { $regex: q, $options: 'i' } },
-      { to: 'all', text: { $regex: q, $options: 'i' } }
-    ],
-    deleted: false
-  }).sort({ timestamp: -1 }).limit(50);
-  res.json(messages);
+      { to: req.user.username, text: { $regex: q, $options: 'i' } }
+    ]
+  }).sort({ timestamp: -1 }).limit(50).lean();
+  
+  const populated = await populateMessages(messages);
+  res.json(populated);
 });
 
 app.get('/api/messages', authenticateJWT, async (req, res) => {
@@ -190,13 +205,13 @@ app.get('/api/messages', authenticateJWT, async (req, res) => {
   if (!otherUser) return res.json([]);
   const messages = await Message.find({
     $or: [
-      { from: req.user.username, to: otherUser, deleted: false },
-      { from: otherUser, to: req.user.username, deleted: false },
-      { from: req.user.username, to: 'all', deleted: false },
-      { from: otherUser, to: 'all', deleted: false }
+      { from: req.user.username, to: otherUser },
+      { from: otherUser, to: req.user.username }
     ]
-  }).sort({ timestamp: 1 }).limit(100);
-  res.json(messages);
+  }).sort({ timestamp: 1 }).limit(100).lean();
+  
+  const populated = await populateMessages(messages);
+  res.json(populated);
 });
 
 // ========== Socket.IO ==========
@@ -217,10 +232,8 @@ io.use(async (socket, next) => {
 io.on('connection', async (socket) => {
   const user = socket.user;
 
-  // Обновляем статус онлайн
   await User.updateOne({ username: user.username }, { online: true, socketId: socket.id, lastSeen: new Date() });
 
-  // Сообщаем друзьям о новом статусе
   const userDoc = await User.findOne({ username: user.username });
   for (const friend of userDoc.friends) {
     const friendUser = await User.findOne({ username: friend });
@@ -229,31 +242,23 @@ io.on('connection', async (socket) => {
     }
   }
 
-  // Отправляем историю сообщений (последние 50 общих и личных)
-  const recentMessages = await Message.find({
-    $or: [
-      { to: 'all', deleted: false },
-      { to: user.username, deleted: false },
-      { from: user.username, deleted: false }
-    ]
-  }).sort({ timestamp: -1 }).limit(50);
-  socket.emit('history', recentMessages.reverse());
+  // Общий чат удален, история при коннекте больше не отправляется
 
-  // Обработка отправки сообщения
   socket.on('send_message', async (data) => {
     const { to, text } = data;
-    if (!text.trim()) return;
+    if (!text.trim() || !to) return;
 
-    // Сохраняем сообщение с цветом и аватаром отправителя
+    // Сохраняем сообщение без жесткой привязки к цвету
     const message = new Message({
       from: user.username,
-      to: to || 'all',
+      to: to,
       text: text.trim(),
-      timestamp: new Date(),
-      color: user.color,
-      avatar: user.avatar
+      timestamp: new Date()
     });
     await message.save();
+
+    // Достаем свежие данные отправителя
+    const freshSender = await User.findOne({ username: user.username });
 
     const messageData = {
       _id: message._id,
@@ -261,24 +266,18 @@ io.on('connection', async (socket) => {
       to: message.to,
       text: message.text,
       timestamp: message.timestamp,
-      color: user.color,
-      avatar: user.avatar,
-      edited: false,
-      deleted: false
+      color: freshSender.color,
+      avatar: freshSender.avatar,
+      edited: false
     };
 
-    if (to && to !== 'all') {
-      const recipient = await User.findOne({ username: to });
-      if (recipient && recipient.socketId) {
-        io.to(recipient.socketId).emit('private_message', messageData);
-      }
-      socket.emit('private_message', messageData);
-    } else {
-      io.emit('public_message', messageData);
+    const recipient = await User.findOne({ username: to });
+    if (recipient && recipient.socketId) {
+      io.to(recipient.socketId).emit('private_message', messageData);
     }
+    socket.emit('private_message', messageData);
   });
 
-  // Редактирование сообщения
   socket.on('edit_message', async (data) => {
     const { messageId, newText } = data;
     if (!messageId || !newText.trim()) return;
@@ -288,45 +287,38 @@ io.on('connection', async (socket) => {
     message.edited = true;
     await message.save();
 
-    if (message.to === 'all') {
-      io.emit('message_edited', { messageId, newText: message.text });
-    } else {
-      const recipient = await User.findOne({ username: message.to });
-      if (recipient && recipient.socketId) {
-        io.to(recipient.socketId).emit('message_edited', { messageId, newText: message.text });
-      }
-      socket.emit('message_edited', { messageId, newText: message.text });
+    const recipient = await User.findOne({ username: message.to });
+    if (recipient && recipient.socketId) {
+      io.to(recipient.socketId).emit('message_edited', { messageId, newText: message.text });
     }
+    socket.emit('message_edited', { messageId, newText: message.text });
   });
 
-  // Удаление сообщения
   socket.on('delete_message', async (data) => {
     const { messageId } = data;
     const message = await Message.findById(messageId);
     if (!message || message.from !== user.username) return;
-    message.deleted = true;
-    await message.save();
+    
+    // Физическое удаление из базы данных
+    await Message.findByIdAndDelete(messageId);
 
-    if (message.to === 'all') {
-      io.emit('message_deleted', { messageId });
-    } else {
-      const recipient = await User.findOne({ username: message.to });
-      if (recipient && recipient.socketId) {
-        io.to(recipient.socketId).emit('message_deleted', { messageId });
-      }
-      socket.emit('message_deleted', { messageId });
+    const recipient = await User.findOne({ username: message.to });
+    if (recipient && recipient.socketId) {
+      io.to(recipient.socketId).emit('message_deleted', { messageId });
     }
+    socket.emit('message_deleted', { messageId });
   });
 
-  // Индикатор печатания
   socket.on('typing', (data) => {
     const { to } = data;
-    if (to && to !== 'all') {
-      const recipient = io.sockets.sockets.get(to);
-      if (recipient) recipient.emit('typing', { from: user.username });
-    } else {
-      socket.broadcast.emit('typing', { from: user.username });
-    }
+    if (!to) return;
+    const recipient = io.sockets.sockets.get(to);
+    // Для этого нам нужен socketId получателя
+    User.findOne({ username: to }).then(recipientUser => {
+      if (recipientUser && recipientUser.socketId) {
+        io.to(recipientUser.socketId).emit('typing', { from: user.username });
+      }
+    });
   });
 
   socket.on('disconnect', async () => {
