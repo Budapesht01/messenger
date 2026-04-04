@@ -10,8 +10,8 @@
     <div id="auth" class="auth-container">
         <div class="auth-card">
             <h2>Добро пожаловать</h2>
-            <input type="text" id="authUsername" placeholder="Имя пользователя">
-            <input type="password" id="authPassword" placeholder="Пароль">
+            <input type="text" id="authUsername" placeholder="Имя пользователя" autocomplete="username">
+            <input type="password" id="authPassword" placeholder="Пароль" autocomplete="current-password">
             <div class="auth-buttons">
                 <button onclick="register()">Зарегистрироваться</button>
                 <button onclick="login()">Войти</button>
@@ -53,7 +53,7 @@
                     </div>
                     <button id="saveProfileBtn" class="primary-btn">Сохранить</button>
                     <hr>
-                    <button id="logoutBtn" class="logout-btn">Выйти из аккаунта</button>
+                    <button id="logoutBtn" class="logout-btn">Выйти</button>
                 </div>
             </div>
         </div>
