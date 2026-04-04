@@ -127,15 +127,19 @@ function initSocket(token) {
         showNotification(`${data.by} принял(а) ваш запрос в друзья!`);
         loadFriends();
     });
-    socket.on('typing', (data) => {
-        // Показываем индикатор только если открыт чат с этим пользователем
-        if (currentChat === data.from) {
-            document.getElementById('typingIndicator').innerHTML = `${data.from} печатает...`;
-            clearTimeout(typingTimeout);
-            typingTimeout = setTimeout(() => {
-                document.getElementById('typingIndicator').innerHTML = '';
-            }, 2000);
-        }
+socket.on('typing', (data) => {
+    if (currentChat === data.from) {
+        const indicator = document.getElementById('typingIndicator');
+        indicator.innerText = `${data.from} печатает...`;
+        indicator.style.opacity = '1'; // Показываем
+
+        clearTimeout(typingTimeout);
+        typingTimeout = setTimeout(() => {
+            indicator.style.opacity = '0'; // Плавно скрываем
+            setTimeout(() => { indicator.innerText = ''; }, 200; // Очищаем текст после анимации
+        }, 2000);
+    }
+});
     });
 }
 
