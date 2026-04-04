@@ -1,6 +1,6 @@
 let socket;
 let currentUser = null;
-let currentChat = 'all';
+let currentChat = null; // По умолчанию чат не выбран
 let typingTimeout;
 let messagesContainer;
 
@@ -8,6 +8,8 @@ let messagesContainer;
 const authDiv = document.getElementById('auth');
 const chatDiv = document.getElementById('chat');
 const sidebar = document.getElementById('sidebar');
+const inputArea = document.getElementById('inputArea');
+const chatTitle = document.getElementById('chatTitle');
 
 // ========== Аутентификация ==========
 function showError(msg) {
@@ -52,11 +54,14 @@ function loginSuccess(token, user) {
     currentUser = user;
     authDiv.style.display = 'none';
     chatDiv.style.display = 'flex';
+    inputArea.style.display = 'none'; // Скрываем ввод пока не выберут чат
+    updateChatHeader();
     initSocket(token);
     loadFriends();
     loadFriendRequests();
     loadProfile();
     document.getElementById('userInfo').innerHTML = `👤 ${user.username}`;
+    document.getElementById('messages').innerHTML = ''; // Очищаем экран сообщений
 }
 
 function logout() {
@@ -66,7 +71,8 @@ function logout() {
     authDiv.style.display = 'flex';
     chatDiv.style.display = 'none';
     currentUser = null;
-    currentChat = 'all';
+    currentChat = null;
+    inputArea.style.display = 'none';
 }
 
 // ========== Socket ==========
@@ -76,13 +82,6 @@ function initSocket(token) {
     });
     socket.on('connect', () => {
         console.log('Socket connected');
-    });
-    socket.on('history', (messages) => {
-        renderMessages(messages);
-    });
-    socket.on('public_message', (msg) => {
-        addMessageToChat(msg);
-        notify(msg);
     });
     socket.on('private_message', (msg) => {
         if (currentChat === msg.from || currentChat === msg.to) {
@@ -113,11 +112,8 @@ function initSocket(token) {
         const { messageId } = data;
         const messageDiv = document.querySelector(`.message[data-id="${messageId}"]`);
         if (messageDiv) {
-            messageDiv.classList.add('deleted-message');
-            const textDiv = messageDiv.querySelector('.message-text');
-            if (textDiv) textDiv.innerHTML = '<em>Сообщение удалено</em>';
-            const actions = messageDiv.querySelector('.message-actions');
-            if (actions) actions.style.display = 'none';
+            // Теперь удаляем физически из DOM-дерева
+            messageDiv.remove();
         }
     });
     socket.on('friend_status', (data) => {
@@ -132,26 +128,29 @@ function initSocket(token) {
         loadFriends();
     });
     socket.on('typing', (data) => {
-        document.getElementById('typingIndicator').innerHTML = `${data.from} печатает...`;
-        clearTimeout(typingTimeout);
-        typingTimeout = setTimeout(() => {
-            document.getElementById('typingIndicator').innerHTML = '';
-        }, 2000);
+        // Показываем индикатор только если открыт чат с этим пользователем
+        if (currentChat === data.from) {
+            document.getElementById('typingIndicator').innerHTML = `${data.from} печатает...`;
+            clearTimeout(typingTimeout);
+            typingTimeout = setTimeout(() => {
+                document.getElementById('typingIndicator').innerHTML = '';
+            }, 2000);
+        }
     });
 }
 
 // ========== Сообщения ==========
 function sendMessage() {
+    if (!currentChat) return;
     const input = document.getElementById('messageInput');
     const text = input.value.trim();
     if (!text) return;
-    const to = currentChat === 'all' ? 'all' : currentChat;
-    socket.emit('send_message', { to, text });
+    socket.emit('send_message', { to: currentChat, text });
     input.value = '';
 }
 
-function addMessageToChat(msg) {
-    const container = messagesContainer;
+function addMessageToChat(msg, skipScroll = false) {
+    const container = document.getElementById('messages');
     const div = document.createElement('div');
     div.className = `message ${msg.from === currentUser.username ? 'own' : 'other'}`;
     div.setAttribute('data-id', msg._id);
@@ -173,7 +172,11 @@ function addMessageToChat(msg) {
         </div>
     `;
     container.appendChild(div);
-    container.scrollTop = container.scrollHeight;
+    
+    // Скролл делаем только если это не массовая отрисовка
+    if (!skipScroll) {
+        container.scrollTop = container.scrollHeight;
+    }
 
     if (msg.from === currentUser.username) {
         div.querySelector('.edit-msg')?.addEventListener('click', (e) => {
@@ -185,7 +188,7 @@ function addMessageToChat(msg) {
         });
         div.querySelector('.delete-msg')?.addEventListener('click', (e) => {
             e.stopPropagation();
-            if (confirm('Удалить сообщение для всех?')) {
+            if (confirm('Удалить сообщение навсегда?')) {
                 socket.emit('delete_message', { messageId: msg._id });
             }
         });
@@ -193,9 +196,12 @@ function addMessageToChat(msg) {
 }
 
 function renderMessages(messages) {
-    messagesContainer = document.getElementById('messages');
-    messagesContainer.innerHTML = '';
-    messages.forEach(msg => addMessageToChat(msg));
+    const container = document.getElementById('messages');
+    container.innerHTML = '';
+    // Отрисовываем все сообщения без скролла
+    messages.forEach(msg => addMessageToChat(msg, true));
+    // Делаем скролл один раз в самом конце
+    container.scrollTop = container.scrollHeight;
 }
 
 // ========== Друзья и запросы ==========
@@ -368,6 +374,9 @@ async function updateProfile(avatar, color) {
         currentUser.avatar = avatar;
         currentUser.color = color;
         document.getElementById('avatarPreview').innerText = avatar;
+        
+        // Опционально: если открыт чат, обновляем историю чтобы увидеть свои новые цвета
+        if (currentChat) fetchHistoryForUser(currentChat);
     } else {
         alert('Ошибка обновления');
     }
@@ -408,6 +417,7 @@ function initAvatarPicker() {
 // ========== Смена чата ==========
 function switchChat(username) {
     currentChat = username;
+    inputArea.style.display = 'flex'; // Показываем строку ввода
     updateChatHeader();
     fetchHistoryForUser(username);
     if (window.innerWidth <= 768) {
@@ -416,11 +426,10 @@ function switchChat(username) {
 }
 
 function updateChatHeader() {
-    const titleElem = document.querySelector('.chat-title');
-    if (currentChat === 'all') {
-        titleElem.innerText = 'Общий чат';
+    if (!currentChat) {
+        chatTitle.innerText = 'Выберите чат';
     } else {
-        titleElem.innerText = `Чат с ${currentChat}`;
+        chatTitle.innerText = `Чат с ${currentChat}`;
     }
 }
 
@@ -462,6 +471,7 @@ function showNotification(text) {
 // ========== Индикатор печатания ==========
 let typingTimer;
 document.getElementById('messageInput').addEventListener('input', () => {
+    if (!currentChat) return;
     if (typingTimer) clearTimeout(typingTimer);
     if (socket) socket.emit('typing', { to: currentChat });
     typingTimer = setTimeout(() => {}, 1000);
@@ -500,6 +510,8 @@ window.onload = () => {
         currentUser = JSON.parse(savedUser);
         authDiv.style.display = 'none';
         chatDiv.style.display = 'flex';
+        inputArea.style.display = 'none'; // Скрываем ввод
+        updateChatHeader();
         initSocket(token);
         loadFriends();
         loadFriendRequests();
