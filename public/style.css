@@ -676,3 +676,10 @@ body {
         font-size: 11px;
     }
 }
+
+.info {
+    text-align: center;
+    padding: 20px;
+    color: var(--accent);
+    font-size: 14px;
+}
