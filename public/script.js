@@ -78,8 +78,8 @@ function initSocket(token) {
         console.log('Socket connected');
     });
     socket.on('history', (messages) => {
-        renderMessages(messages);
-    });
+    // не показываем историю пока не выбран чат
+});
     socket.on('private_message', (msg) => {
         if (currentChat === msg.from || currentChat === msg.to) {
             addMessageToChat(msg);
@@ -424,9 +424,13 @@ async function fetchHistoryForUser(user) {
         headers: { 'Authorization': `Bearer ${token}` }
     });
     const messages = await res.json();
-    renderMessages(messages);
+    // показываем только личные сообщения между двумя пользователями
+    const filtered = messages.filter(m => 
+        (m.from === currentUser.username && m.to === user) ||
+        (m.from === user && m.to === currentUser.username)
+    );
+    renderMessages(filtered);
 }
-
 // ========== Утилиты ==========
 function escapeHtml(str) {
     if (!str) return '';
