@@ -176,7 +176,7 @@ body {
 .user-name {
     flex: 1;
     font-weight: 500;
-    color: var(--text-primary);
+    color: #e1e3e6;
 }
 
 .online-dot {
