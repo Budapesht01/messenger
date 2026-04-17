@@ -517,3 +517,67 @@ document.getElementById('messageInput').onkeypress = (e) => {
     if (e.key === 'Enter') sendMessage();
 };
 document.getElementById('logoutBtn').onclick = logout;
+
+// ========== Emoji Picker ==========
+const emojiCategories = [
+    { icon: '😀', emojis: ['😀','😃','😄','😁','😆','😅','😂','🤣','😊','😇','🙂','😉','😌','😍','🥰','😘','😋','😛','😜','🤪','😎','🥳','😏','😒','😔','😟','😣','😖','😫','😩','🥺','😢','😭','😤','😠','😡','🤬','🤯','😳','🥵','🥶','😱','😨','😰','🤗','🤔','🤫','🤥','😶','😐','😑','😬','🙄','😯','😲','🥱','😴','🤤','😵','🤢','🤮','🤧','😷','🤒','🤕','🤑','🤠','😈','👿','👹','👺','🤡','💩','👻','💀','👽','🤖','😺','😸','😹','😻','😼','😽','🙀','😿','😾'] },
+    { icon: '👍', emojis: ['👍','👎','👌','✌️','🤞','🤟','🤘','🤙','👈','👉','👆','👇','☝️','✋','🤚','🖐️','🖖','👋','🤏','✍️','💅','💪','🙌','👏','🤝','🙏','👐','🤲','💏','💑','👪','🧑','👶','👧','👦','👩','👨','🧓','👴','👵','👮','🕵️','💂','👷','🤴','👸','🧙','🧚','🧜','🧝','🧛','🧟','🧞','🧠','👁️','👅','👄','💋','🦷','👂','👃','🦶','🦵','💪'] },
+    { icon: '🐶', emojis: ['🐶','🐱','🐭','🐹','🐰','🦊','🐻','🐼','🐨','🐯','🦁','🐮','🐷','🐸','🐵','🙈','🙉','🙊','🐔','🐧','🐦','🐤','🦆','🦅','🦉','🦇','🐺','🐗','🐴','🦄','🐝','🐛','🦋','🐌','🐞','🐜','🦟','🦗','🕷️','🦂','🐢','🐍','🦎','🦖','🦕','🐙','🦑','🦐','🦞','🦀','🐡','🐠','🐟','🐬','🐳','🐋','🦈','🐊','🐅','🐆','🦓','🦍','🐘','🦏','🦛','🐪','🐫','🦒','🦘','🐃','🐂','🐄','🐎','🐖','🐏','🐑','🦙','🐐','🦌','🐕','🐩','🦮','🐈','🐓','🦃','🦚','🦜','🦢','🦩','🕊️','🐇','🦝','🦨','🦡','🦦','🦥','🐁','🐀','🐿️','🦔'] },
+    { icon: '🍎', emojis: ['🍎','🍐','🍊','🍋','🍌','🍉','🍇','🍓','🍈','🍒','🍑','🥭','🍍','🥥','🥝','🍅','🍆','🥑','🥦','🥬','🥒','🌶️','🌽','🥕','🧄','🧅','🥔','🍠','🥐','🥯','🍞','🥖','🥨','🧀','🥚','🍳','🧈','🥞','🧇','🥓','🥩','🍗','🍖','🦴','🌭','🍔','🍟','🍕','🫓','🥪','🥙','🧆','🌮','🌯','🫔','🥗','🥘','🫕','🍲','🍛','🍜','🍝','🍠','🍢','🍣','🍤','🍙','🍚','🍘','🍥','🥮','🍡','🧁','🍰','🎂','🍮','🍭','🍬','🍫','🍿','🍩','🍪','🌰','🥜','🍯','🧃','🥤','🧋','☕','🍵','🧉','🍺','🍻','🥂','🍷','🥃','🍸','🍹','🍾'] },
+    { icon: '⚽', emojis: ['⚽','🏀','🏈','⚾','🥎','🎾','🏐','🏉','🥏','🎱','🪀','🏓','🏸','🏒','🥊','🥋','🎽','🛹','🛼','🛷','⛸️','🥌','🎿','⛷️','🏂','🪂','🏋️','🤼','🤸','⛹️','🤺','🏊','🚣','🧗','🚵','🚴','🏆','🥇','🥈','🥉','🏅','🎖️','🎗️','🎫','🎟️','🎪','🤹','🎭','🎨','🎬','🎤','🎧','🎼','🎹','🥁','🎷','🎺','🎸','🪕','🎻','🎲','♟️','🎯','🎳','🎮','🕹️'] },
+    { icon: '❤️', emojis: ['❤️','🧡','💛','💚','💙','💜','🖤','🤍','🤎','💔','❣️','💕','💞','💓','💗','💖','💘','💝','💟','☮️','✝️','☯️','🕉️','☦️','🛐','⛎','♈','♉','♊','♋','♌','♍','♎','♏','♐','♑','♒','♓','🆔','⚛️','🉑','☢️','☣️','📴','📳','🈶','🈚','🈸','🈺','🈷️','✴️','🆚','💮','🉐','㊙️','㊗️','🈴','🈵','🈹','🈲','🅰️','🅱️','🆎','🆑','🅾️','🆘','❌','⭕','🛑','⛔','📛','🚫','💯','💢','♨️','🚷','🚯','🚳','🚱','🔞','📵','🔕'] },
+];
+
+function initEmojiPicker() {
+    const panel = document.getElementById('emojiPickerPanel');
+    const toggleBtn = document.getElementById('emojiToggleBtn');
+    const grid = document.getElementById('emojiGrid');
+    const catsContainer = document.getElementById('emojiCategories');
+    const input = document.getElementById('messageInput');
+
+    // Рендер категорий
+    emojiCategories.forEach((cat, i) => {
+        const btn = document.createElement('button');
+        btn.className = 'emoji-cat-btn' + (i === 0 ? ' active' : '');
+        btn.innerText = cat.icon;
+        btn.addEventListener('click', () => {
+            document.querySelectorAll('.emoji-cat-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            renderEmojiGrid(cat.emojis);
+        });
+        catsContainer.appendChild(btn);
+    });
+
+    // Первая категория по умолчанию
+    renderEmojiGrid(emojiCategories[0].emojis);
+
+    function renderEmojiGrid(emojis) {
+        grid.innerHTML = '';
+        emojis.forEach(emoji => {
+            const span = document.createElement('span');
+            span.innerText = emoji;
+            span.addEventListener('click', () => {
+                input.value += emoji;
+                input.focus();
+            });
+            grid.appendChild(span);
+        });
+    }
+
+    // Открыть/закрыть
+    toggleBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        panel.classList.toggle('open');
+    });
+
+    document.addEventListener('click', (e) => {
+        if (!panel.contains(e.target) && e.target !== toggleBtn) {
+            panel.classList.remove('open');
+        }
+    });
+}
+
+// Инициализация при загрузке
+window.addEventListener('load', () => {
+    initEmojiPicker();
+});
