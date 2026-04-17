@@ -64,10 +64,15 @@
             </div>
             <div class="messages" id="messages"></div>
             <div class="typing-indicator" id="typingIndicator"></div>
-            <div class="input-area">
-                <input type="text" id="messageInput" placeholder="Сообщение...">
-                <button id="sendBtn" class="send-btn">Отправить</button>
-            </div>
+            <div class="input-area" style="position:relative;">
+    <div class="emoji-picker-panel" id="emojiPickerPanel">
+        <div class="emoji-categories" id="emojiCategories"></div>
+        <div class="emoji-grid" id="emojiGrid"></div>
+    </div>
+    <button class="emoji-toggle-btn" id="emojiToggleBtn">😊</button>
+    <input type="text" id="messageInput" placeholder="Сообщение...">
+    <button id="sendBtn" class="send-btn">Отправить</button>
+</div>
         </div>
     </div>
 
