@@ -208,7 +208,7 @@ async function loadFriends() {
     const container = document.getElementById('friendsList');
     container.innerHTML = '';
     if (friends.length === 0) {
-        container.innerHTML = '<div class="info">Нет друзей. Найдите их в поиске!</div>';
+        container.innerHTML = '<div style="text-align:center; padding:20px; color:var(--accent); font-size:14px;">👥 Найдите друзей во вкладке Поиск!</div>';
         return;
     }
     friends.forEach(friend => {
@@ -233,7 +233,7 @@ async function loadFriendRequests() {
     const container = document.getElementById('requestsList');
     container.innerHTML = '';
     if (requests.length === 0) {
-        container.innerHTML = '<div class="info">Нет входящих запросов.</div>';
+        container.innerHTML = '<div style="text-align:center; padding:20px; color:var(--accent); font-size:14px;">📭 Нет входящих запросов</div>';
         return;
     }
     requests.forEach(from => {
