@@ -239,12 +239,11 @@ body {
     display: flex;
     align-items: center;
     gap: 12px;
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
     background: var(--input-bg);
     padding: 12px 16px;
     border-radius: 16px;
 }
-
 .avatar-selector label {
     color: var(--text-secondary);
     font-size: 14px;
