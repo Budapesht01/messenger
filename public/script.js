@@ -80,10 +80,6 @@ function initSocket(token) {
     socket.on('history', (messages) => {
         renderMessages(messages);
     });
-    socket.on('public_message', (msg) => {
-        addMessageToChat(msg);
-        notify(msg);
-    });
     socket.on('private_message', (msg) => {
         if (currentChat === msg.from || currentChat === msg.to) {
             addMessageToChat(msg);
@@ -140,13 +136,11 @@ function initSocket(token) {
     });
 }
 
-// ========== Сообщения ==========
 function sendMessage() {
     const input = document.getElementById('messageInput');
     const text = input.value.trim();
-    if (!text) return;
-    const to = currentChat === 'all' ? 'all' : currentChat;
-    socket.emit('send_message', { to, text });
+    if (!text || currentChat === 'all') return;
+    socket.emit('send_message', { to: currentChat, text });
     input.value = '';
 }
 
@@ -505,6 +499,8 @@ window.onload = () => {
         loadFriendRequests();
         loadProfile();
         document.getElementById('userInfo').innerHTML = `👤 ${currentUser.username}`;
+        document.querySelector('.chat-title').innerText = 'Выберите чат';
+        document.getElementById('messageInput').placeholder = 'Выберите чат для отправки...';
         initAvatarPicker();
     }
     if (Notification.permission !== 'granted') {
