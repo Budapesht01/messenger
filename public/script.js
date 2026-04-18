@@ -11,10 +11,18 @@ const sidebar = document.getElementById('sidebar');
 
 // ========== Аутентификация ==========
 function showError(msg) {
-    document.getElementById('authError').innerText = msg;
+    const el = document.getElementById('authError');
+    el.innerText = msg;
+    if (msg) {
+        clearTimeout(el._hideTimer);
+        el._hideTimer = setTimeout(() => {
+            el.innerText = '';
+        }, 3000);
+    }
 }
 
 async function register() {
+    showError('');
     const username = document.getElementById('authUsername').value.trim();
     const password = document.getElementById('authPassword').value;
 
@@ -53,6 +61,7 @@ async function register() {
 }
 
 async function login() {
+    showError('');
     const username = document.getElementById('authUsername').value.trim();
     const password = document.getElementById('authPassword').value;
 
