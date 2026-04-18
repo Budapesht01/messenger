@@ -15,8 +15,26 @@ function showError(msg) {
 }
 
 async function register() {
-    const username = document.getElementById('authUsername').value;
+    const username = document.getElementById('authUsername').value.trim();
     const password = document.getElementById('authPassword').value;
+
+    if (!username) {
+        showError('Введите имя пользователя');
+        return;
+    }
+    if (username.length < 3) {
+        showError('Имя пользователя должно быть не менее 3 символов');
+        return;
+    }
+    if (!password) {
+        showError('Введите пароль');
+        return;
+    }
+    if (password.length < 8) {
+        showError('Пароль должен быть не менее 8 символов');
+        return;
+    }
+
     const res = await fetch('/api/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -26,13 +44,31 @@ async function register() {
     if (res.ok) {
         loginSuccess(data.token, data.user);
     } else {
-        showError(data.error);
+        if (data.error === 'Username taken') {
+            showError('Это имя уже занято, придумайте другое');
+        } else {
+            showError(data.error);
+        }
     }
 }
 
 async function login() {
-    const username = document.getElementById('authUsername').value;
+    const username = document.getElementById('authUsername').value.trim();
     const password = document.getElementById('authPassword').value;
+
+    if (!username) {
+        showError('Введите имя пользователя');
+        return;
+    }
+    if (!password) {
+        showError('Введите пароль');
+        return;
+    }
+    if (password.length < 8) {
+        showError('Пароль должен быть не менее 8 символов');
+        return;
+    }
+
     const res = await fetch('/api/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -42,7 +78,11 @@ async function login() {
     if (res.ok) {
         loginSuccess(data.token, data.user);
     } else {
-        showError(data.error);
+        if (data.error === 'Invalid credentials') {
+            showError('Неверное имя пользователя или пароль');
+        } else {
+            showError(data.error);
+        }
     }
 }
 
