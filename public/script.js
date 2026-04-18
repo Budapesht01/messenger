@@ -423,29 +423,79 @@ const commonEmojis = ['😀','😃','😄','😁','😆','😅','😂','🤣','�
 function initAvatarPicker() {
     const avatarPreview = document.getElementById('avatarPreview');
     const pickerBtn = document.getElementById('pickAvatarBtn');
+    const panel = document.getElementById('avatarEmojiPanel');
+    const grid = document.getElementById('avatarEmojiGrid');
+    const catsContainer = document.getElementById('avatarEmojiCategories');
+
     if (!avatarPreview || !pickerBtn) return;
-    const avatarMenu = document.createElement('div');
-    avatarMenu.className = 'emoji-menu';
-    avatarMenu.style.cssText = 'display:none; position:absolute; background:var(--bg-sidebar); border-radius:12px; padding:8px; box-shadow:0 4px 12px rgba(0,0,0,0.3); z-index:1000; width:280px;';
-    avatarMenu.innerHTML = `<div style="display:grid; grid-template-columns:repeat(8,1fr); gap:6px; max-height:200px; overflow-y:auto;">${commonEmojis.map(e => `<span style="font-size:24px; cursor:pointer; text-align:center;">${e}</span>`).join('')}</div>`;
-    document.body.appendChild(avatarMenu);
-    avatarMenu.querySelectorAll('span').forEach(span => {
-        span.addEventListener('click', () => {
-            avatarPreview.innerText = span.innerText;
-            avatarMenu.style.display = 'none';
+
+    // Рендер категорий (те же что в emoji picker)
+    emojiCategories.forEach((cat, i) => {
+        const btn = document.createElement('button');
+        btn.className = 'emoji-cat-btn' + (i === 0 ? ' active' : '');
+        btn.innerText = cat.icon;
+        btn.addEventListener('click', () => {
+            document.querySelectorAll('#avatarEmojiCategories .emoji-cat-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            renderAvatarGrid(cat.emojis);
         });
+        catsContainer.appendChild(btn);
     });
+
+    renderAvatarGrid(emojiCategories[0].emojis);
+
+    function renderAvatarGrid(emojis) {
+        grid.innerHTML = '';
+        emojis.forEach(emoji => {
+            const span = document.createElement('span');
+            span.innerText = emoji;
+            span.addEventListener('click', () => {
+                avatarPreview.innerText = emoji;
+                panel.classList.remove('open');
+            });
+            grid.appendChild(span);
+        });
+    }
+
     pickerBtn.addEventListener('click', (e) => {
         e.stopPropagation();
-        const rect = pickerBtn.getBoundingClientRect();
-        avatarMenu.style.left = rect.left + 'px';
-        avatarMenu.style.top = (rect.bottom + 5) + 'px';
-        avatarMenu.style.display = avatarMenu.style.display === 'none' ? 'block' : 'none';
+        panel.classList.toggle('open');
     });
+
     document.addEventListener('click', (e) => {
-        if (!avatarMenu.contains(e.target) && e.target !== pickerBtn) {
-            avatarMenu.style.display = 'none';
+        if (!panel.contains(e.target) && e.target !== pickerBtn) {
+            panel.classList.remove('open');
         }
+    });
+
+    // Color picker
+    const colorInput = document.getElementById('colorInput');
+    const colorPreview = document.getElementById('colorPreview');
+    const colorHex = document.getElementById('colorHex');
+    const presets = document.querySelectorAll('.color-preset');
+
+    function updateColor(hex) {
+        colorPreview.style.background = hex;
+        colorHex.innerText = hex;
+        colorInput.value = hex;
+        presets.forEach(p => {
+            p.classList.toggle('active', p.getAttribute('data-color') === hex);
+        });
+    }
+
+    // Инициализация цвета
+    updateColor(colorInput.value || '#6ab0f3');
+
+    // Клик на превью открывает пипетку
+    colorPreview.addEventListener('click', () => colorInput.click());
+    colorHex.addEventListener('click', () => colorInput.click());
+
+    colorInput.addEventListener('input', () => updateColor(colorInput.value));
+
+    presets.forEach(preset => {
+        preset.addEventListener('click', () => {
+            updateColor(preset.getAttribute('data-color'));
+        });
     });
 }
 
