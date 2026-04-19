@@ -198,11 +198,15 @@ body {
 }
 
 .friend-request-btn, .accept-btn, .reject-btn {
-    padding: 4px 12px;
+    padding: 6px 14px;
     border: none;
     border-radius: 20px;
     cursor: pointer;
-    font-size: 12px;
+    font-size: 13px;
+    font-weight: 500;
+    white-space: nowrap;
+    flex-shrink: 0;
+    line-height: 1.4;
 }
 
 .friend-request-btn {
