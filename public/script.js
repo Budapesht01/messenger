@@ -565,10 +565,10 @@ function showNotification(text) {
 let typingTimer;
 document.getElementById('messageInput').addEventListener('input', () => {
     if (typingTimer) clearTimeout(typingTimer);
-    if (socket && currentChat !== 'all') {
+    if (socket && currentChat && currentChat !== 'all') {
         socket.emit('typing', { to: currentChat });
     }
-    typingTimer = setTimeout(() => {}, 1000);
+    typingTimer = setTimeout(() => {}, 1500);
 });
 // ========== Переключение вкладок ==========
 document.querySelectorAll('.tab-btn').forEach(btn => {
