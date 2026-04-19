@@ -231,6 +231,7 @@ function switchChat(username) {
     currentGroupId = null;
     document.querySelector('.chat-title').innerText = `Чат с ${username}`;
     document.getElementById('messageInput').placeholder = 'Сообщение...';
+    document.getElementById('groupInfoBtn').style.display = 'none';
     fetchHistoryForUser(username);
     if (window.innerWidth <= 768) sidebar.classList.remove('open');
     setActiveChatItem('dm_' + username);
@@ -241,6 +242,7 @@ async function switchGroupChat(groupId, groupName) {
     currentChat = null;
     document.querySelector('.chat-title').innerText = groupName;
     document.getElementById('messageInput').placeholder = 'Сообщение в группу...';
+    document.getElementById('groupInfoBtn').style.display = 'flex';
     if (window.innerWidth <= 768) sidebar.classList.remove('open');
     setActiveChatItem('group_' + groupId);
 
@@ -864,6 +866,30 @@ window.onload = () => {
     }
     if (Notification.permission !== 'granted') Notification.requestPermission();
     initEmojiPicker();
+
+    // Мобильная клавиатура: прокручиваем вниз при фокусе на поле ввода
+    const msgInput = document.getElementById('messageInput');
+    msgInput.addEventListener('focus', () => {
+        if (window.innerWidth <= 768) {
+            setTimeout(() => {
+                const msgs = document.getElementById('messages');
+                msgs.scrollTop = msgs.scrollHeight;
+                msgInput.scrollIntoView({ behavior: 'smooth', block: 'end' });
+            }, 350);
+        }
+    });
+
+    // visualViewport API — подстраиваем высоту при открытии клавиатуры
+    if (window.visualViewport) {
+        window.visualViewport.addEventListener('resize', () => {
+            const main = document.querySelector('.main');
+            if (main && window.innerWidth <= 768) {
+                main.style.height = window.visualViewport.height + 'px';
+                const msgs = document.getElementById('messages');
+                msgs.scrollTop = msgs.scrollHeight;
+            }
+        });
+    }
 };
 
 document.getElementById('sendBtn').onclick = sendMessage;
