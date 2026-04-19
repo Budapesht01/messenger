@@ -23,7 +23,12 @@ if (!process.env.MONGODB_URI || !process.env.JWT_SECRET) {
 }
 
 mongoose.connect(process.env.MONGODB_URI)
-  .then(() => console.log('✅ MongoDB connected'))
+  .then(async () => {
+    console.log('✅ MongoDB connected');
+    // Сбросить всех пользователей в оффлайн при старте сервера
+    await User.updateMany({}, { online: false, socketId: null });
+    console.log('✅ Online status reset');
+  })
   .catch(err => console.error('❌ MongoDB connection error:', err));
 
 // ========== Модели ==========
