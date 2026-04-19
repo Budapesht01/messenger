@@ -503,12 +503,11 @@ async function createGroup() {
 
 function showInviteCode(code, name, type) {
     const modal = document.getElementById('inviteCodeModal');
-    const inviteLink = `${location.origin}?invite=${code}`;
-    document.getElementById('inviteCodeDisplay').innerText = inviteLink;
+    document.getElementById('inviteCodeDisplay').innerText = code;
     document.getElementById('inviteCodeGroupName').innerText = name;
     const hint = type === 'public'
-        ? '🌍 Публичная группа — её можно найти через поиск. Поделитесь ссылкой для прямого входа:'
-        : '🔒 Закрытая группа — вступить можно только по этой ссылке:';
+        ? '🌍 Публичная группа — её можно найти через поиск. Код для прямого входа:'
+        : '🔒 Закрытая группа — вступить можно только по этому коду:';
     document.getElementById('inviteCodeHint').innerText = hint;
     modal.classList.add('open');
 }
@@ -518,11 +517,11 @@ function closeInviteModal() {
 }
 
 function copyInviteCode() {
-    const link = document.getElementById('inviteCodeDisplay').innerText;
-    navigator.clipboard.writeText(link).then(() => {
+    const code = document.getElementById('inviteCodeDisplay').innerText;
+    navigator.clipboard.writeText(code).then(() => {
         const btn = document.getElementById('copyCodeBtn');
         btn.innerText = '✓ Скопировано!';
-        setTimeout(() => btn.innerText = '📋 Скопировать ссылку', 2000);
+        setTimeout(() => btn.innerText = '📋 Скопировать код', 2000);
     });
 }
 
@@ -611,7 +610,7 @@ async function showGroupInfo() {
     document.getElementById('groupInfoName').innerText = group.name;
     document.getElementById('groupInfoAvatar').innerText = group.avatar || '👥';
     document.getElementById('groupInfoType').innerText = group.type === 'public' ? '🌍 Публичная' : '🔒 Закрытая';
-    const inviteLink = `${location.origin}?invite=${group.inviteCode}`;
+    const inviteLink = group.inviteCode;
     document.getElementById('groupInfoCode').innerText = inviteLink;
     document.getElementById('groupInfoMembers').innerHTML = group.members
         .map(m => `<span class="member-tag">${m === group.owner ? '👑 ' : ''}${escapeHtml(m)}</span>`)
@@ -636,9 +635,9 @@ async function getGroupInviteLink() {
     });
     const data = await res.json();
     if (!res.ok) return alert(data.error);
-    const link = `${location.origin}?invite=${data.inviteCode}`;
-    navigator.clipboard.writeText(link).then(() => {
-        showNotification('🔗 Ссылка скопирована!');
+    const code = data.inviteCode;
+    navigator.clipboard.writeText(code).then(() => {
+        showNotification('🔗 Код скопирован: ' + code);
     });
 }
 
