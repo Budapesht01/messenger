@@ -626,6 +626,20 @@ function closeGroupInfoModal() {
     document.getElementById('groupInfoModal').classList.remove('open');
 }
 
+async function getGroupInviteLink() {
+    if (!currentGroupId) return;
+    const token = localStorage.getItem('token');
+    const res = await fetch(`/api/groups/${currentGroupId}/invite`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+    });
+    const data = await res.json();
+    if (!res.ok) return alert(data.error);
+    const link = `${location.origin}?invite=${data.inviteCode}`;
+    navigator.clipboard.writeText(link).then(() => {
+        showNotification('🔗 Ссылка скопирована!');
+    });
+}
+
 async function deleteGroup() {
     if (!confirm('Удалить группу для всех?')) return;
     const token = localStorage.getItem('token');
