@@ -124,17 +124,27 @@ body {
 .tabs {
     display: flex;
     border-bottom: 1px solid var(--border-color);
+    overflow: hidden;
 }
 
 .tab-btn {
     flex: 1;
-    padding: 12px;
+    padding: 12px 6px;
     background: none;
     border: none;
     cursor: pointer;
-    font-size: 14px;
+    font-size: 13px;
     font-weight: 500;
     color: var(--text-secondary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.tab-btn[data-tab="settings"] {
+    flex: 0 0 42px;
+    font-size: 16px;
+    padding: 12px 8px;
 }
 
 .tab-btn.active {
