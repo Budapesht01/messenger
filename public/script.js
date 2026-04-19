@@ -177,12 +177,16 @@ function initSocket(token) {
         loadFriends();
     });
     socket.on('typing', (data) => {
-        document.getElementById('typingIndicator').innerHTML = `${data.from} печатает...`;
-        clearTimeout(typingTimeout);
-        typingTimeout = setTimeout(() => {
-            document.getElementById('typingIndicator').innerHTML = '';
-        }, 2000);
-    });
+    if (currentChat !== data.from) return;
+    const indicator = document.getElementById('typingIndicator');
+    indicator.innerHTML = `✏️ ${data.from} печатает...`;
+    indicator.classList.add('active');
+    clearTimeout(typingTimeout);
+    typingTimeout = setTimeout(() => {
+        indicator.innerHTML = '';
+        indicator.classList.remove('active');
+    }, 2000);
+});
 }
 
 function sendMessage() {
