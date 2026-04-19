@@ -468,18 +468,20 @@ body {
 }
 
 .typing-indicator {
-    padding: 4px 16px;
+    padding: 0 16px;
     font-style: italic;
     color: var(--accent);
     font-size: 13px;
-    min-height: 0;
-    height: auto;
     background: transparent;
-    transition: opacity 0.3s ease;
+    overflow: hidden;
+    max-height: 0;
+    transition: max-height 0.25s ease, padding 0.25s ease, opacity 0.25s ease;
     opacity: 0;
 }
 
 .typing-indicator.active {
+    max-height: 32px;
+    padding: 4px 16px;
     opacity: 1;
 }
 
@@ -553,20 +555,20 @@ body {
     /* Поле ввода фиксируется внизу, не перекрывает сообщения */
     .main {
         position: relative;
-        padding-bottom: 70px;
+        padding-bottom: 0;
     }
     .input-area {
         position: fixed;
         bottom: 0;
         left: 0;
         right: 0;
-        background: var(--bg-sidebar);
-        border-top: 1px solid var(--border-color);
+        background: #1a1a1a;
+        border-top: 1px solid #2a2a2a;
         padding: 8px 12px;
         z-index: 999;
         margin: 0;
         border-radius: 0;
-        box-shadow: 0 -2px 10px rgba(0,0,0,0.1);
+        box-shadow: 0 -2px 10px rgba(0,0,0,0.15);
     }
     #messageInput {
         padding: 12px 14px;
@@ -577,7 +579,23 @@ body {
         font-size: 14px;
     }
     .messages {
-        margin-bottom: 70px;
+        margin-bottom: 64px;
+    }
+    .typing-indicator {
+        position: fixed;
+        bottom: 64px;
+        left: 0;
+        right: 0;
+        background: #111111;
+        z-index: 998;
+        padding: 0 16px;
+        max-height: 0;
+        overflow: hidden;
+        transition: max-height 0.25s ease, padding 0.25s ease;
+    }
+    .typing-indicator.active {
+        max-height: 28px;
+        padding: 4px 16px;
     }
 
     /* Шапка компактнее */
@@ -672,8 +690,7 @@ body {
         font-size: 12px;
     }
     .typing-indicator {
-        font-size: 10px;
-        padding: 4px 12px;
+        font-size: 11px;
     }
     .user-info {
         font-size: 14px;
