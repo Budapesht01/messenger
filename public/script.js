@@ -177,12 +177,16 @@ function initSocket(token) {
         loadFriends();
     });
     socket.on('typing', (data) => {
-        document.getElementById('typingIndicator').innerHTML = `${data.from} печатает...`;
-        clearTimeout(typingTimeout);
-        typingTimeout = setTimeout(() => {
-            document.getElementById('typingIndicator').innerHTML = '';
-        }, 2000);
-    });
+    if (currentChat !== data.from) return;
+    const indicator = document.getElementById('typingIndicator');
+    indicator.innerHTML = `✏️ ${data.from} печатает...`;
+    indicator.classList.add('active');
+    clearTimeout(typingTimeout);
+    typingTimeout = setTimeout(() => {
+        indicator.innerHTML = '';
+        indicator.classList.remove('active');
+    }, 2000);
+});
 }
 
 function sendMessage() {
@@ -561,10 +565,11 @@ function showNotification(text) {
 let typingTimer;
 document.getElementById('messageInput').addEventListener('input', () => {
     if (typingTimer) clearTimeout(typingTimer);
-    if (socket) socket.emit('typing', { to: currentChat });
-    typingTimer = setTimeout(() => {}, 1000);
+    if (socket && currentChat && currentChat !== 'all') {
+        socket.emit('typing', { to: currentChat });
+    }
+    typingTimer = setTimeout(() => {}, 1500);
 });
-
 // ========== Переключение вкладок ==========
 document.querySelectorAll('.tab-btn').forEach(btn => {
     btn.addEventListener('click', () => {

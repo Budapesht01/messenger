@@ -319,13 +319,13 @@ io.on('connection', async (socket) => {
   });
 
   // Индикатор печатания
-  socket.on('typing', (data) => {
+  socket.on('typing', async (data) => {
     const { to } = data;
     if (to && to !== 'all') {
-      const recipient = io.sockets.sockets.get(to);
-      if (recipient) recipient.emit('typing', { from: user.username });
-    } else {
-      socket.broadcast.emit('typing', { from: user.username });
+      const recipientUser = await User.findOne({ username: to });
+      if (recipientUser && recipientUser.socketId) {
+        io.to(recipientUser.socketId).emit('typing', { from: user.username });
+      }
     }
   });
 
