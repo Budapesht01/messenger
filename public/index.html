@@ -44,9 +44,9 @@
             <div class="tab-content" id="groups-tab">
                 <div class="groups-toolbar">
                     <button class="primary-btn small-btn" onclick="openCreateGroupModal()">+ Создать</button>
-                    <div style="display:flex; gap:6px; margin-top:8px;">
-                        <input type="text" id="joinCodeInput" placeholder="Код приглашения..." style="flex:1; padding:8px 12px; border-radius:20px; border:1px solid var(--border-color); background:var(--input-bg); color:var(--text-primary); font-size:13px; outline:none;">
-                        <button class="primary-btn small-btn" onclick="joinByCode()">Войти</button>
+                    <div style="display:flex; flex-direction:column; gap:6px; margin-top:8px;">
+                        <input type="text" id="joinCodeInput" placeholder="Код приглашения..." style="width:100%; box-sizing:border-box; padding:8px 12px; border-radius:20px; border:1px solid var(--border-color); background:var(--input-bg); color:var(--text-primary); font-size:13px; outline:none;">
+                        <button class="primary-btn" style="width:100%; border-radius:20px;" onclick="joinByCode()">Войти</button>
                     </div>
                 </div>
                 <div id="groupsList"></div>
@@ -218,6 +218,7 @@
                 <div id="groupInfoMembers" class="members-list"></div>
             </div>
             <div class="modal-footer">
+                <button class="secondary-btn" onclick="getGroupInviteLink()">🔗 Скопировать ссылку</button>
                 <button class="logout-btn" id="deleteGroupBtn" onclick="deleteGroup()" style="display:none;">Удалить группу</button>
                 <button class="logout-btn" id="leaveGroupBtn" onclick="leaveGroup()" style="display:none;">Покинуть группу</button>
                 <button class="secondary-btn" onclick="closeGroupInfoModal()">Закрыть</button>
