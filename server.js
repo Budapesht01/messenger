@@ -231,11 +231,13 @@ app.get('/api/groups', authenticateJWT, async (req, res) => {
   res.json(groups);
 });
 
-// Публичные группы (поиск)
+// Публичные группы (поиск) — только type === 'public', приватные никогда не попадают сюда
 app.get('/api/groups/public', authenticateJWT, async (req, res) => {
   const q = req.query.q || '';
   const regex = new RegExp(q, 'i');
-  const groups = await Group.find({ type: 'public', name: regex });
+  const groups = await Group.find({ type: 'public', name: regex })
+    .select('_id name description avatar type members owner');
+  // Явно не возвращаем inviteCode в публичном поиске
   res.json(groups);
 });
 
@@ -258,6 +260,14 @@ app.post('/api/groups/join', authenticateJWT, async (req, res) => {
   }
 
   res.json({ group: updated });
+});
+
+// Получить инвайт-ссылку группы (доступно любому участнику, для обоих типов)
+app.get('/api/groups/:id/invite', authenticateJWT, async (req, res) => {
+  const group = await Group.findById(req.params.id);
+  if (!group) return res.status(404).json({ error: 'Group not found' });
+  if (!group.members.includes(req.user.username)) return res.status(403).json({ error: 'Not a member' });
+  res.json({ inviteCode: group.inviteCode, type: group.type });
 });
 
 // Присоединиться к публичной группе
