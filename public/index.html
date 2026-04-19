@@ -187,8 +187,8 @@
             <div class="modal-body" style="text-align:center;">
                 <div style="font-size:14px; color:var(--text-secondary); margin-bottom:16px;" id="inviteCodeHint"></div>
                 <div style="font-size:13px; color:var(--text-secondary); margin-bottom:8px;">«<span id="inviteCodeGroupName"></span>»</div>
-                <div class="invite-code-box" id="inviteCodeDisplay" style="word-break:break-all; font-size:12px;"></div>
-                <button class="primary-btn" id="copyCodeBtn" onclick="copyInviteCode()" style="margin-top:16px;">📋 Скопировать ссылку</button>
+                <div class="invite-code-box" id="inviteCodeDisplay" style="font-size:22px; letter-spacing:3px; font-weight:700;"></div>
+                <button class="primary-btn" id="copyCodeBtn" onclick="copyInviteCode()" style="margin-top:16px;">📋 Скопировать код</button>
             </div>
             <div class="modal-footer">
                 <button class="primary-btn" onclick="closeInviteModal()">Готово</button>
@@ -204,18 +204,16 @@
                 <button class="modal-close" onclick="closeGroupInfoModal()">✕</button>
             </div>
             <div class="modal-body">
-                <div style="text-align:center; margin-bottom:16px;">
-                    <div style="font-size:48px;" id="groupInfoAvatar">👥</div>
-                    <div style="font-size:18px; font-weight:600; color:var(--text-primary); margin-top:8px;" id="groupInfoName"></div>
-                    <div style="font-size:13px; color:var(--text-secondary); margin-top:4px;" id="groupInfoType"></div>
+                <div style="text-align:center; margin-bottom:20px;">
+                    <div style="font-size:56px; margin-bottom:8px;" id="groupInfoAvatar">👥</div>
+                    <div style="font-size:20px; font-weight:700; color:var(--text-primary); margin-bottom:6px;" id="groupInfoName"></div>
+                    <div style="font-size:13px; color:var(--text-secondary); background:rgba(106,176,243,0.1); display:inline-block; padding:4px 12px; border-radius:20px;" id="groupInfoType"></div>
                 </div>
-                <div class="info-row" style="flex-wrap:wrap; gap:6px;">
-                    <span class="info-label">Ссылка приглашения:</span>
-                    <span class="invite-code-small" id="groupInfoCode" style="word-break:break-all; font-size:11px; flex:1;"></span>
-                    <button class="secondary-btn tiny-btn" onclick="navigator.clipboard.writeText(document.getElementById('groupInfoCode').innerText).then(() => { this.innerText='✓'; setTimeout(()=>this.innerText='📋',1500); })">📋</button>
+                <div style="margin-top:4px; margin-bottom:8px;">
+                    <div class="members-label" style="margin-bottom:8px;">Участники:</div>
+                    <div id="groupInfoMembers" class="members-list"></div>
                 </div>
-                <div class="members-label" style="margin-top:16px; margin-bottom:8px;">Участники:</div>
-                <div id="groupInfoMembers" class="members-list"></div>
+                <span id="groupInfoCode" style="display:none;"></span>
             </div>
             <div class="modal-footer">
                 <button class="secondary-btn" onclick="getGroupInviteLink()">🔗 Скопировать ссылку</button>
