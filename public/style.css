@@ -8,6 +8,7 @@ body {
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
     background: var(--bg-page);
     height: 100vh;
+    height: 100dvh;
     overflow: hidden;
 }
 
@@ -100,6 +101,7 @@ body {
 .chat-container {
     display: flex;
     height: 100vh;
+    height: 100dvh;
     background: var(--bg-page);
 }
 
@@ -571,13 +573,16 @@ body {
         display: flex;
         flex-direction: column;
         height: 100vh;
+        height: 100dvh;
         padding-bottom: 0;
+        overflow: hidden;
     }
     .messages {
         flex: 1;
         overflow-y: auto;
         margin-bottom: 0;
         padding-bottom: 8px;
+        overscroll-behavior: contain;
     }
     .typing-indicator {
         position: static;
