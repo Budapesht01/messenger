@@ -11,7 +11,7 @@ const app = express();
 const server = http.createServer(app);
 const io = new Server(server, {
   cors: {
-    origin: "*", // для простоты, в продакшне лучше ограничить
+    origin: "*",
     methods: ["GET", "POST"]
   }
 });
@@ -20,35 +20,43 @@ app.use(cors());
 app.use(express.json());
 app.use(express.static('public'));
 
-// Подключение к MongoDB
-mongoose.connect(process.env.MONGODB_URI, {
-  useNewUrlParser: true,
-  useUnifiedTopology: true,
-}).then(() => console.log('MongoDB connected'))
-  .catch(err => console.log('MongoDB error:', err));
+if (!process.env.MONGODB_URI || !process.env.JWT_SECRET) {
+  console.error('Missing MONGODB_URI or JWT_SECRET');
+  process.exit(1);
+}
 
-// Модели
+mongoose.connect(process.env.MONGODB_URI)
+  .then(() => console.log('✅ MongoDB connected'))
+  .catch(err => console.error('❌ MongoDB connection error:', err));
+
+// ========== Модели ==========
 const UserSchema = new mongoose.Schema({
   username: { type: String, unique: true, required: true },
   password: { type: String, required: true },
-  avatar: { type: String, default: '😀' }, // эмодзи-аватар
-  color: { type: String, default: '#2c3e50' }, // цвет ника
+  avatar: { type: String, default: '😀' },
+  color: { type: String, default: '#6ab0f3' },
   online: { type: Boolean, default: false },
   socketId: { type: String, default: null },
-  lastSeen: { type: Date, default: Date.now }
+  lastSeen: { type: Date, default: Date.now },
+  friends: [{ type: String }],
+  friendRequests: [{ type: String }]
 });
 
 const MessageSchema = new mongoose.Schema({
-  from: { type: String, required: true }, // username отправителя
-  to: { type: String, default: 'all' }, // 'all' или username получателя
+  from: { type: String, required: true },
+  to: { type: String, default: 'all' },
   text: { type: String, required: true },
-  timestamp: { type: Date, default: Date.now }
+  timestamp: { type: Date, default: Date.now },
+  edited: { type: Boolean, default: false },
+  deleted: { type: Boolean, default: false },
+  color: { type: String, default: '#6ab0f3' },   // цвет отправителя
+  avatar: { type: String, default: '😀' }        // аватар отправителя
 });
 
 const User = mongoose.model('User', UserSchema);
 const Message = mongoose.model('Message', MessageSchema);
 
-// Middleware для проверки JWT
+// ========== Middleware JWT ==========
 const authenticateJWT = (req, res, next) => {
   const authHeader = req.headers.authorization;
   if (authHeader) {
@@ -63,7 +71,7 @@ const authenticateJWT = (req, res, next) => {
   }
 };
 
-// API: регистрация
+// ========== API ==========
 app.post('/api/register', async (req, res) => {
   const { username, password } = req.body;
   if (!username || !password) return res.status(400).json({ error: 'All fields required' });
@@ -76,7 +84,6 @@ app.post('/api/register', async (req, res) => {
   res.json({ token, user: { username: user.username, avatar: user.avatar, color: user.color } });
 });
 
-// API: логин
 app.post('/api/login', async (req, res) => {
   const { username, password } = req.body;
   const user = await User.findOne({ username });
@@ -87,13 +94,83 @@ app.post('/api/login', async (req, res) => {
   res.json({ token, user: { username: user.username, avatar: user.avatar, color: user.color } });
 });
 
-// API: поиск пользователей (для отправки личных сообщений)
-app.get('/api/users', authenticateJWT, async (req, res) => {
-  const users = await User.find({}, 'username avatar color online lastSeen');
-  res.json(users);
+app.get('/api/me', authenticateJWT, async (req, res) => {
+  const user = await User.findOne({ username: req.user.username });
+  res.json({ username: user.username, avatar: user.avatar, color: user.color });
 });
 
-// API: поиск сообщений (по тексту)
+app.post('/api/me/update', authenticateJWT, async (req, res) => {
+  const { avatar, color } = req.body;
+  const update = {};
+  if (avatar) update.avatar = avatar;
+  if (color) update.color = color;
+  await User.updateOne({ username: req.user.username }, update);
+  res.json({ message: 'Profile updated' });
+});
+
+app.get('/api/users/search', authenticateJWT, async (req, res) => {
+  const q = req.query.q || '';
+  const regex = new RegExp(q, 'i');
+  const users = await User.find({ username: regex }, 'username avatar color online lastSeen');
+  const filtered = users.filter(u => u.username !== req.user.username);
+  res.json(filtered);
+});
+
+app.get('/api/friends', authenticateJWT, async (req, res) => {
+  const user = await User.findOne({ username: req.user.username });
+  const friends = await User.find({ username: { $in: user.friends } }, 'username avatar color online lastSeen');
+  res.json(friends);
+});
+
+app.get('/api/friend-requests', authenticateJWT, async (req, res) => {
+  const user = await User.findOne({ username: req.user.username });
+  res.json(user.friendRequests);
+});
+
+app.post('/api/friend-request', authenticateJWT, async (req, res) => {
+  const { to } = req.body;
+  if (!to) return res.status(400).json({ error: 'Username required' });
+  if (to === req.user.username) return res.status(400).json({ error: 'Cannot add yourself' });
+  const target = await User.findOne({ username: to });
+  if (!target) return res.status(404).json({ error: 'User not found' });
+  if (target.friends.includes(req.user.username)) return res.status(400).json({ error: 'Already friends' });
+  if (target.friendRequests.includes(req.user.username)) return res.status(400).json({ error: 'Request already sent' });
+  await User.updateOne({ username: to }, { $push: { friendRequests: req.user.username } });
+  if (target.socketId) {
+    io.to(target.socketId).emit('friend_request', { from: req.user.username });
+  }
+  res.json({ message: 'Friend request sent' });
+});
+
+app.post('/api/friend-request/accept', authenticateJWT, async (req, res) => {
+  const { from } = req.body;
+  if (!from) return res.status(400).json({ error: 'Username required' });
+  const currentUser = await User.findOne({ username: req.user.username });
+  if (!currentUser.friendRequests.includes(from)) return res.status(400).json({ error: 'No request from this user' });
+  await User.updateOne({ username: req.user.username }, { $pull: { friendRequests: from }, $push: { friends: from } });
+  await User.updateOne({ username: from }, { $push: { friends: req.user.username } });
+  const fromUser = await User.findOne({ username: from });
+  if (fromUser.socketId) {
+    io.to(fromUser.socketId).emit('friend_accepted', { by: req.user.username });
+  }
+  res.json({ message: 'Friend added' });
+});
+
+app.post('/api/friend-request/reject', authenticateJWT, async (req, res) => {
+  const { from } = req.body;
+  if (!from) return res.status(400).json({ error: 'Username required' });
+  await User.updateOne({ username: req.user.username }, { $pull: { friendRequests: from } });
+  res.json({ message: 'Request rejected' });
+});
+
+app.post('/api/friends/remove', authenticateJWT, async (req, res) => {
+  const { friend } = req.body;
+  if (!friend) return res.status(400).json({ error: 'Friend username required' });
+  await User.updateOne({ username: req.user.username }, { $pull: { friends: friend } });
+  await User.updateOne({ username: friend }, { $pull: { friends: req.user.username } });
+  res.json({ message: 'Friend removed' });
+});
+
 app.get('/api/search', authenticateJWT, async (req, res) => {
   const q = req.query.q;
   if (!q) return res.json([]);
@@ -102,12 +179,27 @@ app.get('/api/search', authenticateJWT, async (req, res) => {
       { from: req.user.username, text: { $regex: q, $options: 'i' } },
       { to: req.user.username, text: { $regex: q, $options: 'i' } },
       { to: 'all', text: { $regex: q, $options: 'i' } }
-    ]
+    ],
+    deleted: false
   }).sort({ timestamp: -1 }).limit(50);
   res.json(messages);
 });
 
-// Socket.IO с аутентификацией
+app.get('/api/messages', authenticateJWT, async (req, res) => {
+  const { with: otherUser } = req.query;
+  if (!otherUser) return res.json([]);
+  const messages = await Message.find({
+    $or: [
+      { from: req.user.username, to: otherUser, deleted: false },
+      { from: otherUser, to: req.user.username, deleted: false },
+      { from: req.user.username, to: 'all', deleted: false },
+      { from: otherUser, to: 'all', deleted: false }
+    ]
+  }).sort({ timestamp: 1 }).limit(100);
+  res.json(messages);
+});
+
+// ========== Socket.IO ==========
 io.use(async (socket, next) => {
   const token = socket.handshake.auth.token;
   if (!token) return next(new Error('Authentication error'));
@@ -124,60 +216,114 @@ io.use(async (socket, next) => {
 
 io.on('connection', async (socket) => {
   const user = socket.user;
-  // Обновляем статус пользователя
-  await User.updateOne({ username: user.username }, { online: true, socketId: socket.id, lastSeen: new Date() });
-  
-  // Уведомляем всех об обновлении списка пользователей
-  const updateUserList = async () => {
-    const users = await User.find({}, 'username avatar color online lastSeen');
-    io.emit('user_list', users);
-  };
-  await updateUserList();
 
-  // Отправляем последние 50 сообщений общего чата и личные сообщения для этого пользователя
+  // Обновляем статус онлайн
+  await User.updateOne({ username: user.username }, { online: true, socketId: socket.id, lastSeen: new Date() });
+
+  // Сообщаем друзьям о новом статусе
+  const userDoc = await User.findOne({ username: user.username });
+  for (const friend of userDoc.friends) {
+    const friendUser = await User.findOne({ username: friend });
+    if (friendUser && friendUser.socketId) {
+      io.to(friendUser.socketId).emit('friend_status', { username: user.username, online: true });
+    }
+  }
+
+  // Отправляем историю сообщений (последние 50 общих и личных)
   const recentMessages = await Message.find({
     $or: [
-      { to: 'all' },
-      { to: user.username },
-      { from: user.username }
+      { to: 'all', deleted: false },
+      { to: user.username, deleted: false },
+      { from: user.username, deleted: false }
     ]
   }).sort({ timestamp: -1 }).limit(50);
   socket.emit('history', recentMessages.reverse());
 
-  // Обработка входящих сообщений
+  // Обработка отправки сообщения
   socket.on('send_message', async (data) => {
-    const { to, text } = data; // to может быть 'all' или username
+    const { to, text } = data;
     if (!text.trim()) return;
+
+    // Сохраняем сообщение с цветом и аватаром отправителя
     const message = new Message({
       from: user.username,
       to: to || 'all',
       text: text.trim(),
-      timestamp: new Date()
+      timestamp: new Date(),
+      color: user.color,
+      avatar: user.avatar
     });
     await message.save();
 
-    // Отправляем получателю (если личное) или всем в общий чат
+    const messageData = {
+      _id: message._id,
+      from: user.username,
+      to: message.to,
+      text: message.text,
+      timestamp: message.timestamp,
+      color: user.color,
+      avatar: user.avatar,
+      edited: false,
+      deleted: false
+    };
+
     if (to && to !== 'all') {
-      // Личное сообщение: отправляем отправителю и получателю, если он онлайн
       const recipient = await User.findOne({ username: to });
       if (recipient && recipient.socketId) {
-        io.to(recipient.socketId).emit('private_message', message);
+        io.to(recipient.socketId).emit('private_message', messageData);
       }
-      // Отправителю тоже показываем
-      socket.emit('private_message', message);
+      socket.emit('private_message', messageData);
     } else {
-      // Общий чат: всем
-      io.emit('public_message', message);
+      io.emit('public_message', messageData);
     }
   });
 
-  // Индикатор печатает
+  // Редактирование сообщения
+  socket.on('edit_message', async (data) => {
+    const { messageId, newText } = data;
+    if (!messageId || !newText.trim()) return;
+    const message = await Message.findById(messageId);
+    if (!message || message.from !== user.username) return;
+    message.text = newText.trim();
+    message.edited = true;
+    await message.save();
+
+    if (message.to === 'all') {
+      io.emit('message_edited', { messageId, newText: message.text });
+    } else {
+      const recipient = await User.findOne({ username: message.to });
+      if (recipient && recipient.socketId) {
+        io.to(recipient.socketId).emit('message_edited', { messageId, newText: message.text });
+      }
+      socket.emit('message_edited', { messageId, newText: message.text });
+    }
+  });
+
+  // Удаление сообщения
+  socket.on('delete_message', async (data) => {
+    const { messageId } = data;
+    const message = await Message.findById(messageId);
+    if (!message || message.from !== user.username) return;
+    message.deleted = true;
+    await message.save();
+
+    if (message.to === 'all') {
+      io.emit('message_deleted', { messageId });
+    } else {
+      const recipient = await User.findOne({ username: message.to });
+      if (recipient && recipient.socketId) {
+        io.to(recipient.socketId).emit('message_deleted', { messageId });
+      }
+      socket.emit('message_deleted', { messageId });
+    }
+  });
+
+  // Индикатор печатания
   socket.on('typing', (data) => {
     const { to } = data;
     if (to && to !== 'all') {
-      const recipient = socket.rooms.get(to); // упрощённо, но можно найти по сокету
-      // Проще: отправим событие только получателю
-      io.to(to).emit('typing', { from: user.username });
+      const recipient = io.sockets.sockets.get(to);
+      if (recipient) recipient.emit('typing', { from: user.username });
     } else {
       socket.broadcast.emit('typing', { from: user.username });
     }
@@ -185,9 +331,14 @@ io.on('connection', async (socket) => {
 
   socket.on('disconnect', async () => {
     await User.updateOne({ username: user.username }, { online: false, socketId: null, lastSeen: new Date() });
-    await updateUserList();
+    for (const friend of userDoc.friends) {
+      const friendUser = await User.findOne({ username: friend });
+      if (friendUser && friendUser.socketId) {
+        io.to(friendUser.socketId).emit('friend_status', { username: user.username, online: false, lastSeen: new Date() });
+      }
+    }
   });
 });
 
 const PORT = process.env.PORT || 3000;
-server.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+server.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));

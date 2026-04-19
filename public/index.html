@@ -2,42 +2,104 @@
 <html>
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <title>Мессенджер</title>
-    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="style.css?v=final">
 </head>
 <body>
     <div id="auth" class="auth-container">
-        <h2>Вход / Регистрация</h2>
-        <input type="text" id="authUsername" placeholder="Имя пользователя">
-        <input type="password" id="authPassword" placeholder="Пароль">
-        <button onclick="register()">Зарегистрироваться</button>
-        <button onclick="login()">Войти</button>
-        <div id="authError" style="color:red;"></div>
+        <div class="auth-card">
+            <h2>Добро пожаловать</h2>
+            <input type="text" id="authUsername" placeholder="Имя пользователя">
+            <div class="auth-hint">Минимум 3 символа</div>
+            <input type="password" id="authPassword" placeholder="Пароль">
+            <div class="auth-hint">Минимум 8 символов</div>
+            <div class="auth-buttons">
+                <button onclick="register()">Зарегистрироваться</button>
+                <button onclick="login()">Войти</button>
+            </div>
+            <div id="authError" class="error"></div>
+        </div>
     </div>
 
-    <div id="chat" style="display:none;">
-        <div class="sidebar">
+    <div id="chat" class="chat-container" style="display:none;">
+        <div class="sidebar" id="sidebar">
             <div class="user-info" id="userInfo"></div>
-            <div class="search">
-                <input type="text" id="searchInput" placeholder="Поиск сообщений">
+            <div class="tabs">
+                <button class="tab-btn active" data-tab="friends">Друзья</button>
+                <button class="tab-btn" data-tab="search">Поиск</button>
+                <button class="tab-btn" data-tab="requests">Запросы</button>
+                <button class="tab-btn" data-tab="settings">Настройки</button>
             </div>
-            <div class="users-list" id="usersList">
-                <h4>Пользователи</h4>
-                <div id="usersContainer"></div>
+            <div class="tab-content active" id="friends-tab">
+                <div id="friendsList"></div>
+            </div>
+            <div class="tab-content" id="search-tab">
+                <input type="text" id="searchUserInput" placeholder="Поиск пользователей...">
+                <div id="searchResults"></div>
+            </div>
+            <div class="tab-content" id="requests-tab">
+                <div id="requestsList"></div>
+            </div>
+            <div class="tab-content" id="settings-tab">
+               <div class="settings-panel">
+    <h4>Профиль</h4>
+    <div class="avatar-selector">
+        <label>Аватар:</label>
+        <div class="avatar-preview" id="avatarPreview">😀</div>
+        <button id="pickAvatarBtn" class="secondary-btn">Выбрать эмодзи</button>
+    </div>
+
+    <!-- Emoji picker для аватара -->
+    <div class="avatar-emoji-panel" id="avatarEmojiPanel">
+        <div class="emoji-categories" id="avatarEmojiCategories"></div>
+        <div class="emoji-grid" id="avatarEmojiGrid"></div>
+    </div>
+
+    <div class="color-selector">
+        <label>Цвет ника:</label>
+        <div class="color-picker-wrapper">
+            <div class="color-preview" id="colorPreview"></div>
+            <input type="color" id="colorInput">
+            <span class="color-hex" id="colorHex">#6ab0f3</span>
+        </div>
+        <div class="color-presets">
+            <div class="color-preset" style="background:#6ab0f3" data-color="#6ab0f3"></div>
+            <div class="color-preset" style="background:#f36a6a" data-color="#f36a6a"></div>
+            <div class="color-preset" style="background:#6af3a0" data-color="#6af3a0"></div>
+            <div class="color-preset" style="background:#f3c66a" data-color="#f3c66a"></div>
+            <div class="color-preset" style="background:#c46af3" data-color="#c46af3"></div>
+            <div class="color-preset" style="background:#f36ac4" data-color="#f36ac4"></div>
+            <div class="color-preset" style="background:#6af3f3" data-color="#6af3f3"></div>
+            <div class="color-preset" style="background:#ffffff" data-color="#ffffff"></div>
+        </div>
+    </div>
+    <button id="saveProfileBtn" class="primary-btn">Сохранить</button>
+    <hr class="settings-divider">
+    <button id="logoutBtn" class="logout-btn">Выйти из аккаунта</button>
+</div>
             </div>
         </div>
         <div class="main">
-            <div class="chat-header" id="chatHeader">Общий чат</div>
+            <div class="chat-header">
+                <button id="menuToggleBtn" class="menu-toggle">☰</button>
+                <span class="chat-title">Общий чат</span>
+            </div>
             <div class="messages" id="messages"></div>
             <div class="typing-indicator" id="typingIndicator"></div>
-            <div class="input-area">
-                <input type="text" id="messageInput" placeholder="Введите сообщение...">
-                <button id="sendBtn">Отправить</button>
-            </div>
+            <div class="input-area" style="position:relative;">
+    <div class="emoji-picker-panel" id="emojiPickerPanel">
+        <div class="emoji-categories" id="emojiCategories"></div>
+        <div class="emoji-grid" id="emojiGrid"></div>
+    </div>
+    <button class="emoji-toggle-btn" id="emojiToggleBtn">😊</button>
+    <input type="text" id="messageInput" placeholder="Сообщение...">
+    <button id="sendBtn" class="send-btn">Отправить</button>
+</div>
         </div>
     </div>
 
     <script src="/socket.io/socket.io.js"></script>
-    <script src="script.js"></script>
+    <script src="script.js?v=final"></script>
 </body>
 </html>
