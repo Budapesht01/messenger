@@ -438,7 +438,9 @@ function closeCreateGroupModal() {
     document.getElementById('newGroupName').value = '';
     document.getElementById('newGroupDesc').value = '';
     document.getElementById('groupMemberCheckboxes').innerHTML = '';
-    document.getElementById('groupTypeSelect').value = 'private';
+    // Сбросить radio на "закрытая"
+    const privateRadio = document.querySelector('input[name="groupType"][value="private"]');
+    if (privateRadio) privateRadio.checked = true;
     document.getElementById('groupAvatarPreview').innerText = '👥';
 }
 
@@ -466,7 +468,8 @@ async function loadFriendsForGroupModal() {
 async function createGroup() {
     const name = document.getElementById('newGroupName').value.trim();
     const description = document.getElementById('newGroupDesc').value.trim();
-    const type = document.getElementById('groupTypeSelect').value;
+    const typeRadio = document.querySelector('input[name="groupType"]:checked');
+    const type = typeRadio ? typeRadio.value : 'private';
     const avatar = document.getElementById('groupAvatarPreview').innerText;
     if (!name) return alert('Введите название группы');
 
@@ -498,11 +501,12 @@ async function createGroup() {
 
 function showInviteCode(code, name, type) {
     const modal = document.getElementById('inviteCodeModal');
-    document.getElementById('inviteCodeDisplay').innerText = code;
+    const inviteLink = `${location.origin}?invite=${code}`;
+    document.getElementById('inviteCodeDisplay').innerText = inviteLink;
     document.getElementById('inviteCodeGroupName').innerText = name;
     const hint = type === 'public'
-        ? 'Публичная группа — её можно найти через поиск групп. Код для прямого приглашения:'
-        : 'Закрытая группа — вступить можно только по коду:';
+        ? '🌍 Публичная группа — её можно найти через поиск. Поделитесь ссылкой для прямого входа:'
+        : '🔒 Закрытая группа — вступить можно только по этой ссылке:';
     document.getElementById('inviteCodeHint').innerText = hint;
     modal.classList.add('open');
 }
@@ -512,11 +516,11 @@ function closeInviteModal() {
 }
 
 function copyInviteCode() {
-    const code = document.getElementById('inviteCodeDisplay').innerText;
-    navigator.clipboard.writeText(code).then(() => {
+    const link = document.getElementById('inviteCodeDisplay').innerText;
+    navigator.clipboard.writeText(link).then(() => {
         const btn = document.getElementById('copyCodeBtn');
-        btn.innerText = '✓ Скопировано';
-        setTimeout(() => btn.innerText = 'Скопировать', 2000);
+        btn.innerText = '✓ Скопировано!';
+        setTimeout(() => btn.innerText = '📋 Скопировать ссылку', 2000);
     });
 }
 
@@ -605,7 +609,8 @@ async function showGroupInfo() {
     document.getElementById('groupInfoName').innerText = group.name;
     document.getElementById('groupInfoAvatar').innerText = group.avatar || '👥';
     document.getElementById('groupInfoType').innerText = group.type === 'public' ? '🌍 Публичная' : '🔒 Закрытая';
-    document.getElementById('groupInfoCode').innerText = group.inviteCode;
+    const inviteLink = `${location.origin}?invite=${group.inviteCode}`;
+    document.getElementById('groupInfoCode').innerText = inviteLink;
     document.getElementById('groupInfoMembers').innerHTML = group.members
         .map(m => `<span class="member-tag">${m === group.owner ? '👑 ' : ''}${escapeHtml(m)}</span>`)
         .join('');
