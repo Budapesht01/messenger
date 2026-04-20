@@ -116,14 +116,23 @@
             </div>
             <div class="messages" id="messages"></div>
             <div class="typing-indicator" id="typingIndicator"></div>
+            <div id="replyBar" class="reply-bar" style="display:none;">
+                <div class="reply-bar-content">
+                    <span class="reply-bar-label">Ответ для <strong id="replyFrom"></strong></span>
+                    <span class="reply-bar-text" id="replyText"></span>
+                </div>
+                <button class="reply-bar-close" onclick="clearReply()">✕</button>
+            </div>
             <div class="input-area" style="position:relative;">
                 <div class="emoji-picker-panel" id="emojiPickerPanel">
                     <div class="emoji-categories" id="emojiCategories"></div>
                     <div class="emoji-grid" id="emojiGrid"></div>
                 </div>
                 <button class="emoji-toggle-btn" id="emojiToggleBtn">😊</button>
+                <button class="image-upload-btn" onclick="document.getElementById('imageUploadInput').click()" title="Отправить фото">📎</button>
+                <input type="file" id="imageUploadInput" accept="image/*" style="display:none;">
                 <input type="text" id="messageInput" placeholder="Выберите чат...">
-                <button id="sendBtn" class="send-btn">Отправить</button>
+                <button id="sendBtn" class="send-btn">↑</button>
             </div>
         </div>
     </div>
@@ -224,6 +233,13 @@
         </div>
     </div>
 
+    <!-- Image modal -->
+    <div class="modal-overlay" id="imageModal" onclick="closeImageModal()">
+        <div style="position:relative;" onclick="event.stopPropagation()">
+            <img id="imageModalImg" src="" style="max-width:90vw;max-height:85vh;border-radius:12px;display:block;">
+            <button onclick="closeImageModal()" style="position:absolute;top:-12px;right:-12px;background:#1a1a1a;border:none;color:#fff;font-size:18px;width:32px;height:32px;border-radius:50%;cursor:pointer;">✕</button>
+        </div>
+    </div>
     <script src="/socket.io/socket.io.js"></script>
     <script src="script.js?v=groups1"></script>
     <script>
