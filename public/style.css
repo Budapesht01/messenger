@@ -1686,43 +1686,64 @@ body { background: var(--bg-page); }
 [data-theme="light"] .read-status.read { color: var(--accent); }
 [data-theme="light"] .message-actions { box-shadow: 0 2px 8px rgba(0,0,0,0.15); }
 
-/* Панель выбора тем */
-.theme-panel {
-    padding: 12px;
+/* ===== ВЫБОР ТЕМЫ В НАСТРОЙКАХ ===== */
+.theme-section {
+    margin-bottom: 16px;
 }
-.theme-panel h4 {
-    color: var(--text-primary);
-    font-size: 14px;
+.settings-label {
+    display: block;
+    font-size: 12px;
     font-weight: 600;
-    margin-bottom: 12px;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 10px;
 }
-.theme-grid {
+.theme-grid-inline {
     display: grid;
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: repeat(4, 1fr);
     gap: 8px;
 }
 .theme-card {
-    border-radius: 12px;
-    padding: 10px;
+    border-radius: 10px;
+    padding: 8px 6px;
     cursor: pointer;
-    border: 2px solid transparent;
-    transition: all 0.2s;
+    border: 2px solid var(--border-color);
+    transition: border-color 0.2s;
     display: flex;
     flex-direction: column;
+    align-items: center;
     gap: 6px;
+    background: var(--input-bg);
 }
 .theme-card:hover { border-color: var(--accent); }
-.theme-card.active { border-color: var(--accent); }
+.theme-card.active { border-color: var(--accent); background: rgba(106,176,243,0.08); }
 .theme-preview {
     display: flex;
-    gap: 4px;
-    height: 36px;
-    border-radius: 8px;
+    gap: 2px;
+    width: 100%;
+    height: 32px;
+    border-radius: 6px;
     overflow: hidden;
+    border: 1px solid rgba(255,255,255,0.06);
 }
-.theme-preview-sidebar { width: 35%; }
-.theme-preview-main { flex: 1; display: flex; flex-direction: column; justify-content: flex-end; padding: 4px; gap: 3px; }
-.theme-preview-msg { height: 6px; border-radius: 3px; }
-.theme-preview-msg.own { width: 60%; align-self: flex-end; }
-.theme-preview-msg.other { width: 70%; align-self: flex-start; }
-.theme-name { font-size: 12px; font-weight: 600; color: var(--text-primary); text-align: center; }
+.theme-preview-sidebar { width: 32%; flex-shrink: 0; }
+.theme-preview-main {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    padding: 3px;
+    gap: 2px;
+}
+.theme-preview-msg { height: 5px; border-radius: 3px; opacity: 0.85; }
+.theme-preview-msg.own { width: 55%; align-self: flex-end; }
+.theme-preview-msg.other { width: 65%; align-self: flex-start; }
+.theme-name {
+    font-size: 10px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    text-align: center;
+    letter-spacing: 0.3px;
+}
+.theme-card.active .theme-name { color: var(--accent); }
