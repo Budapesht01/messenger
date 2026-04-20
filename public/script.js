@@ -841,10 +841,10 @@ document.getElementById('imageUploadInput').addEventListener('change', (e) => {
 // ========== Старт ==========
 // ========== ТЕМЫ ==========
 const themes = [
-    { id: 'dark',  name: 'Тёмная',   sidebar: '#1f1f1f', main: '#111111', own: '#1d3d5c', other: '#2a2a2a' },
-    { id: 'light', name: 'Светлая',  sidebar: '#ffffff', main: '#eae8e3', own: '#d4e8ff', other: '#ffffff' },
-    { id: 'gray',  name: 'Серая',    sidebar: '#2c2c2e', main: '#1c1c1e', own: '#2c5282', other: '#3a3a3c' },
-    { id: 'green', name: 'Зелёная',  sidebar: '#111b21', main: '#0b141a', own: '#005c4b', other: '#202c33' },
+    { id: 'dark',  name: 'Тёмная',   sidebar: 'rgba(13,14,26,0.9)', main: '#0a0f1e',  own: 'rgba(99,160,255,0.3)',  other: 'rgba(255,255,255,0.1)' },
+    { id: 'light', name: 'Светлая',  sidebar: 'rgba(255,255,255,0.8)', main: '#f0f4fb', own: 'rgba(99,140,255,0.25)', other: 'rgba(255,255,255,0.8)' },
+    { id: 'gray',  name: 'Серая',    sidebar: 'rgba(21,22,24,0.9)', main: '#151618',  own: 'rgba(80,100,160,0.35)', other: 'rgba(255,255,255,0.08)' },
+    { id: 'green', name: 'Зелёная',  sidebar: 'rgba(6,13,15,0.9)',  main: '#091412',  own: 'rgba(0,168,100,0.35)', other: 'rgba(255,255,255,0.08)' },
 ];
 
 function applyTheme(themeId) {
