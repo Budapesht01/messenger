@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html>
+<html data-theme="dark">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, interactive-widget=resizes-content">
@@ -33,6 +33,7 @@
                 <button class="tab-btn" data-tab="search">Поиск</button>
                 <button class="tab-btn" data-tab="requests">Запросы</button>
                 <button class="tab-btn" data-tab="settings">⚙️</button>
+                <button class="tab-btn" data-tab="themes">🎨</button>
             </div>
 
             <!-- Друзья -->
@@ -103,6 +104,14 @@
                     <button id="saveProfileBtn" class="primary-btn">Сохранить</button>
                     <hr class="settings-divider">
                     <button id="logoutBtn" class="logout-btn">Выйти из аккаунта</button>
+                </div>
+            </div>
+
+            <!-- Темы -->
+            <div class="tab-content" id="themes-tab">
+                <div class="theme-panel">
+                    <h4>Оформление</h4>
+                    <div class="theme-grid" id="themeGrid"></div>
                 </div>
             </div>
         </div>
