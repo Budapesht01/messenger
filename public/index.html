@@ -1,593 +1,263 @@
 <!DOCTYPE html>
-<html lang="ru">
+<html>
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Админ панель — Мессенджер</title>
-<style>
-* { margin:0; padding:0; box-sizing:border-box; }
-:root {
-  --bg: #0a0a0a;
-  --card: #1a1a1a;
-  --card2: #222;
-  --border: #2c2c2c;
-  --accent: #6ab0f3;
-  --accent2: #4a90d3;
-  --text: #e1e3e6;
-  --text2: #8c8e92;
-  --red: #e34d4d;
-  --red2: #c03838;
-  --green: #31a24c;
-  --yellow: #f3c66a;
-  --input: #2c2c2c;
-}
-body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
-
-/* Login */
-#loginScreen { display:flex; align-items:center; justify-content:center; min-height:100vh; }
-.login-card { background: var(--card); border-radius: 20px; padding: 2rem; width: 320px; text-align:center; border: 1px solid var(--border); }
-.login-card h2 { color: var(--accent); margin-bottom: 8px; font-size: 22px; }
-.login-card p { color: var(--text2); font-size: 13px; margin-bottom: 24px; }
-.login-card input { width:100%; padding:12px 14px; border:1px solid var(--border); border-radius:12px; background:var(--input); color:var(--text); font-size:15px; outline:none; margin-bottom:10px; }
-.login-card input:focus { border-color: var(--accent); }
-.btn { padding:10px 20px; border:none; border-radius:12px; cursor:pointer; font-size:14px; font-weight:600; transition:opacity 0.2s; }
-.btn-primary { background:var(--accent); color:#fff; }
-.btn-primary:hover { opacity:0.85; }
-.btn-danger { background:var(--red); color:#fff; }
-.btn-danger:hover { background:var(--red2); }
-.btn-sm { padding:5px 12px; font-size:12px; border-radius:8px; }
-.btn-ghost { background:var(--card2); color:var(--text2); border:1px solid var(--border); }
-.btn-ghost:hover { color:var(--text); }
-.err { color:var(--red); font-size:13px; margin-top:8px; }
-
-/* Layout */
-#adminPanel { display:none; }
-.topbar { background:var(--card); border-bottom:1px solid var(--border); padding:12px 24px; display:flex; align-items:center; justify-content:space-between; position:sticky; top:0; z-index:100; }
-.topbar-left { display:flex; align-items:center; gap:12px; }
-.topbar h1 { font-size:18px; color:var(--accent); }
-.topbar-badge { background:var(--red); color:#fff; font-size:11px; padding:2px 8px; border-radius:20px; font-weight:700; }
-.container { max-width:1200px; margin:0 auto; padding:24px 16px; }
-
-/* Stats */
-.stats-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:12px; margin-bottom:28px; }
-.stat-card { background:var(--card); border-radius:16px; padding:16px 20px; border:1px solid var(--border); }
-.stat-val { font-size:32px; font-weight:700; color:var(--accent); }
-.stat-label { font-size:12px; color:var(--text2); margin-top:4px; }
-
-/* Tabs */
-.tabs { display:flex; gap:4px; margin-bottom:20px; background:var(--card); border-radius:14px; padding:4px; border:1px solid var(--border); width:fit-content; }
-.tab { padding:8px 18px; border:none; border-radius:10px; background:transparent; color:var(--text2); cursor:pointer; font-size:14px; font-weight:500; transition:all 0.2s; }
-.tab.active { background:var(--accent); color:#fff; }
-
-/* Table */
-.table-card { background:var(--card); border-radius:16px; border:1px solid var(--border); overflow:hidden; }
-.table-toolbar { padding:12px 16px; border-bottom:1px solid var(--border); display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
-.search-input { padding:8px 12px; border:1px solid var(--border); border-radius:10px; background:var(--input); color:var(--text); font-size:13px; outline:none; flex:1; min-width:160px; }
-.search-input:focus { border-color:var(--accent); }
-table { width:100%; border-collapse:collapse; font-size:13px; }
-th { background:var(--card2); padding:10px 14px; text-align:left; color:var(--text2); font-weight:600; font-size:12px; text-transform:uppercase; letter-spacing:0.5px; border-bottom:1px solid var(--border); }
-td { padding:10px 14px; border-bottom:1px solid var(--border); vertical-align:middle; }
-tr:last-child td { border-bottom:none; }
-tr:hover td { background:rgba(255,255,255,0.02); }
-.badge { display:inline-block; padding:2px 8px; border-radius:20px; font-size:11px; font-weight:600; }
-.badge-green { background:rgba(49,162,76,0.2); color:var(--green); }
-.badge-gray { background:rgba(140,142,146,0.2); color:var(--text2); }
-.badge-blue { background:rgba(106,176,243,0.2); color:var(--accent); }
-.badge-red { background:rgba(227,77,77,0.2); color:var(--red); }
-.badge-yellow { background:rgba(243,198,106,0.2); color:var(--yellow); }
-.avatar-cell { font-size:20px; }
-.mono { font-family:monospace; font-size:12px; color:var(--text2); }
-.text-clip { max-width:200px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-.empty { text-align:center; padding:40px; color:var(--text2); }
-
-/* Pagination */
-.pagination { display:flex; justify-content:center; gap:8px; padding:16px; }
-.page-btn { padding:6px 12px; border:1px solid var(--border); border-radius:8px; background:var(--card2); color:var(--text); cursor:pointer; font-size:13px; }
-.page-btn.active { background:var(--accent); border-color:var(--accent); color:#fff; }
-.page-btn:hover:not(.active) { border-color:var(--accent); }
-
-/* Modal */
-.modal-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.7); z-index:1000; align-items:center; justify-content:center; }
-.modal-overlay.open { display:flex; }
-.modal { background:var(--card); border-radius:16px; padding:24px; width:360px; border:1px solid var(--border); }
-.modal h3 { margin-bottom:8px; color:var(--text); }
-.modal p { color:var(--text2); font-size:14px; margin-bottom:20px; line-height:1.5; }
-.modal-btns { display:flex; gap:8px; justify-content:flex-end; }
-
-/* Loading */
-.spinner { display:inline-block; width:16px; height:16px; border:2px solid var(--border); border-top-color:var(--accent); border-radius:50%; animation:spin 0.6s linear infinite; }
-@keyframes spin { to { transform:rotate(360deg); } }
-
-/* Toast */
-#toast { position:fixed; bottom:24px; right:24px; background:var(--card); border:1px solid var(--border); border-radius:12px; padding:12px 20px; font-size:14px; z-index:9999; display:none; box-shadow:0 8px 24px rgba(0,0,0,0.4); }
-#toast.success { border-color:var(--green); color:var(--green); }
-#toast.error { border-color:var(--red); color:var(--red); }
-
-@media(max-width:768px) {
-  .stats-grid { grid-template-columns:repeat(2,1fr); }
-  .topbar h1 { font-size:15px; }
-  td, th { padding:8px 10px; }
-  .text-clip { max-width:100px; }
-}
-@media(max-width:480px) {
-  .stats-grid { grid-template-columns:1fr 1fr; }
-  .tabs { width:100%; }
-  .tab { flex:1; text-align:center; padding:8px 10px; font-size:13px; }
-}
-</style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, interactive-widget=resizes-content">
+    <title>Мессенджер</title>
+    <link rel="stylesheet" href="style.css?v=groups1">
 </head>
 <body>
-
-<!-- Логин -->
-<div id="loginScreen">
-  <div class="login-card">
-    <h2>🛡️ Админ панель</h2>
-    <p>Доступ только для администратора</p>
-    <input type="text" id="loginUsername" placeholder="Имя пользователя" autofocus>
-    <input type="password" id="loginPassword" placeholder="Пароль">
-    <button class="btn btn-primary" style="width:100%" onclick="adminLogin()">Войти</button>
-    <div class="err" id="loginErr"></div>
-  </div>
-</div>
-
-<!-- Панель -->
-<div id="adminPanel">
-  <div class="topbar">
-    <div class="topbar-left">
-      <h1>🛡️ Админ панель</h1>
-      <span class="topbar-badge">user123</span>
-    </div>
-    <div style="display:flex;align-items:center;gap:10px;">
-      <span id="topbarTime" style="font-size:12px;color:var(--text2);"></span>
-      <button class="btn btn-ghost btn-sm" onclick="refreshAll()">🔄 Обновить</button>
-      <button class="btn btn-danger btn-sm" onclick="adminLogout()">Выйти</button>
-    </div>
-  </div>
-
-  <div class="container">
-    <!-- Статистика -->
-    <div class="stats-grid">
-      <div class="stat-card">
-        <div class="stat-val" id="statUsers">—</div>
-        <div class="stat-label">👤 Пользователей</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-val" id="statOnline">—</div>
-        <div class="stat-label">🟢 Онлайн сейчас</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-val" id="statGroups">—</div>
-        <div class="stat-label">👥 Групп</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-val" id="statMessages">—</div>
-        <div class="stat-label">💬 Сообщений</div>
-      </div>
-    </div>
-
-    <!-- Вкладки -->
-    <div class="tabs">
-      <button class="tab active" onclick="showTab('users')">👤 Пользователи</button>
-      <button class="tab" onclick="showTab('groups')">👥 Группы</button>
-      <button class="tab" onclick="showTab('messages')">💬 Сообщения</button>
-    </div>
-
-    <!-- Пользователи -->
-    <div id="tab-users">
-      <div class="table-card">
-        <div class="table-toolbar">
-          <input type="text" class="search-input" id="userSearch" placeholder="🔍 Поиск по имени..." oninput="filterUsers()">
-          <span id="userCount" style="font-size:13px;color:var(--text2);"></span>
+    <!-- Авторизация -->
+    <div id="auth" class="auth-container">
+        <div class="auth-card">
+            <h2>Добро пожаловать</h2>
+            <input type="text" id="authUsername" placeholder="Имя пользователя">
+            <div class="auth-hint">Минимум 3 символа</div>
+            <input type="password" id="authPassword" placeholder="Пароль">
+            <div class="auth-hint">Минимум 8 символов</div>
+            <div class="auth-buttons">
+                <button onclick="register()">Зарегистрироваться</button>
+                <button onclick="login()">Войти</button>
+            </div>
+            <div id="authError" class="error"></div>
         </div>
-        <div style="overflow-x:auto;">
-          <table>
-            <thead>
-              <tr>
-                <th>Аватар</th>
-                <th>Имя</th>
-                <th>Статус</th>
-                <th>Друзья</th>
-                <th>Последний визит</th>
-                <th>Действия</th>
-              </tr>
-            </thead>
-            <tbody id="usersTableBody"></tbody>
-          </table>
-        </div>
-      </div>
     </div>
 
-    <!-- Группы -->
-    <div id="tab-groups" style="display:none;">
-      <div class="table-card">
-        <div class="table-toolbar">
-          <input type="text" class="search-input" id="groupSearch" placeholder="🔍 Поиск по названию..." oninput="filterGroups()">
-          <span id="groupCount" style="font-size:13px;color:var(--text2);"></span>
+    <!-- Чат -->
+    <div id="chat" class="chat-container" style="display:none;">
+        <div class="sidebar" id="sidebar">
+            <div class="user-info" id="userInfo"></div>
+            <div class="tabs">
+                <button class="tab-btn active" data-tab="friends">Друзья</button>
+                <button class="tab-btn" data-tab="groups">Группы</button>
+                <button class="tab-btn" data-tab="search">Поиск</button>
+                <button class="tab-btn" data-tab="requests">Запросы</button>
+                <button class="tab-btn" data-tab="settings">⚙️</button>
+            </div>
+
+            <!-- Друзья -->
+            <div class="tab-content active" id="friends-tab">
+                <div id="friendsList"></div>
+            </div>
+
+            <!-- Группы -->
+            <div class="tab-content" id="groups-tab">
+                <div class="groups-toolbar">
+                    <button class="primary-btn small-btn" onclick="openCreateGroupModal()">+ Создать</button>
+                    <div style="display:flex; flex-direction:column; gap:6px; margin-top:8px;">
+                        <input type="text" id="joinCodeInput" placeholder="Код приглашения..." style="width:100%; box-sizing:border-box; padding:8px 12px; border-radius:20px; border:1px solid var(--border-color); background:var(--input-bg); color:var(--text-primary); font-size:13px; outline:none;">
+                        <button class="primary-btn" style="width:100%; border-radius:20px;" onclick="joinByCode()">Войти</button>
+                    </div>
+                </div>
+                <div id="groupsList"></div>
+
+                <!-- Поиск публичных групп -->
+                <div style="padding: 8px;">
+                    <input type="text" id="searchGroupInput" placeholder="🔍 Найти публичные группы..." style="width:100%; padding:8px 12px; border-radius:20px; border:1px solid var(--border-color); background:var(--input-bg); color:var(--text-primary); font-size:13px; outline:none; box-sizing:border-box;">
+                </div>
+                <div id="publicGroupResults"></div>
+            </div>
+
+            <!-- Поиск пользователей -->
+            <div class="tab-content" id="search-tab">
+                <input type="text" id="searchUserInput" placeholder="Поиск пользователей...">
+                <div id="searchResults"></div>
+            </div>
+
+            <!-- Запросы -->
+            <div class="tab-content" id="requests-tab">
+                <div id="requestsList"></div>
+            </div>
+
+            <!-- Настройки -->
+            <div class="tab-content" id="settings-tab">
+                <div class="settings-panel">
+                    <h4>Профиль</h4>
+                    <div class="avatar-selector">
+                        <label>Аватар:</label>
+                        <div class="avatar-preview" id="avatarPreview">😀</div>
+                        <button id="pickAvatarBtn" class="secondary-btn">Выбрать эмодзи</button>
+                    </div>
+                    <div class="avatar-emoji-panel" id="avatarEmojiPanel">
+                        <div class="emoji-categories" id="avatarEmojiCategories"></div>
+                        <div class="emoji-grid" id="avatarEmojiGrid"></div>
+                    </div>
+                    <div class="color-selector">
+                        <label>Цвет ника:</label>
+                        <div class="color-picker-wrapper">
+                            <div class="color-preview" id="colorPreview"></div>
+                            <input type="color" id="colorInput">
+                            <span class="color-hex" id="colorHex">#6ab0f3</span>
+                        </div>
+                        <div class="color-presets">
+                            <div class="color-preset" style="background:#6ab0f3" data-color="#6ab0f3"></div>
+                            <div class="color-preset" style="background:#f36a6a" data-color="#f36a6a"></div>
+                            <div class="color-preset" style="background:#6af3a0" data-color="#6af3a0"></div>
+                            <div class="color-preset" style="background:#f3c66a" data-color="#f3c66a"></div>
+                            <div class="color-preset" style="background:#c46af3" data-color="#c46af3"></div>
+                            <div class="color-preset" style="background:#f36ac4" data-color="#f36ac4"></div>
+                            <div class="color-preset" style="background:#6af3f3" data-color="#6af3f3"></div>
+                            <div class="color-preset" style="background:#ffffff" data-color="#ffffff"></div>
+                        </div>
+                    </div>
+                    <button id="saveProfileBtn" class="primary-btn">Сохранить</button>
+                    <hr class="settings-divider">
+                    <button id="logoutBtn" class="logout-btn">Выйти из аккаунта</button>
+                </div>
+            </div>
         </div>
-        <div style="overflow-x:auto;">
-          <table>
-            <thead>
-              <tr>
-                <th>Аватар</th>
-                <th>Название</th>
-                <th>Тип</th>
-                <th>Владелец</th>
-                <th>Участников</th>
-                <th>Инвайт-код</th>
-                <th>Действия</th>
-              </tr>
-            </thead>
-            <tbody id="groupsTableBody"></tbody>
-          </table>
+
+        <!-- Основная область чата -->
+        <div class="main">
+            <div class="chat-header">
+                <button id="menuToggleBtn" class="menu-toggle">☰</button>
+                <span class="chat-title">Выберите чат</span>
+                <button id="groupInfoBtn" class="group-info-btn" onclick="showGroupInfo()" style="display:none;">ℹ️</button>
+            </div>
+            <div class="messages" id="messages"></div>
+            <div class="typing-indicator" id="typingIndicator"></div>
+            <div class="input-area" style="position:relative;">
+                <div class="emoji-picker-panel" id="emojiPickerPanel">
+                    <div class="emoji-categories" id="emojiCategories"></div>
+                    <div class="emoji-grid" id="emojiGrid"></div>
+                </div>
+                <button class="emoji-toggle-btn" id="emojiToggleBtn">😊</button>
+                <input type="text" id="messageInput" placeholder="Выберите чат...">
+                <button id="sendBtn" class="send-btn">Отправить</button>
+            </div>
         </div>
-      </div>
     </div>
 
-    <!-- Сообщения -->
-    <div id="tab-messages" style="display:none;">
-      <div class="table-card">
-        <div class="table-toolbar">
-          <button class="btn btn-danger btn-sm" onclick="cleanupDeleted()">🗑️ Очистить удалённые</button>
-          <span id="msgCount" style="font-size:13px;color:var(--text2);"></span>
+    <!-- ===== МОДАЛКА: Создать группу ===== -->
+    <div class="modal-overlay" id="createGroupModal">
+        <div class="modal-card">
+            <div class="modal-header">
+                <h3>Создать группу</h3>
+                <button class="modal-close" onclick="closeCreateGroupModal()">✕</button>
+            </div>
+            <div class="modal-body">
+                <div class="modal-avatar-row">
+                    <div class="avatar-preview large" id="groupAvatarPreview">👥</div>
+                    <button class="secondary-btn" id="pickGroupAvatarBtn">Выбрать эмодзи</button>
+                </div>
+                <div class="group-avatar-panel" id="groupAvatarPanel" style="display:none;">
+                    <div style="display:grid;grid-template-columns:repeat(8,1fr);gap:6px;max-height:160px;overflow-y:auto;">
+                        <!-- эмодзи заполнятся из JS -->
+                    </div>
+                </div>
+                <input type="text" id="newGroupName" placeholder="Название группы *" class="modal-input">
+                <input type="text" id="newGroupDesc" placeholder="Описание (необязательно)" class="modal-input">
+                <div class="modal-type-selector">
+                    <label class="type-option">
+                        <input type="radio" name="groupType" id="groupTypeSelect" value="private" checked>
+                        <div class="type-card">
+                            <span class="type-icon">🔒</span>
+                            <span class="type-label">Закрытая</span>
+                            <span class="type-desc">Только по коду приглашения</span>
+                        </div>
+                    </label>
+                    <label class="type-option">
+                        <input type="radio" name="groupType" value="public">
+                        <div class="type-card">
+                            <span class="type-icon">🌍</span>
+                            <span class="type-label">Публичная</span>
+                            <span class="type-desc">Видна в поиске групп</span>
+                        </div>
+                    </label>
+                </div>
+                <div class="members-section">
+                    <div class="members-label">Добавить друзей:</div>
+                    <div id="groupMemberCheckboxes"></div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="secondary-btn" onclick="closeCreateGroupModal()">Отмена</button>
+                <button class="primary-btn" onclick="createGroup()">Создать</button>
+            </div>
         </div>
-        <div style="overflow-x:auto;">
-          <table>
-            <thead>
-              <tr>
-                <th>От</th>
-                <th>Кому / Группа</th>
-                <th>Текст</th>
-                <th>Время</th>
-                <th>Статус</th>
-                <th>Действия</th>
-              </tr>
-            </thead>
-            <tbody id="messagesTableBody"></tbody>
-          </table>
-        </div>
-        <div class="pagination" id="msgPagination"></div>
-      </div>
     </div>
-  </div>
-</div>
 
-<!-- Модалка подтверждения -->
-<div class="modal-overlay" id="confirmModal">
-  <div class="modal">
-    <h3 id="confirmTitle">Подтверждение</h3>
-    <p id="confirmText"></p>
-    <div class="modal-btns">
-      <button class="btn btn-ghost" onclick="closeConfirm()">Отмена</button>
-      <button class="btn btn-danger" id="confirmBtn">Удалить</button>
-    </div>
-  </div>
-</div>
-
-<div id="toast"></div>
-
-<script>
-let adminToken = localStorage.getItem('adminToken');
-let allUsers = [];
-let allGroups = [];
-let currentMsgPage = 1;
-let confirmCallback = null;
-
-// ===== AUTH =====
-async function adminLogin() {
-  const username = document.getElementById('loginUsername').value.trim();
-  const password = document.getElementById('loginPassword').value;
-  const err = document.getElementById('loginErr');
-  err.innerText = '';
-
-  if (username !== 'user123') {
-    err.innerText = 'Доступ запрещён';
-    return;
-  }
-
-  const res = await fetch('/api/login', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ username, password })
-  });
-  const data = await res.json();
-  if (res.ok) {
-    adminToken = data.token;
-    localStorage.setItem('adminToken', adminToken);
-    showPanel();
-  } else {
-    err.innerText = 'Неверный пароль';
-  }
-}
-
-function adminLogout() {
-  localStorage.removeItem('adminToken');
-  adminToken = null;
-  document.getElementById('adminPanel').style.display = 'none';
-  document.getElementById('loginScreen').style.display = 'flex';
-}
-
-function authHeaders() {
-  return { 'Authorization': `Bearer ${adminToken}`, 'Content-Type': 'application/json' };
-}
-
-async function showPanel() {
-  document.getElementById('loginScreen').style.display = 'none';
-  document.getElementById('adminPanel').style.display = 'block';
-  refreshAll();
-  updateClock();
-  setInterval(updateClock, 1000);
-}
-
-function updateClock() {
-  document.getElementById('topbarTime').innerText = new Date().toLocaleString('ru-RU');
-}
-
-async function refreshAll() {
-  loadStats();
-  loadUsers();
-  loadGroups();
-  loadMessages(1);
-}
-
-// ===== STATS =====
-async function loadStats() {
-  const res = await fetch('/api/admin/stats', { headers: authHeaders() });
-  if (!res.ok) return;
-  const d = await res.json();
-  document.getElementById('statUsers').innerText = d.usersCount;
-  document.getElementById('statOnline').innerText = d.onlineCount;
-  document.getElementById('statGroups').innerText = d.groupsCount;
-  document.getElementById('statMessages').innerText = d.messagesCount;
-}
-
-// ===== USERS =====
-async function loadUsers() {
-  const tbody = document.getElementById('usersTableBody');
-  tbody.innerHTML = '<tr><td colspan="6" class="empty"><span class="spinner"></span></td></tr>';
-  const res = await fetch('/api/admin/users', { headers: authHeaders() });
-  allUsers = await res.json();
-  document.getElementById('userCount').innerText = `Всего: ${allUsers.length}`;
-  renderUsers(allUsers);
-}
-
-function filterUsers() {
-  const q = document.getElementById('userSearch').value.toLowerCase();
-  renderUsers(allUsers.filter(u => u.username.toLowerCase().includes(q)));
-}
-
-function renderUsers(users) {
-  const tbody = document.getElementById('usersTableBody');
-  if (users.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="6" class="empty">Ничего не найдено</td></tr>';
-    return;
-  }
-  tbody.innerHTML = users.map(u => `
-    <tr>
-      <td class="avatar-cell">${u.avatar || '😀'}</td>
-      <td>
-        <strong>${esc(u.username)}</strong>
-        ${u.username === 'user123' ? '<span class="badge badge-red" style="margin-left:6px;">admin</span>' : ''}
-      </td>
-      <td>${u.online
-        ? '<span class="badge badge-green">🟢 онлайн</span>'
-        : '<span class="badge badge-gray">⚪ офлайн</span>'}</td>
-      <td><span class="badge badge-blue">${u.friends ? u.friends.length : 0}</span></td>
-      <td class="mono">${u.lastSeen ? new Date(u.lastSeen).toLocaleString('ru-RU') : '—'}</td>
-      <td>
-        <div style="display:flex;gap:6px;flex-wrap:wrap;">
-          <button class="btn btn-ghost btn-sm" onclick="clearUserMessages('${esc(u.username)}')">🗑️ Сообщения</button>
-          ${u.username !== 'user123' ? `<button class="btn btn-danger btn-sm" onclick="deleteUser('${esc(u.username)}')">✕ Удалить</button>` : ''}
+    <!-- ===== МОДАЛКА: Инвайт-код ===== -->
+    <div class="modal-overlay" id="inviteCodeModal">
+        <div class="modal-card narrow">
+            <div class="modal-header">
+                <h3>Группа создана! 🎉</h3>
+                <button class="modal-close" onclick="closeInviteModal()">✕</button>
+            </div>
+            <div class="modal-body" style="text-align:center;">
+                <div style="font-size:14px; color:var(--text-secondary); margin-bottom:16px;" id="inviteCodeHint"></div>
+                <div style="font-size:13px; color:var(--text-secondary); margin-bottom:8px;">«<span id="inviteCodeGroupName"></span>»</div>
+                <div class="invite-code-box" id="inviteCodeDisplay" style="font-size:22px; letter-spacing:3px; font-weight:700;"></div>
+                <button class="primary-btn" id="copyCodeBtn" onclick="copyInviteCode()" style="margin-top:16px;">📋 Скопировать код</button>
+            </div>
+            <div class="modal-footer">
+                <button class="primary-btn" onclick="closeInviteModal()">Готово</button>
+            </div>
         </div>
-      </td>
-    </tr>
-  `).join('');
-}
+    </div>
 
-function deleteUser(username) {
-  openConfirm(
-    `Удалить пользователя?`,
-    `Пользователь «${username}» и все его сообщения будут удалены из базы данных. Это действие нельзя отменить.`,
-    async () => {
-      const res = await fetch(`/api/admin/users/${username}`, { method: 'DELETE', headers: authHeaders() });
-      const d = await res.json();
-      if (res.ok) { toast('✓ ' + d.message, 'success'); refreshAll(); }
-      else toast('Ошибка: ' + d.error, 'error');
-    }
-  );
-}
+    <!-- ===== МОДАЛКА: Инфо о группе ===== -->
+    <div class="modal-overlay" id="groupInfoModal">
+        <div class="modal-card narrow">
+            <div class="modal-header">
+                <h3>О группе</h3>
+                <button class="modal-close" onclick="closeGroupInfoModal()">✕</button>
+            </div>
+            <div class="modal-body">
+                <div style="text-align:center; margin-bottom:20px;">
+                    <div style="font-size:56px; margin-bottom:8px;" id="groupInfoAvatar">👥</div>
+                    <div style="font-size:20px; font-weight:700; color:var(--text-primary); margin-bottom:6px;" id="groupInfoName"></div>
+                    <div style="font-size:13px; color:var(--text-secondary); background:rgba(106,176,243,0.1); display:inline-block; padding:4px 12px; border-radius:20px;" id="groupInfoType"></div>
+                </div>
+                <div style="margin-top:4px; margin-bottom:8px;">
+                    <div class="members-label" style="margin-bottom:8px;">Участники:</div>
+                    <div id="groupInfoMembers" class="members-list"></div>
+                </div>
+                <span id="groupInfoCode" style="display:none;"></span>
+            </div>
+            <div class="modal-footer">
+                <button class="secondary-btn" onclick="getGroupInviteLink()">🔗 Скопировать ссылку</button>
+                <button class="logout-btn" id="deleteGroupBtn" onclick="deleteGroup()" style="display:none;">Удалить группу</button>
+                <button class="logout-btn" id="leaveGroupBtn" onclick="leaveGroup()" style="display:none;">Покинуть группу</button>
+                <button class="secondary-btn" onclick="closeGroupInfoModal()">Закрыть</button>
+            </div>
+        </div>
+    </div>
 
-function clearUserMessages(username) {
-  openConfirm(
-    `Очистить сообщения?`,
-    `Все сообщения пользователя «${username}» будут удалены из базы данных навсегда.`,
-    async () => {
-      const res = await fetch(`/api/admin/users/${username}/messages`, { method: 'DELETE', headers: authHeaders() });
-      const d = await res.json();
-      if (res.ok) { toast('✓ ' + d.message, 'success'); loadStats(); loadMessages(1); }
-      else toast('Ошибка: ' + d.error, 'error');
-    }
-  );
-}
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="script.js?v=groups1"></script>
+    <script>
+    // Инициализация пикера аватара для группы
+    window.addEventListener('load', () => {
+        const btn = document.getElementById('pickGroupAvatarBtn');
+        const panel = document.getElementById('groupAvatarPanel');
+        const preview = document.getElementById('groupAvatarPreview');
+        const grid = panel.querySelector('div');
+        const allEmoji = ['👥','💬','🎮','🎵','🏆','🔥','⭐','💡','🌍','🎯','🚀','❤️','🎉','🌈','🏠','📚','🎨','🍕','⚽','🐶','🌺','💎','🎸','🎭','🤖','🦁','🐉','🌙','☀️','🌊','🏔️','🦋'];
+        allEmoji.forEach(e => {
+            const span = document.createElement('span');
+            span.innerText = e;
+            span.style.cssText = 'font-size:22px;cursor:pointer;text-align:center;padding:4px;border-radius:8px;';
+            span.onmouseover = () => span.style.background = 'rgba(106,176,243,0.2)';
+            span.onmouseout = () => span.style.background = '';
+            span.addEventListener('click', () => {
+                preview.innerText = e;
+                panel.style.display = 'none';
+            });
+            grid.appendChild(span);
+        });
+        btn.addEventListener('click', () => {
+            panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
+        });
 
-// ===== GROUPS =====
-async function loadGroups() {
-  const tbody = document.getElementById('groupsTableBody');
-  tbody.innerHTML = '<tr><td colspan="7" class="empty"><span class="spinner"></span></td></tr>';
-  const res = await fetch('/api/admin/groups', { headers: authHeaders() });
-  allGroups = await res.json();
-  document.getElementById('groupCount').innerText = `Всего: ${allGroups.length}`;
-  renderGroups(allGroups);
-}
+        // Радио-кнопки типа группы — читаются напрямую через querySelector в createGroup()
 
-function filterGroups() {
-  const q = document.getElementById('groupSearch').value.toLowerCase();
-  renderGroups(allGroups.filter(g => g.name.toLowerCase().includes(q)));
-}
+    });
 
-function renderGroups(groups) {
-  const tbody = document.getElementById('groupsTableBody');
-  if (groups.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="7" class="empty">Ничего не найдено</td></tr>';
-    return;
-  }
-  tbody.innerHTML = groups.map(g => `
-    <tr>
-      <td class="avatar-cell">${g.avatar || '👥'}</td>
-      <td><strong>${esc(g.name)}</strong>${g.description ? `<div style="font-size:11px;color:var(--text2);">${esc(g.description)}</div>` : ''}</td>
-      <td>${g.type === 'public'
-        ? '<span class="badge badge-green">🌍 публичная</span>'
-        : '<span class="badge badge-blue">🔒 закрытая</span>'}</td>
-      <td>👑 ${esc(g.owner)}</td>
-      <td><span class="badge badge-yellow">${g.members ? g.members.length : 0}</span></td>
-      <td class="mono">${g.inviteCode || '—'}</td>
-      <td>
-        <button class="btn btn-danger btn-sm" onclick="deleteGroup('${g._id}', '${esc(g.name)}')">✕ Удалить</button>
-      </td>
-    </tr>
-  `).join('');
-}
-
-function deleteGroup(id, name) {
-  openConfirm(
-    `Удалить группу?`,
-    `Группа «${name}» и все её сообщения будут удалены из базы данных. Участники потеряют доступ к переписке.`,
-    async () => {
-      const res = await fetch(`/api/admin/groups/${id}`, { method: 'DELETE', headers: authHeaders() });
-      const d = await res.json();
-      if (res.ok) { toast('✓ ' + d.message, 'success'); refreshAll(); }
-      else toast('Ошибка: ' + d.error, 'error');
-    }
-  );
-}
-
-// ===== MESSAGES =====
-async function loadMessages(page) {
-  currentMsgPage = page;
-  const tbody = document.getElementById('messagesTableBody');
-  tbody.innerHTML = '<tr><td colspan="6" class="empty"><span class="spinner"></span></td></tr>';
-  const res = await fetch(`/api/admin/messages?page=${page}`, { headers: authHeaders() });
-  const data = await res.json();
-  document.getElementById('msgCount').innerText = `Всего: ${data.total}`;
-  renderMessages(data.messages);
-  renderPagination(data.pages, page);
-}
-
-function renderMessages(messages) {
-  const tbody = document.getElementById('messagesTableBody');
-  if (!messages.length) {
-    tbody.innerHTML = '<tr><td colspan="6" class="empty">Сообщений нет</td></tr>';
-    return;
-  }
-  tbody.innerHTML = messages.map(m => `
-    <tr>
-      <td><strong>${esc(m.from)}</strong></td>
-      <td class="mono">${m.groupId ? '👥 группа' : esc(m.to || '—')}</td>
-      <td class="text-clip" title="${esc(m.text)}">${m.deleted ? '<em style="color:var(--text2)">удалено</em>' : esc(m.text)}</td>
-      <td class="mono" style="white-space:nowrap;">${new Date(m.timestamp).toLocaleString('ru-RU')}</td>
-      <td>
-        ${m.deleted ? '<span class="badge badge-red">удалено</span>' : '<span class="badge badge-green">активно</span>'}
-        ${m.edited ? '<span class="badge badge-yellow" style="margin-left:4px;">ред.</span>' : ''}
-      </td>
-      <td>
-        <button class="btn btn-danger btn-sm" onclick="deleteMessage('${m._id}')">✕</button>
-      </td>
-    </tr>
-  `).join('');
-}
-
-function renderPagination(pages, current) {
-  const el = document.getElementById('msgPagination');
-  if (pages <= 1) { el.innerHTML = ''; return; }
-  let html = '';
-  for (let i = 1; i <= Math.min(pages, 10); i++) {
-    html += `<button class="page-btn ${i === current ? 'active' : ''}" onclick="loadMessages(${i})">${i}</button>`;
-  }
-  if (pages > 10) html += `<span style="color:var(--text2);padding:6px;">... ${pages} стр.</span>`;
-  el.innerHTML = html;
-}
-
-function deleteMessage(id) {
-  openConfirm('Удалить сообщение?', 'Сообщение будет удалено из базы данных навсегда.', async () => {
-    const res = await fetch(`/api/admin/messages/${id}`, { method: 'DELETE', headers: authHeaders() });
-    const d = await res.json();
-    if (res.ok) { toast('✓ Удалено', 'success'); loadMessages(currentMsgPage); loadStats(); }
-    else toast('Ошибка: ' + d.error, 'error');
-  });
-}
-
-async function cleanupDeleted() {
-  openConfirm(
-    'Очистить удалённые сообщения?',
-    'Все сообщения с флагом "удалено" будут физически удалены из базы данных.',
-    async () => {
-      const res = await fetch('/api/admin/messages/cleanup/deleted', { method: 'DELETE', headers: authHeaders() });
-      const d = await res.json();
-      if (res.ok) { toast('✓ ' + d.message, 'success'); refreshAll(); }
-      else toast('Ошибка: ' + d.error, 'error');
-    }
-  );
-}
-
-// ===== TABS =====
-function showTab(name) {
-  ['users','groups','messages'].forEach(t => {
-    document.getElementById(`tab-${t}`).style.display = t === name ? 'block' : 'none';
-  });
-  document.querySelectorAll('.tab').forEach((btn, i) => {
-    btn.classList.toggle('active', ['users','groups','messages'][i] === name);
-  });
-}
-
-// ===== CONFIRM MODAL =====
-function openConfirm(title, text, cb) {
-  document.getElementById('confirmTitle').innerText = title;
-  document.getElementById('confirmText').innerText = text;
-  confirmCallback = cb;
-  document.getElementById('confirmModal').classList.add('open');
-  document.getElementById('confirmBtn').onclick = async () => {
-    closeConfirm();
-    await cb();
-  };
-}
-
-function closeConfirm() {
-  document.getElementById('confirmModal').classList.remove('open');
-  confirmCallback = null;
-}
-
-// ===== TOAST =====
-let toastTimer;
-function toast(msg, type = 'success') {
-  const el = document.getElementById('toast');
-  el.innerText = msg;
-  el.className = type;
-  el.style.display = 'block';
-  clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => { el.style.display = 'none'; }, 3000);
-}
-
-// ===== UTILS =====
-function esc(str) {
-  if (!str) return '';
-  return String(str).replace(/[&<>"]/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m]));
-}
-
-// ===== ENTER KEY =====
-document.addEventListener('keydown', (e) => {
-  if (e.key === 'Enter' && document.getElementById('loginScreen').style.display !== 'none') {
-    adminLogin();
-  }
-  if (e.key === 'Escape') closeConfirm();
-});
-
-// ===== INIT =====
-window.onload = () => {
-  if (adminToken) {
-    fetch('/api/admin/stats', { headers: authHeaders() })
-      .then(r => r.ok ? showPanel() : adminLogout())
-      .catch(() => adminLogout());
-  }
-};
-</script>
+    // Кнопка инфо о группе — показывать только в групповом чате
+    const _origSwitchGroup = window.switchGroupChat;
+    // patch after load
+    document.addEventListener('DOMContentLoaded', () => {});
+    </script>
 </body>
 </html>
