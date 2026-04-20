@@ -825,7 +825,7 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
         if (tabId === 'friends') loadFriends();
         if (tabId === 'requests') loadFriendRequests();
         if (tabId === 'groups') loadGroups();
-        if (tabId === 'themes') initThemePanel();
+        if (tabId === 'settings') initThemePanel();
     });
 });
 
@@ -857,10 +857,11 @@ function applyTheme(themeId) {
 
 function initThemePanel() {
     const grid = document.getElementById('themeGrid');
-    if (!grid) return;
+    if (!grid || grid.children.length > 0) return; // guard против дублирования
+    const currentTheme = localStorage.getItem('theme') || 'dark';
     themes.forEach(t => {
         const card = document.createElement('div');
-        card.className = 'theme-card';
+        card.className = 'theme-card' + (t.id === currentTheme ? ' active' : '');
         card.dataset.theme = t.id;
         card.onclick = () => applyTheme(t.id);
         card.innerHTML = `
