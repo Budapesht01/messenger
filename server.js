@@ -361,6 +361,85 @@ app.get('/api/groups/:id/messages', authenticateJWT, async (req, res) => {
   res.json(messages);
 });
 
+
+// ========== ADMIN API (только user123) ==========
+const requireAdmin = (req, res, next) => {
+  if (req.user.username !== 'user123') {
+    return res.status(403).json({ error: 'Access denied' });
+  }
+  next();
+};
+
+// Статистика
+app.get('/api/admin/stats', authenticateJWT, requireAdmin, async (req, res) => {
+  const usersCount = await User.countDocuments();
+  const messagesCount = await Message.countDocuments({ deleted: false });
+  const groupsCount = await Group.countDocuments();
+  const onlineCount = await User.countDocuments({ online: true });
+  res.json({ usersCount, messagesCount, groupsCount, onlineCount });
+});
+
+// Все пользователи
+app.get('/api/admin/users', authenticateJWT, requireAdmin, async (req, res) => {
+  const users = await User.find({}, 'username avatar color online lastSeen friends friendRequests createdAt').sort({ _id: -1 });
+  res.json(users);
+});
+
+// Удалить пользователя
+app.delete('/api/admin/users/:username', authenticateJWT, requireAdmin, async (req, res) => {
+  const { username } = req.params;
+  if (username === 'user123') return res.status(400).json({ error: 'Cannot delete admin' });
+  await User.deleteOne({ username });
+  await Message.deleteMany({ $or: [{ from: username }, { to: username }] });
+  await Group.updateMany({ members: username }, { $pull: { members: username } });
+  await Group.deleteMany({ owner: username });
+  await User.updateMany({}, { $pull: { friends: username, friendRequests: username } });
+  res.json({ message: 'User deleted' });
+});
+
+// Все группы
+app.get('/api/admin/groups', authenticateJWT, requireAdmin, async (req, res) => {
+  const groups = await Group.find({}).sort({ _id: -1 });
+  res.json(groups);
+});
+
+// Удалить группу
+app.delete('/api/admin/groups/:id', authenticateJWT, requireAdmin, async (req, res) => {
+  const group = await Group.findById(req.params.id);
+  if (!group) return res.status(404).json({ error: 'Group not found' });
+  await Message.deleteMany({ groupId: group._id });
+  await Group.deleteOne({ _id: group._id });
+  res.json({ message: 'Group deleted' });
+});
+
+// Все сообщения (с пагинацией)
+app.get('/api/admin/messages', authenticateJWT, requireAdmin, async (req, res) => {
+  const page = parseInt(req.query.page) || 1;
+  const limit = 50;
+  const messages = await Message.find({}).sort({ timestamp: -1 }).skip((page-1)*limit).limit(limit);
+  const total = await Message.countDocuments();
+  res.json({ messages, total, pages: Math.ceil(total/limit) });
+});
+
+// Удалить сообщение навсегда
+app.delete('/api/admin/messages/:id', authenticateJWT, requireAdmin, async (req, res) => {
+  await Message.deleteOne({ _id: req.params.id });
+  res.json({ message: 'Message deleted' });
+});
+
+// Очистить удалённые сообщения
+app.delete('/api/admin/messages/cleanup/deleted', authenticateJWT, requireAdmin, async (req, res) => {
+  const result = await Message.deleteMany({ deleted: true });
+  res.json({ message: `Удалено ${result.deletedCount} сообщений` });
+});
+
+// Очистить все сообщения пользователя
+app.delete('/api/admin/users/:username/messages', authenticateJWT, requireAdmin, async (req, res) => {
+  const { username } = req.params;
+  const result = await Message.deleteMany({ from: username });
+  res.json({ message: `Удалено ${result.deletedCount} сообщений` });
+});
+
 // ========== Socket.IO ==========
 io.use(async (socket, next) => {
   const token = socket.handshake.auth.token;
