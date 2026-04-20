@@ -131,11 +131,18 @@ function initSocket(token) {
     });
 
     socket.on('messages_read', (data) => {
+        // Обновляем галочки для всех сообщений к этому собеседнику
         if (currentChat === data.chatWith) {
             document.querySelectorAll('.message.own .read-status').forEach(el => {
                 el.innerHTML = '✓✓'; el.classList.add('read');
             });
         }
+    });
+
+    socket.on('private_message_sent', (data) => {
+        // Сервер подтвердил — сообщение доставлено, галочка одна
+        const el = document.querySelector(`.message[data-id="${data._id}"] .read-status`);
+        if (el) { el.innerHTML = '✓'; }
     });
 
     socket.on('friend_status', (data) => updateFriendStatus(data.username, data.online));
@@ -271,6 +278,8 @@ function addMessageToChat(msg) {
     const div = document.createElement('div');
     div.className = `message ${isOwn ? 'own' : 'other'}`;
     div.setAttribute('data-id', msg._id);
+    const _isReadByOther = msg.readBy && currentChat && msg.readBy.includes(currentChat);
+    div.setAttribute('data-read', _isReadByOther ? 'true' : 'false');
     const color = msg.color || '#6ab0f3';
     const time = new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
@@ -412,6 +421,10 @@ function switchChat(username) {
     document.getElementById('messageInput').placeholder = 'Сообщение...';
     fetchHistoryForUser(username);
     markRead(username);
+    // Немедленно обновляем галочки в DOM без ожидания сервера
+    document.querySelectorAll('.message.own .read-status').forEach(el => {
+        el.innerHTML = '✓✓'; el.classList.add('read');
+    });
     if (window.innerWidth <= 768) sidebar.classList.remove('open');
     setActiveChatItem('dm_' + username);
 }
@@ -440,6 +453,20 @@ async function fetchHistoryForUser(user) {
     renderMessages(messages.filter(m =>
         (m.from === currentUser.username && m.to === user) || (m.from === user && m.to === currentUser.username)
     ));
+    // После рендера — обновляем галочки если уже прочитано
+    setTimeout(updateReadStatusInCurrentChat, 100);
+}
+
+function updateReadStatusInCurrentChat() {
+    if (!currentChat) return;
+    // Проверяем readBy у каждого сообщения через DOM data-атрибут
+    document.querySelectorAll('.message.own').forEach(el => {
+        const status = el.querySelector('.read-status');
+        if (!status) return;
+        // Если readBy включает собеседника — помечаем прочитанным
+        const isRead = el.getAttribute('data-read') === 'true';
+        if (isRead) { status.innerHTML = '✓✓'; status.classList.add('read'); }
+    });
 }
 
 // ========== Друзья ==========
@@ -798,6 +825,7 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
         if (tabId === 'friends') loadFriends();
         if (tabId === 'requests') loadFriendRequests();
         if (tabId === 'groups') loadGroups();
+        if (tabId === 'themes') initThemePanel();
     });
 });
 
@@ -811,7 +839,49 @@ document.getElementById('imageUploadInput').addEventListener('change', (e) => {
 });
 
 // ========== Старт ==========
+// ========== ТЕМЫ ==========
+const themes = [
+    { id: 'dark',  name: 'Тёмная',   sidebar: '#1f1f1f', main: '#111111', own: '#1d3d5c', other: '#2a2a2a' },
+    { id: 'light', name: 'Светлая',  sidebar: '#ffffff', main: '#eae8e3', own: '#d4e8ff', other: '#ffffff' },
+    { id: 'gray',  name: 'Серая',    sidebar: '#2c2c2e', main: '#1c1c1e', own: '#2c5282', other: '#3a3a3c' },
+    { id: 'green', name: 'Зелёная',  sidebar: '#111b21', main: '#0b141a', own: '#005c4b', other: '#202c33' },
+];
+
+function applyTheme(themeId) {
+    document.documentElement.setAttribute('data-theme', themeId);
+    localStorage.setItem('theme', themeId);
+    document.querySelectorAll('.theme-card').forEach(card => {
+        card.classList.toggle('active', card.dataset.theme === themeId);
+    });
+}
+
+function initThemePanel() {
+    const grid = document.getElementById('themeGrid');
+    if (!grid) return;
+    themes.forEach(t => {
+        const card = document.createElement('div');
+        card.className = 'theme-card';
+        card.dataset.theme = t.id;
+        card.onclick = () => applyTheme(t.id);
+        card.innerHTML = `
+            <div class="theme-preview">
+                <div class="theme-preview-sidebar" style="background:${t.sidebar}"></div>
+                <div class="theme-preview-main" style="background:${t.main}">
+                    <div class="theme-preview-msg other" style="background:${t.other}"></div>
+                    <div class="theme-preview-msg own" style="background:${t.own}"></div>
+                </div>
+            </div>
+            <div class="theme-name">${t.name}</div>
+        `;
+        grid.appendChild(card);
+    });
+}
+
 window.onload = () => {
+    // Применяем сохранённую тему
+    const savedTheme = localStorage.getItem('theme') || 'dark';
+    document.documentElement.setAttribute('data-theme', savedTheme);
+
     const token = localStorage.getItem('token');
     const savedUser = localStorage.getItem('user');
     if (token && savedUser) {
@@ -822,6 +892,7 @@ window.onload = () => {
         document.querySelector('.chat-title').innerText = 'Выберите чат';
         document.getElementById('messageInput').placeholder = 'Выберите чат...';
         initAvatarPicker();
+        initThemePanel();
     }
     if (Notification.permission !== 'granted') Notification.requestPermission();
     initEmojiPicker();
