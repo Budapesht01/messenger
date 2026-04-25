@@ -1,12 +1,13 @@
 <!DOCTYPE html>
-<html>
+<html data-theme="dark">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, interactive-widget=resizes-content">
     <title>Мессенджер</title>
-    <link rel="stylesheet" href="style.css?v=final">
+    <link rel="stylesheet" href="style.css?v=glass1">
 </head>
 <body>
+    <!-- Авторизация -->
     <div id="auth" class="auth-container">
         <div class="auth-card">
             <h2>Добро пожаловать</h2>
@@ -22,84 +23,262 @@
         </div>
     </div>
 
+    <!-- Чат -->
     <div id="chat" class="chat-container" style="display:none;">
         <div class="sidebar" id="sidebar">
             <div class="user-info" id="userInfo"></div>
             <div class="tabs">
                 <button class="tab-btn active" data-tab="friends">Друзья</button>
+                <button class="tab-btn" data-tab="groups">Группы</button>
                 <button class="tab-btn" data-tab="search">Поиск</button>
                 <button class="tab-btn" data-tab="requests">Запросы</button>
-                <button class="tab-btn" data-tab="settings">Настройки</button>
+                <button class="tab-btn" data-tab="settings">⚙️</button>
             </div>
+
+            <!-- Друзья -->
             <div class="tab-content active" id="friends-tab">
                 <div id="friendsList"></div>
             </div>
+
+            <!-- Группы -->
+            <div class="tab-content" id="groups-tab">
+                <div class="groups-toolbar">
+                    <button class="primary-btn small-btn" onclick="openCreateGroupModal()">+ Создать</button>
+                    <div style="display:flex; flex-direction:column; gap:6px; margin-top:8px;">
+                        <input type="text" id="joinCodeInput" placeholder="Код приглашения..." style="width:100%; box-sizing:border-box; padding:8px 12px; border-radius:20px; border:1px solid var(--border-color); background:var(--input-bg); color:var(--text-primary); font-size:13px; outline:none;">
+                        <button class="primary-btn" style="width:100%; border-radius:20px;" onclick="joinByCode()">Войти</button>
+                    </div>
+                </div>
+                <div id="groupsList"></div>
+
+                <!-- Поиск публичных групп -->
+                <div style="padding: 8px;">
+                    <input type="text" id="searchGroupInput" placeholder="🔍 Найти публичные группы..." style="width:100%; padding:8px 12px; border-radius:20px; border:1px solid var(--border-color); background:var(--input-bg); color:var(--text-primary); font-size:13px; outline:none; box-sizing:border-box;">
+                </div>
+                <div id="publicGroupResults"></div>
+            </div>
+
+            <!-- Поиск пользователей -->
             <div class="tab-content" id="search-tab">
                 <input type="text" id="searchUserInput" placeholder="Поиск пользователей...">
                 <div id="searchResults"></div>
             </div>
+
+            <!-- Запросы -->
             <div class="tab-content" id="requests-tab">
                 <div id="requestsList"></div>
             </div>
+
+            <!-- Настройки -->
             <div class="tab-content" id="settings-tab">
-               <div class="settings-panel">
-    <h4>Профиль</h4>
-    <div class="avatar-selector">
-        <label>Аватар:</label>
-        <div class="avatar-preview" id="avatarPreview">😀</div>
-        <button id="pickAvatarBtn" class="secondary-btn">Выбрать эмодзи</button>
-    </div>
-
-    <!-- Emoji picker для аватара -->
-    <div class="avatar-emoji-panel" id="avatarEmojiPanel">
-        <div class="emoji-categories" id="avatarEmojiCategories"></div>
-        <div class="emoji-grid" id="avatarEmojiGrid"></div>
-    </div>
-
-    <div class="color-selector">
-        <label>Цвет ника:</label>
-        <div class="color-picker-wrapper">
-            <div class="color-preview" id="colorPreview"></div>
-            <input type="color" id="colorInput">
-            <span class="color-hex" id="colorHex">#6ab0f3</span>
-        </div>
-        <div class="color-presets">
-            <div class="color-preset" style="background:#6ab0f3" data-color="#6ab0f3"></div>
-            <div class="color-preset" style="background:#f36a6a" data-color="#f36a6a"></div>
-            <div class="color-preset" style="background:#6af3a0" data-color="#6af3a0"></div>
-            <div class="color-preset" style="background:#f3c66a" data-color="#f3c66a"></div>
-            <div class="color-preset" style="background:#c46af3" data-color="#c46af3"></div>
-            <div class="color-preset" style="background:#f36ac4" data-color="#f36ac4"></div>
-            <div class="color-preset" style="background:#6af3f3" data-color="#6af3f3"></div>
-            <div class="color-preset" style="background:#ffffff" data-color="#ffffff"></div>
-        </div>
-    </div>
-    <button id="saveProfileBtn" class="primary-btn">Сохранить</button>
-    <hr class="settings-divider">
-    <button id="logoutBtn" class="logout-btn">Выйти из аккаунта</button>
-</div>
+                <div class="settings-panel">
+                    <h4>Профиль</h4>
+                    <div class="avatar-selector">
+                        <label>Аватар:</label>
+                        <div class="avatar-preview" id="avatarPreview">😀</div>
+                        <button id="pickAvatarBtn" class="secondary-btn">Выбрать эмодзи</button>
+                    </div>
+                    <div class="avatar-emoji-panel" id="avatarEmojiPanel">
+                        <div class="emoji-categories" id="avatarEmojiCategories"></div>
+                        <div class="emoji-grid" id="avatarEmojiGrid"></div>
+                    </div>
+                    <div class="color-selector">
+                        <label>Цвет ника:</label>
+                        <div class="color-picker-wrapper">
+                            <div class="color-preview" id="colorPreview"></div>
+                            <input type="color" id="colorInput">
+                            <span class="color-hex" id="colorHex">#6ab0f3</span>
+                        </div>
+                        <div class="color-presets">
+                            <div class="color-preset" style="background:#6ab0f3" data-color="#6ab0f3"></div>
+                            <div class="color-preset" style="background:#f36a6a" data-color="#f36a6a"></div>
+                            <div class="color-preset" style="background:#6af3a0" data-color="#6af3a0"></div>
+                            <div class="color-preset" style="background:#f3c66a" data-color="#f3c66a"></div>
+                            <div class="color-preset" style="background:#c46af3" data-color="#c46af3"></div>
+                            <div class="color-preset" style="background:#f36ac4" data-color="#f36ac4"></div>
+                            <div class="color-preset" style="background:#6af3f3" data-color="#6af3f3"></div>
+                            <div class="color-preset" style="background:#ffffff" data-color="#ffffff"></div>
+                        </div>
+                    </div>
+                    <div class="theme-section">
+                        <label class="settings-label">Тема оформления</label>
+                        <div class="theme-grid-inline" id="themeGrid"></div>
+                    </div>
+                    <button id="saveProfileBtn" class="primary-btn">Сохранить</button>
+                    <hr class="settings-divider">
+                    <button id="logoutBtn" class="logout-btn">Выйти из аккаунта</button>
+                </div>
             </div>
+
         </div>
+
+        <!-- Основная область чата -->
         <div class="main">
             <div class="chat-header">
                 <button id="menuToggleBtn" class="menu-toggle">☰</button>
-                <span class="chat-title">Общий чат</span>
+                <span class="chat-title">Выберите чат</span>
+                <button id="groupInfoBtn" class="group-info-btn" onclick="showGroupInfo()" style="display:none;">ℹ️</button>
             </div>
             <div class="messages" id="messages"></div>
             <div class="typing-indicator" id="typingIndicator"></div>
+            <div id="replyBar" class="reply-bar" style="display:none;">
+                <div class="reply-bar-content">
+                    <span class="reply-bar-label">Ответ для <strong id="replyFrom"></strong></span>
+                    <span class="reply-bar-text" id="replyText"></span>
+                </div>
+                <button class="reply-bar-close" onclick="clearReply()">✕</button>
+            </div>
             <div class="input-area" style="position:relative;">
-    <div class="emoji-picker-panel" id="emojiPickerPanel">
-        <div class="emoji-categories" id="emojiCategories"></div>
-        <div class="emoji-grid" id="emojiGrid"></div>
-    </div>
-    <button class="emoji-toggle-btn" id="emojiToggleBtn">😊</button>
-    <input type="text" id="messageInput" placeholder="Сообщение...">
-    <button id="sendBtn" class="send-btn">Отправить</button>
-</div>
+                <div class="emoji-picker-panel" id="emojiPickerPanel">
+                    <div class="emoji-categories" id="emojiCategories"></div>
+                    <div class="emoji-grid" id="emojiGrid"></div>
+                </div>
+                <button class="emoji-toggle-btn" id="emojiToggleBtn">😊</button>
+                <button class="image-upload-btn" onclick="document.getElementById('imageUploadInput').click()" title="Отправить фото">📎</button>
+                <input type="file" id="imageUploadInput" accept="image/*" style="display:none;">
+                <input type="text" id="messageInput" placeholder="Выберите чат...">
+                <button id="sendBtn" class="send-btn">↑</button>
+            </div>
         </div>
     </div>
 
+    <!-- ===== МОДАЛКА: Создать группу ===== -->
+    <div class="modal-overlay" id="createGroupModal">
+        <div class="modal-card">
+            <div class="modal-header">
+                <h3>Создать группу</h3>
+                <button class="modal-close" onclick="closeCreateGroupModal()">✕</button>
+            </div>
+            <div class="modal-body">
+                <div class="modal-avatar-row">
+                    <div class="avatar-preview large" id="groupAvatarPreview">👥</div>
+                    <button class="secondary-btn" id="pickGroupAvatarBtn">Выбрать эмодзи</button>
+                </div>
+                <div class="group-avatar-panel" id="groupAvatarPanel" style="display:none;">
+                    <div style="display:grid;grid-template-columns:repeat(8,1fr);gap:6px;max-height:160px;overflow-y:auto;">
+                        <!-- эмодзи заполнятся из JS -->
+                    </div>
+                </div>
+                <input type="text" id="newGroupName" placeholder="Название группы *" class="modal-input">
+                <input type="text" id="newGroupDesc" placeholder="Описание (необязательно)" class="modal-input">
+                <div class="modal-type-selector">
+                    <label class="type-option">
+                        <input type="radio" name="groupType" id="groupTypeSelect" value="private" checked>
+                        <div class="type-card">
+                            <span class="type-icon">🔒</span>
+                            <span class="type-label">Закрытая</span>
+                            <span class="type-desc">Только по коду приглашения</span>
+                        </div>
+                    </label>
+                    <label class="type-option">
+                        <input type="radio" name="groupType" value="public">
+                        <div class="type-card">
+                            <span class="type-icon">🌍</span>
+                            <span class="type-label">Публичная</span>
+                            <span class="type-desc">Видна в поиске групп</span>
+                        </div>
+                    </label>
+                </div>
+                <div class="members-section">
+                    <div class="members-label">Добавить друзей:</div>
+                    <div id="groupMemberCheckboxes"></div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="secondary-btn" onclick="closeCreateGroupModal()">Отмена</button>
+                <button class="primary-btn" onclick="createGroup()">Создать</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== МОДАЛКА: Инвайт-код ===== -->
+    <div class="modal-overlay" id="inviteCodeModal">
+        <div class="modal-card narrow">
+            <div class="modal-header">
+                <h3>Группа создана! 🎉</h3>
+                <button class="modal-close" onclick="closeInviteModal()">✕</button>
+            </div>
+            <div class="modal-body" style="text-align:center;">
+                <div style="font-size:14px; color:var(--text-secondary); margin-bottom:16px;" id="inviteCodeHint"></div>
+                <div style="font-size:13px; color:var(--text-secondary); margin-bottom:8px;">«<span id="inviteCodeGroupName"></span>»</div>
+                <div class="invite-code-box" id="inviteCodeDisplay" style="font-size:22px; letter-spacing:3px; font-weight:700;"></div>
+                <button class="primary-btn" id="copyCodeBtn" onclick="copyInviteCode()" style="margin-top:16px;">📋 Скопировать код</button>
+            </div>
+            <div class="modal-footer">
+                <button class="primary-btn" onclick="closeInviteModal()">Готово</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== МОДАЛКА: Инфо о группе ===== -->
+    <div class="modal-overlay" id="groupInfoModal">
+        <div class="modal-card narrow">
+            <div class="modal-header">
+                <h3>О группе</h3>
+                <button class="modal-close" onclick="closeGroupInfoModal()">✕</button>
+            </div>
+            <div class="modal-body">
+                <div style="text-align:center; margin-bottom:20px;">
+                    <div style="font-size:56px; margin-bottom:8px;" id="groupInfoAvatar">👥</div>
+                    <div style="font-size:20px; font-weight:700; color:var(--text-primary); margin-bottom:6px;" id="groupInfoName"></div>
+                    <div style="font-size:13px; color:var(--text-secondary); background:rgba(106,176,243,0.1); display:inline-block; padding:4px 12px; border-radius:20px;" id="groupInfoType"></div>
+                </div>
+                <div style="margin-top:4px; margin-bottom:8px;">
+                    <div class="members-label" style="margin-bottom:8px;">Участники:</div>
+                    <div id="groupInfoMembers" class="members-list"></div>
+                </div>
+                <span id="groupInfoCode" style="display:none;"></span>
+            </div>
+            <div class="modal-footer">
+                <button class="secondary-btn" onclick="getGroupInviteLink()">🔗 Скопировать ссылку</button>
+                <button class="logout-btn" id="deleteGroupBtn" onclick="deleteGroup()" style="display:none;">Удалить группу</button>
+                <button class="logout-btn" id="leaveGroupBtn" onclick="leaveGroup()" style="display:none;">Покинуть группу</button>
+                <button class="secondary-btn" onclick="closeGroupInfoModal()">Закрыть</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Image modal -->
+    <div class="modal-overlay" id="imageModal" onclick="closeImageModal()">
+        <div style="position:relative;" onclick="event.stopPropagation()">
+            <img id="imageModalImg" src="" style="max-width:90vw;max-height:85vh;border-radius:12px;display:block;">
+            <button onclick="closeImageModal()" style="position:absolute;top:-12px;right:-12px;background:#1a1a1a;border:none;color:#fff;font-size:18px;width:32px;height:32px;border-radius:50%;cursor:pointer;">✕</button>
+        </div>
+    </div>
     <script src="/socket.io/socket.io.js"></script>
-    <script src="script.js?v=final"></script>
+    <script src="script.js?v=glass1"></script>
+    <script>
+    // Инициализация пикера аватара для группы
+    window.addEventListener('load', () => {
+        const btn = document.getElementById('pickGroupAvatarBtn');
+        const panel = document.getElementById('groupAvatarPanel');
+        const preview = document.getElementById('groupAvatarPreview');
+        const grid = panel.querySelector('div');
+        const allEmoji = ['👥','💬','🎮','🎵','🏆','🔥','⭐','💡','🌍','🎯','🚀','❤️','🎉','🌈','🏠','📚','🎨','🍕','⚽','🐶','🌺','💎','🎸','🎭','🤖','🦁','🐉','🌙','☀️','🌊','🏔️','🦋'];
+        allEmoji.forEach(e => {
+            const span = document.createElement('span');
+            span.innerText = e;
+            span.style.cssText = 'font-size:22px;cursor:pointer;text-align:center;padding:4px;border-radius:8px;';
+            span.onmouseover = () => span.style.background = 'rgba(106,176,243,0.2)';
+            span.onmouseout = () => span.style.background = '';
+            span.addEventListener('click', () => {
+                preview.innerText = e;
+                panel.style.display = 'none';
+            });
+            grid.appendChild(span);
+        });
+        btn.addEventListener('click', () => {
+            panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
+        });
+
+        // Радио-кнопки типа группы — читаются напрямую через querySelector в createGroup()
+
+    });
+
+    // Кнопка инфо о группе — показывать только в групповом чате
+    const _origSwitchGroup = window.switchGroupChat;
+    // patch after load
+    document.addEventListener('DOMContentLoaded', () => {});
+    </script>
 </body>
 </html>
