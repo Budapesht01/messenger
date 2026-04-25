@@ -617,7 +617,7 @@ async function createGroup() {
     const name = document.getElementById('newGroupName').value.trim();
     if (!name) return alert('Введите название');
     const description = document.getElementById('newGroupDesc').value.trim();
-    const type = document.getElementById('groupTypeSelect').value;
+    const type = document.querySelector('input[name="groupType"]:checked').value;
     const avatar = document.getElementById('groupAvatarPreview').innerText;
     const members = [...document.querySelectorAll('#groupMemberCheckboxes input:checked')].map(cb => cb.value);
     const token = localStorage.getItem('token');
