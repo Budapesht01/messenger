@@ -194,12 +194,15 @@ function initSocket(token) {
 
     socket.on('call_answered', async (data) => {
         await peerConnection.setRemoteDescription(new RTCSessionDescription(data.answer));
-        document.getElementById('callStatus').innerText = 'Звонок';
-        document.getElementById('callMuteBtn').style.display = 'flex';
+        await flushIceCandidates();
     });
 
     socket.on('call_ice', async (data) => {
-        try { await peerConnection?.addIceCandidate(new RTCIceCandidate(data.candidate)); } catch(e) {}
+        if (!peerConnection || !peerConnection.remoteDescription) {
+            iceCandidateQueue.push(data.candidate);
+        } else {
+            try { await peerConnection.addIceCandidate(new RTCIceCandidate(data.candidate)); } catch(e) {}
+        }
     });
 
     socket.on('call_rejected', () => {
@@ -1177,8 +1180,21 @@ let peerConnection = null;
 let localStream = null;
 let callWith = null;
 let isMuted = false;
+let iceCandidateQueue = [];
 
-const iceServers = { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] };
+const iceServers = { iceServers: [
+    { urls: 'stun:stun.l.google.com:19302' },
+    { urls: 'stun:stun1.l.google.com:19302' },
+    { urls: 'stun:stun2.l.google.com:19302' },
+    { urls: 'stun:stun.cloudflare.com:3478' }
+]};
+
+async function flushIceCandidates() {
+    while (iceCandidateQueue.length) {
+        const c = iceCandidateQueue.shift();
+        try { await peerConnection.addIceCandidate(new RTCIceCandidate(c)); } catch(e) {}
+    }
+}
 
 function showCallOverlay(username, avatar, status, showAccept) {
     document.getElementById('callAvatar').innerText = avatar || '😀';
@@ -1194,21 +1210,26 @@ function hideCallOverlay() {
 }
 
 async function startCall(username) {
+    iceCandidateQueue = [];
     callWith = username;
     localStream = await navigator.mediaDevices.getUserMedia({ audio: true });
     peerConnection = new RTCPeerConnection(iceServers);
     localStream.getTracks().forEach(t => peerConnection.addTrack(t, localStream));
     peerConnection.ontrack = (e) => {
         document.getElementById('remoteAudio').srcObject = e.streams[0];
-        document.getElementById('callStatus').innerText = 'Звонок';
     };
     peerConnection.onicecandidate = (e) => {
         if (e.candidate) socket.emit('call_ice', { to: callWith, candidate: e.candidate });
     };
     peerConnection.onconnectionstatechange = () => {
-        if (peerConnection?.connectionState === 'connected') {
+        const state = peerConnection?.connectionState;
+        if (state === 'connected') {
             document.getElementById('callStatus').innerText = 'Звонок';
             document.getElementById('callMuteBtn').style.display = 'flex';
+        }
+        if (state === 'failed' || state === 'disconnected') {
+            document.getElementById('callStatus').innerText = 'Соединение прервано';
+            setTimeout(cleanupCall, 2000);
         }
     };
     const offer = await peerConnection.createOffer();
@@ -1219,13 +1240,26 @@ async function startCall(username) {
 
 async function acceptCall() {
     document.getElementById('callAcceptBtn').style.display = 'none';
-    document.getElementById('callMuteBtn').style.display = 'flex';
     document.getElementById('callStatus').innerText = 'Соединение...';
     localStream = await navigator.mediaDevices.getUserMedia({ audio: true });
     localStream.getTracks().forEach(t => peerConnection.addTrack(t, localStream));
-    peerConnection.ontrack = (e) => { document.getElementById('remoteAudio').srcObject = e.streams[0]; };
+    peerConnection.ontrack = (e) => {
+        document.getElementById('remoteAudio').srcObject = e.streams[0];
+    };
+    peerConnection.onconnectionstatechange = () => {
+        const state = peerConnection?.connectionState;
+        if (state === 'connected') {
+            document.getElementById('callStatus').innerText = 'Звонок';
+            document.getElementById('callMuteBtn').style.display = 'flex';
+        }
+        if (state === 'failed' || state === 'disconnected') {
+            document.getElementById('callStatus').innerText = 'Соединение прервано';
+            setTimeout(cleanupCall, 2000);
+        }
+    };
     const answer = await peerConnection.createAnswer();
     await peerConnection.setLocalDescription(answer);
+    await flushIceCandidates();
     socket.emit('call_answer', { to: callWith, answer });
 }
 
