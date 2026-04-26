@@ -1183,10 +1183,27 @@ let isMuted = false;
 let iceCandidateQueue = [];
 
 const iceServers = { iceServers: [
-    { urls: 'stun:stun.l.google.com:19302' },
-    { urls: 'stun:stun1.l.google.com:19302' },
-    { urls: 'stun:stun2.l.google.com:19302' },
-    { urls: 'stun:stun.cloudflare.com:3478' }
+    { urls: 'stun:stun.relay.metered.ca:80' },
+    {
+        urls: 'turn:global.relay.metered.ca:80',
+        username: 'f1e5775431e6d374bfd767cd',
+        credential: 'СЮДА_СВОЙ_CREDENTIAL'
+    },
+    {
+        urls: 'turn:global.relay.metered.ca:80?transport=tcp',
+        username: 'f1e5775431e6d374bfd767cd',
+        credential: 'foYdt5C8+xkLxK8N'
+    },
+    {
+        urls: 'turn:global.relay.metered.ca:443',
+        username: 'f1e5775431e6d374bfd767cd',
+        credential: 'foYdt5C8+xkLxK8N'
+    },
+    {
+        urls: 'turns:global.relay.metered.ca:443?transport=tcp',
+        username: 'f1e5775431e6d374bfd767cd',
+        credential: 'foYdt5C8+xkLxK8N'
+    }
 ]};
 
 async function flushIceCandidates() {
