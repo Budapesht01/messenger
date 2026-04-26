@@ -11,14 +11,16 @@
     <div id="auth" class="auth-container">
         <div class="auth-card">
             <h2>Добро пожаловать</h2>
-            <input type="text" id="authUsername" placeholder="Имя пользователя">
+            <form onsubmit="return false;">
+            <input type="text" id="authUsername" placeholder="Имя пользователя" autocomplete="username">
             <div class="auth-hint">Минимум 3 символа</div>
-            <input type="password" id="authPassword" placeholder="Пароль">
+            <input type="password" id="authPassword" placeholder="Пароль" autocomplete="current-password">
             <div class="auth-hint">Минимум 8 символов</div>
             <div class="auth-buttons">
-                <button onclick="register()">Зарегистрироваться</button>
-                <button onclick="login()">Войти</button>
+                <button type="button" onclick="register()">Зарегистрироваться</button>
+                <button type="button" onclick="login()">Войти</button>
             </div>
+            </form>
             <div id="authError" class="error"></div>
         </div>
     </div>
