@@ -338,12 +338,22 @@ function addMessageToChat(msg) {
     const bar = div.querySelector('.reaction-bar');
     if (msg.reactions && msg.reactions.length > 0) renderReactionBar(bar, msg.reactions, msg._id);
 
-    // Контекстное меню TG-стиля при клике на пузырь
-    const bubble = div.querySelector('.message-bubble');
-    bubble.addEventListener('click', (e) => {
-        if (e.target.closest('.reply-preview') || e.target.closest('.msg-image')) return;
-        openMsgMenu(msg, div, isOwn, e);
+    // Меню действий — появляется при наведении на сообщение
+    const actionsBar = document.createElement('div');
+    actionsBar.className = 'msg-hover-actions';
+    const menuItems = [];
+    if (!msg.deleted) menuItems.push({ icon: '😊', action: () => openReactionPicker(msg._id, div.querySelector('.message-bubble')) });
+    menuItems.push({ icon: '↩', action: () => setReply(msg._id, msg.from, msg.text) });
+    if (isOwn && !msg.deleted && msg.text) menuItems.push({ icon: '✎', action: () => startInlineEdit(msg) });
+    if (isOwn && !msg.deleted) menuItems.push({ icon: '🗑', action: () => openDeleteModal(msg._id), danger: true });
+    menuItems.forEach(item => {
+        const btn = document.createElement('button');
+        btn.className = 'msg-action-hover-btn' + (item.danger ? ' danger' : '');
+        btn.innerText = item.icon;
+        btn.onclick = (e) => { e.stopPropagation(); item.action(); };
+        actionsBar.appendChild(btn);
     });
+    div.appendChild(actionsBar);
 
     container.appendChild(div);
     container.scrollTop = container.scrollHeight;
@@ -490,8 +500,14 @@ function openReactionPicker(messageId, anchor) {
     });
     document.body.appendChild(picker);
     const rect = anchor.getBoundingClientRect();
-    picker.style.top = (rect.top - picker.offsetHeight - 8 + window.scrollY) + 'px';
-    picker.style.left = Math.min(rect.left, window.innerWidth - 220) + 'px';
+    const pickerW = quickReactions.length * 44 + 12;
+    let top = rect.top - 56 + window.scrollY;
+    let left = rect.left;
+    if (left + pickerW > window.innerWidth - 8) left = window.innerWidth - pickerW - 8;
+    if (left < 8) left = 8;
+    if (top < 8) top = rect.bottom + 8 + window.scrollY;
+    picker.style.top = top + 'px';
+    picker.style.left = left + 'px';
     setTimeout(() => document.addEventListener('click', () => picker.remove(), { once: true }), 50);
 }
 
