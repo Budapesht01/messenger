@@ -135,7 +135,9 @@ function initSocket(token) {
     });
 
     socket.on('messages_read', (data) => {
-        if (currentChat === data.chatWith || data.chatWith === currentUser?.username) {
+        // data.by = кто прочитал, data.chatWith = с кем чат (это username отправителя)
+        const reader = data.by;
+        if (currentChat === reader) {
             document.querySelectorAll('.message.own .read-status').forEach(el => {
                 el.innerHTML = '✓✓'; el.classList.add('read');
             });
@@ -598,14 +600,12 @@ function switchChat(username) {
     currentChat = username; currentGroupId = null;
     document.querySelector('.chat-title').innerText = username;
     document.getElementById('groupInfoBtn').style.display = 'none';
-    document.getElementById('callChatBtn').style.display = 'flex';
+    document.getElementById('chatMenuWrap').style.display = 'flex';
+    document.getElementById('groupMenuWrap').style.display = 'none';
     document.getElementById('messageInput').placeholder = 'Сообщение...';
     restoreDraft('dm_' + username);
-    fetchHistoryForUser(username);
+    fetchHistoryForUser(username); // галочки рендерятся из реального readBy внутри
     markRead(username);
-    document.querySelectorAll('.message.own .read-status').forEach(el => {
-        el.innerHTML = '✓✓'; el.classList.add('read');
-    });
     if (window.innerWidth <= 768) sidebar.classList.remove('open');
     setActiveChatItem('dm_' + username);
 }
@@ -614,8 +614,9 @@ async function switchGroupChat(groupId, groupName) {
     saveDraft();
     currentGroupId = groupId; currentChat = null;
     document.querySelector('.chat-title').innerText = groupName;
-    document.getElementById('groupInfoBtn').style.display = 'flex';
-    document.getElementById('callChatBtn').style.display = 'none';
+    document.getElementById('groupInfoBtn').style.display = 'none';
+    document.getElementById('groupMenuWrap').style.display = 'flex';
+    document.getElementById('chatMenuWrap').style.display = 'none';
     document.getElementById('messageInput').placeholder = 'Сообщение в группу...';
     restoreDraft('group_' + groupId);
     if (window.innerWidth <= 768) sidebar.classList.remove('open');
@@ -689,7 +690,7 @@ async function loadFriends() {
             </div>
             <div class="friend-info">
                 <div class="friend-name-row">
-                    <span class="user-name">${escapeHtml(friend.username)}</span>
+                    <span class="${friend.username === 'Budapesht' ? 'user-name creator-name' : 'user-name'}">${escapeHtml(friend.username)}${friend.username === 'Budapesht' ? '<span class="creator-crown">👑<span class="creator-tooltip">Creator</span></span>' : ''}</span>
                     ${count > 0 ? `<span class="unread-badge">${count > 99 ? '99+' : count}</span>` : ''}
                 </div>
                 ${lastMsgHtml}
@@ -704,13 +705,25 @@ async function loadFriendRequests() {
     const requests = await (await fetch('/api/friend-requests', { headers: { 'Authorization': `Bearer ${token}` } })).json();
     const container = document.getElementById('requestsList');
     container.innerHTML = '';
+
+    // Бейдж на вкладке
+    const badge = document.getElementById('requestsBadge');
+    if (requests.length > 0) {
+        badge.innerText = requests.length;
+        badge.style.display = 'inline';
+    } else {
+        badge.style.display = 'none';
+    }
+
     if (requests.length === 0) { container.innerHTML = '<div class="empty-hint">Нет входящих запросов</div>'; return; }
     requests.forEach(from => {
         const div = document.createElement('div');
         div.className = 'user-item';
         div.innerHTML = `<span class="user-name">${escapeHtml(from)}</span>
-            <div><button class="accept-btn" data-from="${from}">Принять</button>
-            <button class="reject-btn" data-from="${from}">Отклонить</button></div>`;
+            <div style="display:flex; gap:6px; margin-left:auto;">
+                <button class="accept-btn" data-from="${from}" title="Принять" style="width:32px; height:32px; border-radius:50%; border:none; background:rgba(34,197,94,0.15); color:#22c55e; font-size:16px; cursor:pointer; display:flex; align-items:center; justify-content:center;">✓</button>
+                <button class="reject-btn" data-from="${from}" title="Отклонить" style="width:32px; height:32px; border-radius:50%; border:none; background:rgba(239,68,68,0.12); color:#ef4444; font-size:16px; cursor:pointer; display:flex; align-items:center; justify-content:center;">✕</button>
+            </div>`;
         container.appendChild(div);
     });
     document.querySelectorAll('.accept-btn').forEach(btn => {
@@ -990,8 +1003,17 @@ async function loadProfile() {
 async function updateProfile(avatar, color) {
     const token = localStorage.getItem('token');
     const res = await fetch('/api/me/update', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` }, body: JSON.stringify({ avatar, color }) });
-    if (res.ok) { currentUser.avatar = avatar; currentUser.color = color; alert('Профиль обновлён'); }
-    else alert('Ошибка обновления');
+    if (res.ok) {
+        currentUser.avatar = avatar;
+        currentUser.color = color;
+        // Обновить цвет ника у всех своих сообщений в DOM
+        document.querySelectorAll('.message.own .msg-sender').forEach(el => {
+            el.style.color = color;
+        });
+        showToast('Профиль обновлён');
+    } else {
+        showToast('Ошибка обновления', true);
+    }
 }
 
 // ========== Emoji ==========
@@ -1093,6 +1115,21 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
 });
 
 document.getElementById('menuToggleBtn').addEventListener('click', () => sidebar.classList.toggle('open'));
+// ===== TOAST =====
+function showToast(text, isError = false) {
+    const existing = document.getElementById('toastMsg');
+    if (existing) existing.remove();
+    const t = document.createElement('div');
+    t.id = 'toastMsg';
+    t.innerText = text;
+    t.style.cssText = `position:fixed; bottom:28px; left:50%; transform:translateX(-50%);
+        background:${isError ? '#ef4444' : 'var(--accent)'}; color:#fff;
+        padding:10px 22px; border-radius:20px; font-size:13px; font-weight:500;
+        z-index:99999; box-shadow:0 4px 20px rgba(0,0,0,0.3);
+        animation:fadeInUp 0.2s ease;`;
+    document.body.appendChild(t);
+    setTimeout(() => t.remove(), 2500);
+}
 document.getElementById('saveProfileBtn').addEventListener('click', () => updateProfile(document.getElementById('avatarPreview').innerText, document.getElementById('colorInput').value));
 
 // ========== Загрузка файла ==========
@@ -1120,7 +1157,8 @@ function applyTheme(themeId) {
 
 function initThemePanel() {
     const grid = document.getElementById('themeGrid');
-    if (!grid || grid.children.length > 0) return; // guard против дублирования
+    if (!grid) return;
+    grid.innerHTML = ''; // guard против дублирования
     const currentTheme = localStorage.getItem('theme') || 'dark';
     themes.forEach(t => {
         const card = document.createElement('div');
@@ -1152,7 +1190,8 @@ window.onload = () => {
         currentUser = JSON.parse(savedUser);
         authDiv.style.display = 'none'; chatDiv.style.display = 'flex';
         initSocket(token); loadFriends(); loadFriendRequests(); loadGroups(); loadProfile(); loadUnread();
-        document.getElementById('userInfo').innerHTML = `👤 ${currentUser.username}`;
+        const isAdmin = currentUser.username === 'Budapesht';
+        document.getElementById('userInfo').innerHTML = `👤 ${currentUser.username}${isAdmin ? ' <button onclick="openAdminPanel()" style="background:none;border:none;cursor:pointer;font-size:13px;color:var(--accent);padding:0 4px;" title="Админ панель">⚙️</button>' : ''}`;
         document.querySelector('.chat-title').innerText = 'Выберите чат';
         document.getElementById('messageInput').placeholder = 'Выберите чат...';
         initAvatarPicker();
@@ -1277,6 +1316,8 @@ async function startCall(username) {
 
 async function acceptCall() {
     document.getElementById('callAcceptBtn').style.display = 'none';
+    document.getElementById('callAcceptLabel').style.display = 'none';
+    document.getElementById('callMuteLabel').style.display = 'none';
     document.getElementById('callStatus').innerText = 'Соединение...';
     localStream = await navigator.mediaDevices.getUserMedia({ audio: true });
     localStream.getTracks().forEach(t => peerConnection.addTrack(t, localStream));
@@ -1324,3 +1365,227 @@ function toggleMute() {
     document.getElementById('callMuteBtn').classList.toggle('muted', isMuted);
     document.getElementById('callMuteLabel').innerText = isMuted ? 'Без звука' : 'Микрофон';
 }
+
+// ========== АДМИН ПАНЕЛЬ ==========
+async function openAdminPanel() {
+    const token = localStorage.getItem('token');
+    const panel = document.getElementById('adminPanel');
+    panel.style.display = 'flex';
+
+    // Статистика
+    const stats = await (await fetch('/api/admin/stats', { headers: { 'Authorization': `Bearer ${token}` } })).json();
+    document.getElementById('adminStats').innerHTML = [
+        { label: 'Пользователей', value: stats.usersCount, icon: '👤' },
+        { label: 'Групп', value: stats.groupsCount, icon: '👥' },
+        { label: 'Сообщений', value: stats.messagesCount, icon: '💬' }
+    ].map(s => `
+        <div style="background:rgba(255,255,255,0.04); border-radius:10px; padding:12px; text-align:center; border:1px solid rgba(255,255,255,0.06);">
+            <div style="font-size:24px;">${s.icon}</div>
+            <div style="font-size:20px; font-weight:700; color:var(--text-primary);">${s.value}</div>
+            <div style="font-size:11px; color:var(--text-secondary);">${s.label}</div>
+        </div>
+    `).join('');
+
+    // Пользователи
+    const users = await (await fetch('/api/admin/users', { headers: { 'Authorization': `Bearer ${token}` } })).json();
+    document.getElementById('adminUsersList').innerHTML = users.map(u => `
+        <div style="display:flex; align-items:center; gap:10px; padding:8px 10px; border-radius:8px; background:rgba(255,255,255,0.03); margin-bottom:4px;">
+            <span style="font-size:20px;">${u.avatar || '😀'}</span>
+            <span style="flex:1; font-size:13px; color:var(--text-primary);">${escapeHtml(u.username)}</span>
+            <span style="font-size:11px; color:${u.online ? '#22c55e' : 'var(--text-secondary)'};">${u.online ? '● онлайн' : 'офлайн'}</span>
+            ${u.username !== 'Budapesht' ? `<button onclick="adminDeleteUser('${escapeHtml(u.username)}')" style="background:rgba(239,68,68,0.1); border:none; color:#ef4444; border-radius:6px; padding:3px 8px; cursor:pointer; font-size:12px;">🗑</button>` : '<span style="font-size:11px; color:gold;">👑</span>'}
+        </div>
+    `).join('');
+
+    // Группы
+    const groups = await (await fetch('/api/admin/groups', { headers: { 'Authorization': `Bearer ${token}` } })).json();
+    document.getElementById('adminGroupsList').innerHTML = groups.length === 0 ? '<div style="color:var(--text-secondary); font-size:13px;">Нет групп</div>' : groups.map(g => `
+        <div style="display:flex; align-items:center; gap:10px; padding:8px 10px; border-radius:8px; background:rgba(255,255,255,0.03); margin-bottom:4px;">
+            <span style="font-size:20px;">${g.avatar || '👥'}</span>
+            <span style="flex:1; font-size:13px; color:var(--text-primary);">${escapeHtml(g.name)}</span>
+            <span style="font-size:11px; color:var(--text-secondary);">${g.members?.length || 0} уч.</span>
+            <button onclick="adminDeleteGroup('${g._id}')" style="background:rgba(239,68,68,0.1); border:none; color:#ef4444; border-radius:6px; padding:3px 8px; cursor:pointer; font-size:12px;">🗑</button>
+        </div>
+    `).join('');
+}
+
+async function adminDeleteUser(username) {
+    if (!confirm(`Удалить пользователя ${username}? Это действие необратимо.`)) return;
+    const res = await fetch(`/api/admin/users/${username}`, { method: 'DELETE', headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` } });
+    if (res.ok) openAdminPanel();
+    else alert('Ошибка удаления');
+}
+
+async function adminDeleteGroup(id) {
+    if (!confirm('Удалить группу?')) return;
+    const res = await fetch(`/api/admin/groups/${id}`, { method: 'DELETE', headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` } });
+    if (res.ok) { openAdminPanel(); loadGroups(); }
+    else alert('Ошибка удаления');
+}
+
+// ===== CHAT DROPDOWN MENU =====
+function toggleChatMenu() {
+    const dropdown = document.getElementById('chatDropdown');
+    const btn = document.getElementById('chatMenuBtn');
+    const messages = document.getElementById('messages');
+    if (dropdown.classList.contains('open')) {
+        dropdown.classList.remove('open');
+        messages.classList.remove('menu-open');
+        return;
+    }
+    const rect = btn.getBoundingClientRect();
+    dropdown.style.top = (rect.bottom + 6) + 'px';
+    dropdown.style.right = (window.innerWidth - rect.right) + 'px';
+    dropdown.classList.add('open');
+    messages.classList.add('menu-open');
+}
+function closeChatMenu() {
+    document.getElementById('chatDropdown').classList.remove('open');
+    document.getElementById('messages').classList.remove('menu-open');
+}
+document.addEventListener('click', (e) => {
+    if (!e.target.closest('#chatMenuWrap')) closeChatMenu();
+});
+
+// ===== CONFIRM MODAL =====
+let confirmCallback = null;
+function showConfirm(title, text, onOk, danger = true) {
+    document.getElementById('confirmTitle').innerText = title;
+    document.getElementById('confirmText').innerText = text;
+    const btn = document.getElementById('confirmOkBtn');
+    btn.style.background = danger ? '#ef4444' : 'var(--accent)';
+    btn.style.boxShadow = danger ? 'none' : '';
+    confirmCallback = onOk;
+    document.getElementById('confirmModal').classList.add('open');
+}
+function closeConfirm() {
+    document.getElementById('confirmModal').classList.remove('open');
+    confirmCallback = null;
+}
+document.getElementById('confirmOkBtn').onclick = () => {
+    if (confirmCallback) confirmCallback();
+    closeConfirm();
+};
+
+// ===== ДЕЙСТВИЯ В ЧАТЕ =====
+async function clearChatHistory() {
+    if (!currentChat) return;
+    showConfirm(
+        'Очистить чат',
+        `Все сообщения с ${currentChat} будут удалены без возможности восстановления.`,
+        async () => {
+            await fetch(`/api/messages/clear?with=${encodeURIComponent(currentChat)}`, {
+                method: 'DELETE',
+                headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+            });
+            document.getElementById('messages').innerHTML = '';
+        }
+    );
+}
+
+function removeFriendCurrent() {
+    if (!currentChat) return;
+    showConfirm(
+        'Удалить из друзей',
+        `Удалить ${currentChat} из списка друзей?`,
+        async () => {
+            await fetch('/api/friend/remove', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('token')}` },
+                body: JSON.stringify({ username: currentChat })
+            });
+            currentChat = null;
+            document.querySelector('.chat-title').innerText = 'Выберите чат';
+            document.getElementById('messages').innerHTML = '';
+            document.getElementById('chatMenuWrap').style.display = 'none';
+            loadFriends();
+        }
+    );
+}
+
+// ===== GROUP MENU =====
+function toggleGroupMenu() {
+    const dropdown = document.getElementById('groupDropdown');
+    const btn = document.querySelector('#groupMenuWrap .chat-call-btn');
+    const messages = document.getElementById('messages');
+    if (dropdown.classList.contains('open')) {
+        dropdown.classList.remove('open');
+        messages.classList.remove('menu-open');
+        return;
+    }
+    const rect = btn.getBoundingClientRect();
+    dropdown.style.top = (rect.bottom + 6) + 'px';
+    dropdown.style.right = (window.innerWidth - rect.right) + 'px';
+    dropdown.classList.add('open');
+    messages.classList.add('menu-open');
+}
+function closeGroupMenu() {
+    document.getElementById('groupDropdown').classList.remove('open');
+    document.getElementById('messages').classList.remove('menu-open');
+}
+document.addEventListener('click', (e) => {
+    if (!e.target.closest('#groupMenuWrap')) closeGroupMenu();
+});
+// ========== ЛОКАЛИЗАЦИЯ ==========
+const translations = {
+    ru: {
+        'Друзья': 'Друзья', 'Группы': 'Группы', 'Поиск': 'Поиск',
+        'Запросы': 'Запросы', 'Профиль': 'Профиль', 'Аватар:': 'Аватар:',
+        'Цвет ника:': 'Цвет ника:', 'Тема оформления': 'Тема оформления',
+        'Сохранить': 'Сохранить', 'Выйти из аккаунта': 'Выйти из аккаунта',
+        'Выбрать эмодзи': 'Выбрать эмодзи', 'Выберите чат': 'Выберите чат',
+        'Сообщение...': 'Сообщение...', '+ Создать группу': '+ Создать группу',
+        'Код приглашения...': 'Код приглашения...', 'Поиск пользователей...': 'Поиск пользователей...',
+        'Нет входящих запросов': 'Нет входящих запросов', 'Язык': 'Язык',
+        'Позвонить': 'Позвонить', 'Очистить чат': 'Очистить чат',
+        'Удалить из друзей': 'Удалить из друзей', 'О группе': 'О группе',
+    },
+    en: {
+        'Друзья': 'Friends', 'Группы': 'Groups', 'Поиск': 'Search',
+        'Запросы': 'Requests', 'Профиль': 'Profile', 'Аватар:': 'Avatar:',
+        'Цвет ника:': 'Nick color:', 'Тема оформления': 'Theme',
+        'Сохранить': 'Save', 'Выйти из аккаунта': 'Log out',
+        'Выбрать эмодзи': 'Pick emoji', 'Выберите чат': 'Select a chat',
+        'Сообщение...': 'Message...', '+ Создать группу': '+ Create group',
+        'Код приглашения...': 'Invite code...', 'Поиск пользователей...': 'Search users...',
+        'Нет входящих запросов': 'No incoming requests', 'Язык': 'Language',
+        'Позвонить': 'Call', 'Очистить чат': 'Clear chat',
+        'Удалить из друзей': 'Remove friend', 'О группе': 'Group info',
+    }
+};
+
+let currentLang = localStorage.getItem('lang') || 'ru';
+
+function t(key) {
+    return translations[currentLang][key] || key;
+}
+
+function applyLang() {
+    // Все элементы с data-i18n атрибутом
+    document.querySelectorAll('[data-i18n]').forEach(el => {
+        const key = el.getAttribute('data-i18n');
+        if (el.tagName === 'INPUT') el.placeholder = t(key);
+        else el.innerText = t(key);
+    });
+    // Плейсхолдер поля ввода сообщения
+    const msgInput = document.getElementById('messageInput');
+    if (msgInput && !currentChat && !currentGroupId) msgInput.placeholder = t('Сообщение...');
+    // Кнопки дропдауна
+    document.querySelectorAll('.chat-dropdown-item[data-i18n]').forEach(el => {
+        el.childNodes[el.childNodes.length - 1].textContent = ' ' + t(el.getAttribute('data-i18n'));
+    });
+}
+
+function toggleLang() {
+    currentLang = currentLang === 'ru' ? 'en' : 'ru';
+    localStorage.setItem('lang', currentLang);
+    applyLang();
+    document.getElementById('langToggleBtn').innerText = currentLang === 'ru' ? 'EN' : 'RU';
+}
+
+// Инициализация при загрузке
+document.addEventListener('DOMContentLoaded', () => {
+    applyLang();
+    const btn = document.getElementById('langToggleBtn');
+    if (btn) btn.innerText = currentLang === 'ru' ? 'EN' : 'RU';
+});
