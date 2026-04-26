@@ -159,6 +159,15 @@ app.post('/api/me/update', authenticateJWT, async (req, res) => {
   if (avatar) update.avatar = avatar;
   if (color) update.color = color;
   await User.updateOne({ username: req.user.username }, update);
+
+  // Обновляем цвет и аватар во всех старых сообщениях пользователя
+  if (color || avatar) {
+    const msgUpdate = {};
+    if (color) msgUpdate.color = color;
+    if (avatar) msgUpdate.avatar = avatar;
+    await Message.updateMany({ from: req.user.username }, msgUpdate);
+  }
+
   res.json({ message: 'Profile updated' });
 });
 
