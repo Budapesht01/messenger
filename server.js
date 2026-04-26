@@ -597,13 +597,13 @@ io.on('connection', async (socket) => {
   socket.on('delete_message', async (data) => {
     const message = await Message.findById(data.messageId);
     if (!message || message.from !== user.username) return;
-    message.deleted = true;
-    await message.save();
-    const payload = { messageId: data.messageId };
+    const payload = { messageId: String(data.messageId), hardDelete: true };
     if (message.groupId) {
+      await Message.deleteOne({ _id: data.messageId });
       io.to(`group:${message.groupId}`).emit('message_deleted', payload);
     } else {
       const recipient = await User.findOne({ username: message.to });
+      await Message.deleteOne({ _id: data.messageId });
       if (recipient && recipient.socketId) io.to(recipient.socketId).emit('message_deleted', payload);
       socket.emit('message_deleted', payload);
     }
