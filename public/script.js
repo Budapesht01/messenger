@@ -338,23 +338,12 @@ function addMessageToChat(msg) {
     const bar = div.querySelector('.reaction-bar');
     if (msg.reactions && msg.reactions.length > 0) renderReactionBar(bar, msg.reactions, msg._id);
 
-    // Меню действий — появляется при наведении на сообщение
-    const actionsBar = document.createElement('div');
-    actionsBar.className = 'msg-hover-actions';
-    const menuItems = [];
-    if (!msg.deleted) menuItems.push({ icon: '😊', action: () => openReactionPicker(msg._id, div.querySelector('.message-bubble')) });
-    menuItems.push({ icon: '↩', action: () => setReply(msg._id, msg.from, msg.text) });
-    if (isOwn && !msg.deleted && msg.text) menuItems.push({ icon: '✎', action: () => startInlineEdit(msg) });
-    if (isOwn && !msg.deleted) menuItems.push({ icon: '🗑', action: () => openDeleteModal(msg._id), danger: true });
-    menuItems.forEach(item => {
-        const btn = document.createElement('button');
-        btn.className = 'msg-action-hover-btn' + (item.danger ? ' danger' : '');
-        btn.innerText = item.icon;
-        btn.onclick = (e) => { e.stopPropagation(); item.action(); };
-        actionsBar.appendChild(btn);
+    // Контекстное меню по правой кнопке мыши
+    const bubble = div.querySelector('.message-bubble');
+    bubble.addEventListener('contextmenu', (e) => {
+        e.preventDefault();
+        openMsgMenu(msg, div, isOwn, e);
     });
-    div.appendChild(actionsBar);
-
     container.appendChild(div);
     container.scrollTop = container.scrollHeight;
 }
