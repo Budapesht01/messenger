@@ -280,7 +280,18 @@
             </div>
         </div>
     </div>
-
+    <!-- ===== ЗВОНОК UI ===== -->
+<div id="callOverlay" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.85); z-index:10000; flex-direction:column; align-items:center; justify-content:center; gap:20px;">
+    <div id="callAvatar" style="font-size:72px;"></div>
+    <div id="callUsername" style="font-size:22px; font-weight:700; color:#fff;"></div>
+    <div id="callStatus" style="font-size:14px; color:rgba(255,255,255,0.6);"></div>
+    <div style="display:flex; gap:20px; margin-top:10px;">
+        <button id="callAcceptBtn" onclick="acceptCall()" style="display:none; background:#22c55e; border:none; border-radius:50%; width:64px; height:64px; font-size:28px; cursor:pointer;">📞</button>
+        <button id="callEndBtn" onclick="endCall()" style="background:#ef4444; border:none; border-radius:50%; width:64px; height:64px; font-size:28px; cursor:pointer;">📵</button>
+        <button id="callMuteBtn" onclick="toggleMute()" style="display:none; background:rgba(255,255,255,0.15); border:none; border-radius:50%; width:64px; height:64px; font-size:24px; cursor:pointer; color:#fff;">🎤</button>
+    </div>
+    <audio id="remoteAudio" autoplay></audio>
+</div>
     <script src="/socket.io/socket.io.js"></script>
     <script src="script.js?v=glass1"></script>
     <script>
