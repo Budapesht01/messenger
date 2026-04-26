@@ -682,6 +682,10 @@ body::after {
     display: flex;
     flex-direction: column;
     scroll-behavior: smooth;
+    isolation: auto;
+}
+.messages.menu-open {
+    overflow: visible;
 }
 .messages::-webkit-scrollbar { width: 3px; }
 .messages::-webkit-scrollbar-track { background: transparent; }
