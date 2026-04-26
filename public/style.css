@@ -444,16 +444,17 @@ body::after {
 .avatar-preview.large { font-size: 36px; width: 56px; height: 56px; }
 
 .secondary-btn {
-    padding: 11px;
+    padding: 11px 20px;
     background: var(--glass-input);
     border: 1px solid var(--border);
     border-radius: var(--radius-md);
     color: var(--text-primary);
     font-family: var(--font);
     font-size: 14px;
-    font-weight: 500;
+    font-weight: 600;
     cursor: pointer;
     transition: all 0.2s;
+    flex: 1;
 }
 .secondary-btn:hover { background: var(--glass-hover); border-color: var(--border-strong); }
 
@@ -1123,9 +1124,8 @@ body::after {
     border-top: 1px solid var(--border);
     display: flex;
     gap: 8px;
-    justify-content: flex-end;
 }
-
+.modal-footer .primary-btn { flex: 1; }
 .modal-input {
     width: 100%;
     padding: 10px 14px;
