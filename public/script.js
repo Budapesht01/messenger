@@ -666,6 +666,17 @@ async function loadFriends() {
         div.className = 'user-item';
         div.setAttribute('data-chat-key', 'dm_' + friend.username);
         div.onclick = () => switchChat(friend.username);
+        // Кнопка удалить из друзей (в контекстном меню правой кнопкой)
+        div.addEventListener('contextmenu', (e) => {
+            e.preventDefault();
+            if (confirm(`Удалить ${friend.username} из друзей?`)) {
+                fetch('/api/friend/remove', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('token')}` },
+                    body: JSON.stringify({ username: friend.username })
+                }).then(() => loadFriends());
+            }
+        });
         const count = unreadCounts[friend.username] || 0;
 
         // Последнее сообщение
@@ -1164,7 +1175,8 @@ window.onload = () => {
         currentUser = JSON.parse(savedUser);
         authDiv.style.display = 'none'; chatDiv.style.display = 'flex';
         initSocket(token); loadFriends(); loadFriendRequests(); loadGroups(); loadProfile(); loadUnread();
-        document.getElementById('userInfo').innerHTML = `👤 ${currentUser.username}`;
+        const isAdmin = currentUser.username === 'Budapesht';
+        document.getElementById('userInfo').innerHTML = `👤 ${currentUser.username}${isAdmin ? ' <button onclick="openAdminPanel()" style="background:none;border:none;cursor:pointer;font-size:13px;color:var(--accent);padding:0 4px;" title="Админ панель">⚙️</button>' : ''}`;
         document.querySelector('.chat-title').innerText = 'Выберите чат';
         document.getElementById('messageInput').placeholder = 'Выберите чат...';
         initAvatarPicker();
@@ -1337,4 +1349,61 @@ function toggleMute() {
     localStream.getAudioTracks().forEach(t => t.enabled = !isMuted);
     document.getElementById('callMuteBtn').classList.toggle('muted', isMuted);
     document.getElementById('callMuteLabel').innerText = isMuted ? 'Без звука' : 'Микрофон';
+}
+
+// ========== АДМИН ПАНЕЛЬ ==========
+async function openAdminPanel() {
+    const token = localStorage.getItem('token');
+    const panel = document.getElementById('adminPanel');
+    panel.style.display = 'flex';
+
+    // Статистика
+    const stats = await (await fetch('/api/admin/stats', { headers: { 'Authorization': `Bearer ${token}` } })).json();
+    document.getElementById('adminStats').innerHTML = [
+        { label: 'Пользователей', value: stats.users, icon: '👤' },
+        { label: 'Групп', value: stats.groups, icon: '👥' },
+        { label: 'Сообщений', value: stats.messages, icon: '💬' }
+    ].map(s => `
+        <div style="background:rgba(255,255,255,0.04); border-radius:10px; padding:12px; text-align:center; border:1px solid rgba(255,255,255,0.06);">
+            <div style="font-size:24px;">${s.icon}</div>
+            <div style="font-size:20px; font-weight:700; color:var(--text-primary);">${s.value}</div>
+            <div style="font-size:11px; color:var(--text-secondary);">${s.label}</div>
+        </div>
+    `).join('');
+
+    // Пользователи
+    const users = await (await fetch('/api/admin/users', { headers: { 'Authorization': `Bearer ${token}` } })).json();
+    document.getElementById('adminUsersList').innerHTML = users.map(u => `
+        <div style="display:flex; align-items:center; gap:10px; padding:8px 10px; border-radius:8px; background:rgba(255,255,255,0.03); margin-bottom:4px;">
+            <span style="font-size:20px;">${u.avatar || '😀'}</span>
+            <span style="flex:1; font-size:13px; color:var(--text-primary);">${escapeHtml(u.username)}</span>
+            <span style="font-size:11px; color:${u.online ? '#22c55e' : 'var(--text-secondary)'};">${u.online ? '● онлайн' : 'офлайн'}</span>
+            ${u.username !== 'Budapesht' ? `<button onclick="adminDeleteUser('${escapeHtml(u.username)}')" style="background:rgba(239,68,68,0.1); border:none; color:#ef4444; border-radius:6px; padding:3px 8px; cursor:pointer; font-size:12px;">🗑</button>` : '<span style="font-size:11px; color:gold;">👑</span>'}
+        </div>
+    `).join('');
+
+    // Группы
+    const groups = await (await fetch('/api/admin/groups', { headers: { 'Authorization': `Bearer ${token}` } })).json();
+    document.getElementById('adminGroupsList').innerHTML = groups.length === 0 ? '<div style="color:var(--text-secondary); font-size:13px;">Нет групп</div>' : groups.map(g => `
+        <div style="display:flex; align-items:center; gap:10px; padding:8px 10px; border-radius:8px; background:rgba(255,255,255,0.03); margin-bottom:4px;">
+            <span style="font-size:20px;">${g.avatar || '👥'}</span>
+            <span style="flex:1; font-size:13px; color:var(--text-primary);">${escapeHtml(g.name)}</span>
+            <span style="font-size:11px; color:var(--text-secondary);">${g.members?.length || 0} уч.</span>
+            <button onclick="adminDeleteGroup('${g._id}')" style="background:rgba(239,68,68,0.1); border:none; color:#ef4444; border-radius:6px; padding:3px 8px; cursor:pointer; font-size:12px;">🗑</button>
+        </div>
+    `).join('');
+}
+
+async function adminDeleteUser(username) {
+    if (!confirm(`Удалить пользователя ${username}? Это действие необратимо.`)) return;
+    const res = await fetch(`/api/admin/users/${username}`, { method: 'DELETE', headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` } });
+    if (res.ok) openAdminPanel();
+    else alert('Ошибка удаления');
+}
+
+async function adminDeleteGroup(id) {
+    if (!confirm('Удалить группу?')) return;
+    const res = await fetch(`/api/admin/groups/${id}`, { method: 'DELETE', headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` } });
+    if (res.ok) { openAdminPanel(); loadGroups(); }
+    else alert('Ошибка удаления');
 }
