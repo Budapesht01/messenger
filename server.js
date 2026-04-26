@@ -178,7 +178,40 @@ app.get('/api/users/search', authenticateJWT, async (req, res) => {
 app.get('/api/friends', authenticateJWT, async (req, res) => {
   const user = await User.findOne({ username: req.user.username });
   const friends = await User.find({ username: { $in: user.friends } }, 'username avatar color online lastSeen');
-  res.json(friends);
+
+  // Для каждого друга находим последнее сообщение
+  const friendsWithLastMsg = await Promise.all(friends.map(async (friend) => {
+    const lastMsg = await Message.findOne({
+      groupId: null,
+      deleted: false,
+      $or: [
+        { from: req.user.username, to: friend.username },
+        { from: friend.username, to: req.user.username }
+      ]
+    }).sort({ timestamp: -1 }).select('text imageUrl timestamp from');
+
+    return {
+      username: friend.username,
+      avatar: friend.avatar,
+      color: friend.color,
+      online: friend.online,
+      lastSeen: friend.lastSeen,
+      lastMessage: lastMsg ? {
+        text: lastMsg.text || (lastMsg.imageUrl ? '📷 Фото' : ''),
+        timestamp: lastMsg.timestamp,
+        fromMe: lastMsg.from === req.user.username
+      } : null
+    };
+  }));
+
+  // Сортируем по времени последнего сообщения
+  friendsWithLastMsg.sort((a, b) => {
+    const ta = a.lastMessage?.timestamp || 0;
+    const tb = b.lastMessage?.timestamp || 0;
+    return new Date(tb) - new Date(ta);
+  });
+
+  res.json(friendsWithLastMsg);
 });
 
 app.get('/api/friend-requests', authenticateJWT, async (req, res) => {
