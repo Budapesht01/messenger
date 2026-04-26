@@ -368,10 +368,7 @@ function addMessageToChat(msg) {
         <div class="msg-body">
             <div class="message-bubble">
                 ${replyHtml}
-                <div class="msg-sender" style="color:${color}">
-                ${isOwn ? '' : escapeHtml(msg.from)}
-                ${!isOwn && msg.from === 'Budapesht' ? '<span class="creator-crown" title="Creator">👑</span>' : ''}
-                </div>
+                <div class="msg-sender" style="color:${color}">${isOwn ? '' : escapeHtml(msg.from)}</div>
                 ${imageHtml}
                 ${textHtml}
                 <div class="msg-meta">
