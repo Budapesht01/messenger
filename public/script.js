@@ -1282,15 +1282,9 @@ async function startCall(username) {
 }
 
 async function acceptCall() {
-    document.getElementById('callAcceptWrap').style.display = 'none';
+    document.getElementById('callAcceptBtn').style.display = 'none';
     document.getElementById('callStatus').innerText = 'Соединение...';
-    // Микрофон получаем ДО createAnswer — иначе звук идёт только в одну сторону
-    localStream = await navigator.mediaDevices.getUserMedia({ audio: {
-        echoCancellation: true,
-        noiseSuppression: true,
-        autoGainControl: true
-    }});
-    // Треки добавляем ДО createAnswer
+    localStream = await navigator.mediaDevices.getUserMedia({ audio: true });
     localStream.getTracks().forEach(t => peerConnection.addTrack(t, localStream));
     peerConnection.ontrack = (e) => {
         document.getElementById('remoteAudio').srcObject = e.streams[0];
@@ -1298,9 +1292,8 @@ async function acceptCall() {
     peerConnection.onconnectionstatechange = () => {
         const state = peerConnection?.connectionState;
         if (state === 'connected') {
-            document.getElementById('callStatus').innerText = '';
-            document.getElementById('callMuteWrap').style.display = 'flex';
-            startCallTimer();
+            document.getElementById('callStatus').innerText = 'Звонок';
+            document.getElementById('callMuteBtn').style.display = 'flex';
         }
         if (state === 'failed' || state === 'disconnected') {
             document.getElementById('callStatus').innerText = 'Соединение прервано';
