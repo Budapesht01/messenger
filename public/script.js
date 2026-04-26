@@ -1235,8 +1235,8 @@ function showCallOverlay(username, avatar, status, showAccept) {
     document.getElementById('callAvatar').innerText = avatar || '😀';
     document.getElementById('callUsername').innerText = username;
     document.getElementById('callStatus').innerText = status;
-    document.getElementById('callAcceptWrap').style.display = showAccept ? 'flex' : 'none';
-    document.getElementById('callMuteWrap').style.display = 'none';
+    document.getElementById('callAcceptBtn').style.display = showAccept ? 'flex' : 'none';
+    document.getElementById('callMuteBtn').style.display = 'none';
     document.getElementById('callTimer').style.display = 'none';
     document.getElementById('callOverlay').style.display = 'flex';
 }
