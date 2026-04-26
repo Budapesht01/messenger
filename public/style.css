@@ -1719,10 +1719,7 @@ body { background: var(--bg-gradient); }
     padding: 6px;
     min-width: 190px;
     box-shadow: 0 12px 40px rgba(0,0,0,0.4);
-    z-index: 1000;
-    display: none;
-    flex-direction: column;
-    gap: 2px;
+    z-index: 5000;
 }
 .chat-dropdown.open { display: flex; }
 .chat-dropdown-item {
