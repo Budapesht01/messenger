@@ -1400,7 +1400,16 @@ async function adminDeleteGroup(id) {
 
 // ===== CHAT DROPDOWN MENU =====
 function toggleChatMenu() {
-    document.getElementById('chatDropdown').classList.toggle('open');
+    const dropdown = document.getElementById('chatDropdown');
+    const btn = document.getElementById('chatMenuBtn');
+    if (dropdown.classList.contains('open')) {
+        dropdown.classList.remove('open');
+        return;
+    }
+    const rect = btn.getBoundingClientRect();
+    dropdown.style.top = (rect.bottom + 6) + 'px';
+    dropdown.style.right = (window.innerWidth - rect.right) + 'px';
+    dropdown.classList.add('open');
 }
 function closeChatMenu() {
     document.getElementById('chatDropdown').classList.remove('open');
@@ -1467,7 +1476,16 @@ function removeFriendCurrent() {
 
 // ===== GROUP MENU =====
 function toggleGroupMenu() {
-    document.getElementById('groupDropdown').classList.toggle('open');
+    const dropdown = document.getElementById('groupDropdown');
+    const btn = document.querySelector('#groupMenuWrap .chat-call-btn');
+    if (dropdown.classList.contains('open')) {
+        dropdown.classList.remove('open');
+        return;
+    }
+    const rect = btn.getBoundingClientRect();
+    dropdown.style.top = (rect.bottom + 6) + 'px';
+    dropdown.style.right = (window.innerWidth - rect.right) + 'px';
+    dropdown.classList.add('open');
 }
 function closeGroupMenu() {
     document.getElementById('groupDropdown').classList.remove('open');
