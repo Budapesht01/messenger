@@ -444,7 +444,7 @@ body::after {
 .avatar-preview.large { font-size: 36px; width: 56px; height: 56px; }
 
 .secondary-btn {
-    padding: 11px 20px;
+    padding: 11px;
     background: var(--glass-input);
     border: 1px solid var(--border);
     border-radius: var(--radius-md);
