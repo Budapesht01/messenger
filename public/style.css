@@ -1710,18 +1710,17 @@ body { background: var(--bg-gradient); }
 
 /* ===== CHAT DROPDOWN MENU ===== */
 .chat-dropdown {
-    position: absolute;
-    top: calc(100% + 6px);
-    right: 0;
+    display: none;
+    position: fixed;
     background: var(--bg-card, #1a1d2e);
     border: 1px solid rgba(255,255,255,0.08);
     border-radius: 12px;
     padding: 6px;
     min-width: 190px;
     box-shadow: 0 12px 40px rgba(0,0,0,0.4);
-    z-index: 5000;
+    z-index: 9999;
 }
-.chat-dropdown.open { display: flex; }
+.chat-dropdown.open { display: flex; flex-direction: column; gap: 2px; }
 .chat-dropdown-item {
     display: flex;
     align-items: center;
