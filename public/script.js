@@ -451,26 +451,41 @@ function closeMsgMenu() {
 }
 
 // Редактирование inline
-function openEditModal(msg) {
-    const modal = document.getElementById('editMsgModal');
-    const input = document.getElementById('editMsgInput');
+let editingMsgId = null;
+
+function startInlineEdit(msg) {
+    editingMsgId = msg._id;
+    const input = document.getElementById('messageInput');
     input.value = msg.text;
-    modal.classList.add('open');
     input.focus();
     input.setSelectionRange(input.value.length, input.value.length);
 
-    document.getElementById('editMsgSaveBtn').onclick = () => {
-        const newText = input.value.trim();
-        if (newText && newText !== msg.text) {
-            socket.emit('edit_message', { messageId: msg._id, newText });
-        }
-        modal.classList.remove('open');
-    };
-    document.getElementById('editMsgCancelBtn').onclick = () => modal.classList.remove('open');
-    input.onkeydown = (e) => {
-        if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); document.getElementById('editMsgSaveBtn').click(); }
-        if (e.key === 'Escape') modal.classList.remove('open');
-    };
+    // Показываем бар редактирования (переиспользуем replyBar)
+    document.getElementById('replyBar').style.display = 'flex';
+    document.getElementById('replyFrom').innerText = '✎ Редактирование';
+    document.getElementById('replyText').innerText = msg.text?.slice(0, 60) || '';
+
+    // Подменяем sendMessage на сохранение правки
+    document.getElementById('sendBtn').onclick = saveInlineEdit;
+    input.onkeypress = (e) => { if (e.key === 'Enter') saveInlineEdit(); };
+}
+
+function saveInlineEdit() {
+    const input = document.getElementById('messageInput');
+    const newText = input.value.trim();
+    if (newText && editingMsgId) {
+        socket.emit('edit_message', { messageId: editingMsgId, newText });
+    }
+    cancelInlineEdit();
+}
+
+function cancelInlineEdit() {
+    editingMsgId = null;
+    document.getElementById('messageInput').value = '';
+    clearReply();
+    // Восстанавливаем обычный sendMessage
+    document.getElementById('sendBtn').onclick = sendMessage;
+    document.getElementById('messageInput').onkeypress = (e) => { if (e.key === 'Enter') sendMessage(); };
 }
 
 // Удаление с подтверждением
