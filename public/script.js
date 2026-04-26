@@ -110,12 +110,16 @@ function initSocket(token) {
     socket.on('message_deleted', (data) => {
         const el = document.querySelector(`.message[data-id="${data.messageId}"]`);
         if (!el) return;
-        const t = el.querySelector('.message-text');
-        if (t) t.innerHTML = '<em class="deleted-text">Сообщение удалено</em>';
-        const img = el.querySelector('.msg-image');
-        if (img) img.remove();
-        el.querySelector('.message-actions')?.remove();
-        el.querySelector('.reaction-bar')?.remove();
+        if (data.hardDelete) {
+            el.remove();
+        } else {
+            const t = el.querySelector('.message-text');
+            if (t) t.innerHTML = '<em class="deleted-text">Сообщение удалено</em>';
+            const img = el.querySelector('.msg-image');
+            if (img) img.remove();
+            el.querySelector('.message-actions')?.remove();
+            el.querySelector('.reaction-bar')?.remove();
+        }
     });
 
     socket.on('reaction_updated', (data) => {
