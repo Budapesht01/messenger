@@ -46,10 +46,10 @@
             <!-- Группы -->
             <div class="tab-content" id="groups-tab">
                 <div class="groups-toolbar">
-                    <button class="primary-btn small-btn" onclick="openCreateGroupModal()">+ Создать</button>
-                    <div style="display:flex; flex-direction:column; gap:6px; margin-top:8px;">
-                        <input type="text" id="joinCodeInput" placeholder="Код приглашения..." style="width:100%; box-sizing:border-box; padding:8px 12px; border-radius:20px; border:1px solid var(--border-color); background:var(--input-bg); color:var(--text-primary); font-size:13px; outline:none;">
-                        <button class="primary-btn" style="width:100%; border-radius:20px;" onclick="joinByCode()">Войти</button>
+                    <button class="primary-btn small-btn" style="width:100%; margin-bottom:8px;" onclick="openCreateGroupModal()">+ Создать группу</button>
+                    <div style="display:flex; gap:6px; align-items:center;">
+                        <input type="text" id="joinCodeInput" placeholder="Код приглашения..." style="flex:1; box-sizing:border-box; padding:8px 12px; border-radius:20px; border:1px solid var(--border-color); background:var(--input-bg); color:var(--text-primary); font-size:13px; outline:none;">
+                        <button onclick="joinByCode()" title="Войти по коду" style="width:36px; height:36px; border-radius:50%; border:none; background:var(--accent); color:#fff; font-size:18px; cursor:pointer; flex-shrink:0; display:flex; align-items:center; justify-content:center;">→</button>
                     </div>
                 </div>
                 <div id="groupsList"></div>
@@ -317,6 +317,31 @@
         </div>
     </div>
     <audio id="remoteAudio" autoplay></audio>
+</div>
+
+<!-- ===== АДМИН ПАНЕЛЬ ===== -->
+<div id="adminPanel" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.7); backdrop-filter:blur(10px); z-index:9999; align-items:center; justify-content:center;">
+    <div style="background:var(--bg-card, #1a1d2e); border-radius:16px; padding:24px; width:480px; max-width:95vw; max-height:85vh; overflow-y:auto; border:1px solid rgba(255,255,255,0.08);">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+            <h3 style="margin:0; color:var(--text-primary);">⚙️ Панель администратора</h3>
+            <button onclick="document.getElementById('adminPanel').style.display='none'" style="background:none; border:none; color:var(--text-secondary); font-size:20px; cursor:pointer;">✕</button>
+        </div>
+
+        <!-- Статистика -->
+        <div id="adminStats" style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px; margin-bottom:20px;"></div>
+
+        <!-- Пользователи -->
+        <div style="margin-bottom:16px;">
+            <div style="font-size:13px; font-weight:600; color:var(--text-secondary); margin-bottom:8px; text-transform:uppercase; letter-spacing:0.5px;">Пользователи</div>
+            <div id="adminUsersList"></div>
+        </div>
+
+        <!-- Группы -->
+        <div>
+            <div style="font-size:13px; font-weight:600; color:var(--text-secondary); margin-bottom:8px; text-transform:uppercase; letter-spacing:0.5px;">Группы</div>
+            <div id="adminGroupsList"></div>
+        </div>
+    </div>
 </div>
     <script src="/socket.io/socket.io.js"></script>
     <script src="script.js?v=glass1"></script>
