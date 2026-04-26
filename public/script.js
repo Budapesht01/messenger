@@ -131,8 +131,7 @@ function initSocket(token) {
     });
 
     socket.on('messages_read', (data) => {
-        // Обновляем галочки для всех сообщений к этому собеседнику
-        if (currentChat === data.chatWith) {
+        if (currentChat === data.chatWith || data.chatWith === currentUser?.username) {
             document.querySelectorAll('.message.own .read-status').forEach(el => {
                 el.innerHTML = '✓✓'; el.classList.add('read');
             });
@@ -224,6 +223,8 @@ async function markRead(fromUser) {
     });
     unreadCounts[fromUser] = 0;
     updateUnreadBadge(fromUser);
+    // Сообщаем собеседнику что сообщения прочитаны — через сокет
+    if (socket) socket.emit('mark_read', { chatWith: fromUser });
 }
 
 async function loadUnread() {
@@ -716,6 +717,32 @@ function closeCreateGroupModal() {
     document.querySelector('input[name="groupType"][value="private"]').checked = true;
     document.getElementById('groupTypeSelect').value = 'private';
     document.getElementById('groupAvatarPreview').innerText = '👥';
+}
+
+function getGroupInviteLink() {
+    const code = document.getElementById('groupInfoCode')?.innerText?.trim();
+    if (!code) return;
+    const link = `${window.location.origin}?invite=${code}`;
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(link).then(() => {
+            const btn = document.querySelector('#groupInfoModal .secondary-btn');
+            const orig = btn.innerText;
+            btn.innerText = '✓ Скопировано';
+            setTimeout(() => btn.innerText = orig, 2000);
+        }).catch(() => fallbackCopyLink(link));
+    } else {
+        fallbackCopyLink(link);
+    }
+}
+
+function fallbackCopyLink(text) {
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    ta.style.cssText = 'position:fixed;opacity:0;top:0;left:0;';
+    document.body.appendChild(ta);
+    ta.focus(); ta.select();
+    try { document.execCommand('copy'); } catch(e) {}
+    document.body.removeChild(ta);
 }
 
 async function loadFriendsForGroupModal() {
