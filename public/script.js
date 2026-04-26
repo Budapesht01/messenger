@@ -171,6 +171,47 @@ function initSocket(token) {
     });
     socket.on('group_member_joined', () => loadGroups());
     socket.on('group_member_left', () => loadGroups());
+
+    // ===== WebRTC сигнализация =====
+    socket.on('incoming_call', async (data) => {
+        if (peerConnection) { socket.emit('call_reject', { to: data.from }); return; }
+        callWith = data.from;
+        peerConnection = new RTCPeerConnection(iceServers);
+        peerConnection.onicecandidate = (e) => {
+            if (e.candidate) socket.emit('call_ice', { to: callWith, candidate: e.candidate });
+        };
+        peerConnection.ontrack = (e) => {
+            document.getElementById('remoteAudio').srcObject = e.streams[0];
+            document.getElementById('callStatus').innerText = 'Звонок';
+        };
+        peerConnection.onconnectionstatechange = () => {
+            if (peerConnection?.connectionState === 'connected')
+                document.getElementById('callStatus').innerText = 'Звонок';
+        };
+        await peerConnection.setRemoteDescription(new RTCSessionDescription(data.offer));
+        showCallOverlay(data.from, data.avatar, 'Входящий звонок', true);
+    });
+
+    socket.on('call_answered', async (data) => {
+        await peerConnection.setRemoteDescription(new RTCSessionDescription(data.answer));
+        document.getElementById('callStatus').innerText = 'Звонок';
+        document.getElementById('callMuteBtn').style.display = 'flex';
+    });
+
+    socket.on('call_ice', async (data) => {
+        try { await peerConnection?.addIceCandidate(new RTCIceCandidate(data.candidate)); } catch(e) {}
+    });
+
+    socket.on('call_rejected', () => {
+        document.getElementById('callStatus').innerText = 'Недоступен';
+        setTimeout(cleanupCall, 2000);
+    });
+
+    socket.on('call_ended', () => {
+        document.getElementById('callStatus').innerText = 'Звонок завершён';
+        setTimeout(cleanupCall, 1500);
+    });
+}
 }
 
 // ========== Сообщения ==========
@@ -1145,7 +1186,7 @@ function showCallOverlay(username, avatar, status, showAccept) {
     document.getElementById('callUsername').innerText = username;
     document.getElementById('callStatus').innerText = status;
     document.getElementById('callAcceptBtn').style.display = showAccept ? 'flex' : 'none';
-    document.getElementById('callMuteBtn').style.display = showAccept ? 'none' : 'flex';
+    document.getElementById('callMuteBtn').style.display = 'none';
     document.getElementById('callOverlay').style.display = 'flex';
 }
 
@@ -1158,8 +1199,19 @@ async function startCall(username) {
     localStream = await navigator.mediaDevices.getUserMedia({ audio: true });
     peerConnection = new RTCPeerConnection(iceServers);
     localStream.getTracks().forEach(t => peerConnection.addTrack(t, localStream));
-    peerConnection.ontrack = (e) => { document.getElementById('remoteAudio').srcObject = e.streams[0]; };
-    peerConnection.onicecandidate = (e) => { if (e.candidate) socket.emit('call_ice', { to: callWith, candidate: e.candidate }); };
+    peerConnection.ontrack = (e) => {
+        document.getElementById('remoteAudio').srcObject = e.streams[0];
+        document.getElementById('callStatus').innerText = 'Звонок';
+    };
+    peerConnection.onicecandidate = (e) => {
+        if (e.candidate) socket.emit('call_ice', { to: callWith, candidate: e.candidate });
+    };
+    peerConnection.onconnectionstatechange = () => {
+        if (peerConnection?.connectionState === 'connected') {
+            document.getElementById('callStatus').innerText = 'Звонок';
+            document.getElementById('callMuteBtn').style.display = 'flex';
+        }
+    };
     const offer = await peerConnection.createOffer();
     await peerConnection.setLocalDescription(offer);
     socket.emit('call_user', { to: username, offer });
@@ -1200,32 +1252,3 @@ function toggleMute() {
     localStream.getAudioTracks().forEach(t => t.enabled = !isMuted);
     document.getElementById('callMuteBtn').innerText = isMuted ? '🔇' : '🎤';
 }
-
-// Входящие события
-socket.on('incoming_call', async (data) => {
-    callWith = data.from;
-    peerConnection = new RTCPeerConnection(iceServers);
-    peerConnection.onicecandidate = (e) => { if (e.candidate) socket.emit('call_ice', { to: callWith, candidate: e.candidate }); };
-    await peerConnection.setRemoteDescription(new RTCSessionDescription(data.offer));
-    showCallOverlay(data.from, data.avatar, 'Входящий звонок', true);
-});
-
-socket.on('call_answered', async (data) => {
-    await peerConnection.setRemoteDescription(new RTCSessionDescription(data.answer));
-    document.getElementById('callStatus').innerText = 'Звонок';
-    document.getElementById('callMuteBtn').style.display = 'flex';
-});
-
-socket.on('call_ice', async (data) => {
-    try { await peerConnection?.addIceCandidate(new RTCIceCandidate(data.candidate)); } catch(e) {}
-});
-
-socket.on('call_rejected', () => {
-    document.getElementById('callStatus').innerText = 'Недоступен';
-    setTimeout(cleanupCall, 2000);
-});
-
-socket.on('call_ended', () => {
-    document.getElementById('callStatus').innerText = 'Звонок завершён';
-    setTimeout(cleanupCall, 1500);
-});
