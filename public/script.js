@@ -135,7 +135,9 @@ function initSocket(token) {
     });
 
     socket.on('messages_read', (data) => {
-        if (currentChat === data.chatWith || data.chatWith === currentUser?.username) {
+        // data.by = кто прочитал, data.chatWith = с кем чат (это username отправителя)
+        const reader = data.by;
+        if (currentChat === reader) {
             document.querySelectorAll('.message.own .read-status').forEach(el => {
                 el.innerHTML = '✓✓'; el.classList.add('read');
             });
@@ -599,13 +601,11 @@ function switchChat(username) {
     document.querySelector('.chat-title').innerText = username;
     document.getElementById('groupInfoBtn').style.display = 'none';
     document.getElementById('chatMenuWrap').style.display = 'flex';
+    document.getElementById('groupMenuWrap').style.display = 'none';
     document.getElementById('messageInput').placeholder = 'Сообщение...';
     restoreDraft('dm_' + username);
-    fetchHistoryForUser(username);
+    fetchHistoryForUser(username); // галочки рендерятся из реального readBy внутри
     markRead(username);
-    document.querySelectorAll('.message.own .read-status').forEach(el => {
-        el.innerHTML = '✓✓'; el.classList.add('read');
-    });
     if (window.innerWidth <= 768) sidebar.classList.remove('open');
     setActiveChatItem('dm_' + username);
 }
@@ -614,7 +614,8 @@ async function switchGroupChat(groupId, groupName) {
     saveDraft();
     currentGroupId = groupId; currentChat = null;
     document.querySelector('.chat-title').innerText = groupName;
-    document.getElementById('groupInfoBtn').style.display = 'flex';
+    document.getElementById('groupInfoBtn').style.display = 'none';
+    document.getElementById('groupMenuWrap').style.display = 'flex';
     document.getElementById('chatMenuWrap').style.display = 'none';
     document.getElementById('messageInput').placeholder = 'Сообщение в группу...';
     restoreDraft('group_' + groupId);
@@ -1463,3 +1464,14 @@ function removeFriendCurrent() {
         }
     );
 }
+
+// ===== GROUP MENU =====
+function toggleGroupMenu() {
+    document.getElementById('groupDropdown').classList.toggle('open');
+}
+function closeGroupMenu() {
+    document.getElementById('groupDropdown').classList.remove('open');
+}
+document.addEventListener('click', (e) => {
+    if (!e.target.closest('#groupMenuWrap')) closeGroupMenu();
+});
