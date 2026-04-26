@@ -686,10 +686,12 @@ body::after {
     max-width: 68%;
     margin-bottom: 6px;
     display: flex;
-    flex-direction: column;
+    flex-direction: row;
+    align-items: flex-end;
+    gap: 6px;
     position: relative;
 }
-.message.own { align-self: flex-end; }
+.message.own { align-self: flex-end; flex-direction: row-reverse; }
 .message.other { align-self: flex-start; }
 
 .message-bubble {
@@ -1341,3 +1343,260 @@ body::after {
 }
 
 body { background: var(--bg-gradient); }
+
+/* ===== АВАТАРКА РЯДОМ С СООБЩЕНИЕМ ===== */
+.message {
+    display: flex;
+    align-items: flex-end;
+    gap: 6px;
+}
+.message.own { flex-direction: row-reverse; }
+
+.msg-avatar-wrap {
+    width: 28px;
+    flex-shrink: 0;
+    display: flex;
+    align-items: flex-end;
+}
+.msg-avatar {
+    font-size: 20px;
+    width: 28px;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+.message.own .msg-avatar-wrap { display: none; }
+
+.msg-body {
+    display: flex;
+    flex-direction: column;
+    max-width: 100%;
+    min-width: 0;
+}
+.message.own .msg-body { align-items: flex-end; }
+.message.other .msg-body { align-items: flex-start; }
+
+/* ===== СПИСОК ДРУЗЕЙ — новый layout ===== */
+.friend-avatar-wrap {
+    position: relative;
+    flex-shrink: 0;
+    margin-right: 10px;
+}
+.friend-online-dot {
+    position: absolute;
+    bottom: 0;
+    right: 0;
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+    background: #4ade80;
+    border: 2px solid var(--bg-sidebar, #1f1f1f);
+    box-shadow: 0 0 5px rgba(74,222,128,0.6);
+}
+.friend-info {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+.friend-name-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 6px;
+}
+.friend-last-msg {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 6px;
+}
+.last-msg-text {
+    font-size: 12px;
+    color: var(--text-secondary);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    flex: 1;
+    min-width: 0;
+}
+.last-msg-time {
+    font-size: 11px;
+    color: var(--text-muted, rgba(240,242,248,0.25));
+    flex-shrink: 0;
+}
+
+/* ===== КОНТЕКСТНОЕ МЕНЮ СООБЩЕНИЯ (TG-стиль) ===== */
+.msg-context-menu {
+    position: fixed;
+    background: rgba(15, 17, 30, 0.97);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid rgba(255,255,255,0.12);
+    border-radius: 14px;
+    padding: 6px;
+    z-index: 9999;
+    min-width: 180px;
+    box-shadow: 0 12px 40px rgba(0,0,0,0.5);
+    opacity: 0;
+    transform: scale(0.92) translateY(-6px);
+    transition: opacity 0.15s ease, transform 0.15s ease;
+    pointer-events: none;
+}
+.msg-context-menu.open {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+    pointer-events: all;
+}
+.msg-menu-btn {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    padding: 10px 12px;
+    background: none;
+    border: none;
+    border-radius: 9px;
+    cursor: pointer;
+    font-size: 14px;
+    font-family: inherit;
+    color: var(--text-primary, #f0f2f8);
+    text-align: left;
+    transition: background 0.12s;
+}
+.msg-menu-btn:hover { background: rgba(255,255,255,0.08); }
+.msg-menu-btn.danger { color: #ff7b7b; }
+.msg-menu-btn.danger:hover { background: rgba(255,123,123,0.12); }
+.msg-menu-icon { font-size: 16px; width: 20px; text-align: center; }
+
+/* ===== МОДАЛКА РЕДАКТИРОВАНИЯ ===== */
+.edit-msg-textarea {
+    width: 100%;
+    padding: 10px 14px;
+    border: 1px solid var(--border, rgba(255,255,255,0.08));
+    border-radius: 12px;
+    background: var(--glass-input, rgba(255,255,255,0.06));
+    color: var(--text-primary, #f0f2f8);
+    font-family: inherit;
+    font-size: 14px;
+    outline: none;
+    resize: vertical;
+    min-height: 80px;
+    transition: border-color 0.2s;
+    box-sizing: border-box;
+}
+.edit-msg-textarea:focus { border-color: var(--accent, #63a0ff); }
+
+/* Убираем старый hover на message — теперь меню по клику */
+.message-actions { display: none !important; }
+
+/* ===== ЗВОНОК ===== */
+#callOverlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.7);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    z-index: 10000;
+    align-items: center;
+    justify-content: center;
+}
+.call-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    padding: 48px 56px 40px;
+    background: rgba(18,20,36,0.95);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 28px;
+    box-shadow: 0 32px 80px rgba(0,0,0,0.6);
+    min-width: 300px;
+}
+.call-avatar {
+    font-size: 80px;
+    line-height: 1;
+    margin-bottom: 8px;
+}
+.call-username {
+    font-size: 22px;
+    font-weight: 700;
+    color: #fff;
+    letter-spacing: -0.3px;
+}
+.call-status {
+    font-size: 13px;
+    color: rgba(255,255,255,0.45);
+    min-height: 18px;
+}
+.call-timer {
+    font-size: 15px;
+    color: rgba(255,255,255,0.7);
+    font-variant-numeric: tabular-nums;
+    letter-spacing: 0.5px;
+    margin-top: 2px;
+}
+.call-btns {
+    display: flex;
+    gap: 28px;
+    margin-top: 28px;
+    align-items: flex-start;
+    justify-content: center;
+}
+.call-btn-wrap {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+}
+.call-btn {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    border: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: transform 0.15s, filter 0.15s;
+}
+.call-btn svg {
+    width: 26px;
+    height: 26px;
+}
+.call-btn:hover { transform: scale(1.08); filter: brightness(1.15); }
+.call-btn:active { transform: scale(0.95); }
+.call-btn-accept { background: #22c55e; color: #fff; }
+.call-btn-end { background: #ef4444; color: #fff; }
+.call-btn-mute { background: rgba(255,255,255,0.12); color: #fff; }
+.call-btn-mute.muted { background: rgba(239,68,68,0.25); color: #ef4444; }
+.call-btn-label {
+    font-size: 11px;
+    color: rgba(255,255,255,0.4);
+    text-align: center;
+    white-space: nowrap;
+}
+
+/* Кнопка звонка в хедере чата */
+.chat-header-actions {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-left: auto;
+}
+.chat-call-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: var(--text-secondary);
+    padding: 6px 8px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    transition: color 0.15s, background 0.15s;
+}
+.chat-call-btn:hover { color: #22c55e; background: rgba(34,197,94,0.1); }

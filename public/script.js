@@ -110,12 +110,16 @@ function initSocket(token) {
     socket.on('message_deleted', (data) => {
         const el = document.querySelector(`.message[data-id="${data.messageId}"]`);
         if (!el) return;
-        const t = el.querySelector('.message-text');
-        if (t) t.innerHTML = '<em class="deleted-text">Сообщение удалено</em>';
-        const img = el.querySelector('.msg-image');
-        if (img) img.remove();
-        el.querySelector('.message-actions')?.remove();
-        el.querySelector('.reaction-bar')?.remove();
+        if (data.hardDelete) {
+            el.remove();
+        } else {
+            const t = el.querySelector('.message-text');
+            if (t) t.innerHTML = '<em class="deleted-text">Сообщение удалено</em>';
+            const img = el.querySelector('.msg-image');
+            if (img) img.remove();
+            el.querySelector('.message-actions')?.remove();
+            el.querySelector('.reaction-bar')?.remove();
+        }
     });
 
     socket.on('reaction_updated', (data) => {
@@ -131,8 +135,7 @@ function initSocket(token) {
     });
 
     socket.on('messages_read', (data) => {
-        // Обновляем галочки для всех сообщений к этому собеседнику
-        if (currentChat === data.chatWith) {
+        if (currentChat === data.chatWith || data.chatWith === currentUser?.username) {
             document.querySelectorAll('.message.own .read-status').forEach(el => {
                 el.innerHTML = '✓✓'; el.classList.add('read');
             });
@@ -168,6 +171,49 @@ function initSocket(token) {
     });
     socket.on('group_member_joined', () => loadGroups());
     socket.on('group_member_left', () => loadGroups());
+
+    // ===== WebRTC сигнализация =====
+    socket.on('incoming_call', async (data) => {
+        if (peerConnection) { socket.emit('call_reject', { to: data.from }); return; }
+        callWith = data.from;
+        peerConnection = new RTCPeerConnection(iceServers);
+        peerConnection.onicecandidate = (e) => {
+            if (e.candidate) socket.emit('call_ice', { to: callWith, candidate: e.candidate });
+        };
+        peerConnection.ontrack = (e) => {
+            document.getElementById('remoteAudio').srcObject = e.streams[0];
+            document.getElementById('callStatus').innerText = 'Звонок';
+        };
+        peerConnection.onconnectionstatechange = () => {
+            if (peerConnection?.connectionState === 'connected')
+                document.getElementById('callStatus').innerText = 'Звонок';
+        };
+        await peerConnection.setRemoteDescription(new RTCSessionDescription(data.offer));
+        showCallOverlay(data.from, data.avatar, 'Входящий звонок', true);
+    });
+
+    socket.on('call_answered', async (data) => {
+        await peerConnection.setRemoteDescription(new RTCSessionDescription(data.answer));
+        await flushIceCandidates();
+    });
+
+    socket.on('call_ice', async (data) => {
+        if (!peerConnection || !peerConnection.remoteDescription) {
+            iceCandidateQueue.push(data.candidate);
+        } else {
+            try { await peerConnection.addIceCandidate(new RTCIceCandidate(data.candidate)); } catch(e) {}
+        }
+    });
+
+    socket.on('call_rejected', () => {
+        document.getElementById('callStatus').innerText = 'Недоступен';
+        setTimeout(cleanupCall, 2000);
+    });
+
+    socket.on('call_ended', () => {
+        document.getElementById('callStatus').innerText = 'Звонок завершён';
+        setTimeout(cleanupCall, 1500);
+    });
 }
 
 // ========== Сообщения ==========
@@ -224,6 +270,8 @@ async function markRead(fromUser) {
     });
     unreadCounts[fromUser] = 0;
     updateUnreadBadge(fromUser);
+    // Сообщаем собеседнику что сообщения прочитаны — через сокет
+    if (socket) socket.emit('mark_read', { chatWith: fromUser });
 }
 
 async function loadUnread() {
@@ -310,26 +358,26 @@ function addMessageToChat(msg) {
     const isRead = msg.readBy && msg.readBy.includes(currentChat || '');
     const readStatusHtml = isOwn ? `<span class="read-status ${isRead ? 'read' : ''}">✓</span>` : '';
 
+    // Аватарка: берём из DOM текущих друзей для актуальности
+    const senderAvatar = msg.avatar || '😀';
+
     div.innerHTML = `
-        <div class="message-bubble">
-            ${replyHtml}
-            <div class="msg-sender" style="color:${color}">${isOwn ? '' : escapeHtml(msg.from)}</div>
-            ${imageHtml}
-            ${textHtml}
-            <div class="msg-meta">
-                <span class="msg-time">${time}</span>
-                ${msg.edited ? '<span class="edited-badge">ред.</span>' : ''}
-                ${readStatusHtml}
-            </div>
+        <div class="msg-avatar-wrap">
+            ${!isOwn ? `<span class="msg-avatar">${escapeHtml(senderAvatar)}</span>` : ''}
         </div>
-        <div class="reaction-bar"></div>
-        <div class="message-actions">
-            <button class="action-btn reply-btn" data-id="${msg._id}" title="Ответить">↩</button>
-            ${!msg.deleted ? '<button class="action-btn react-btn" data-id="' + msg._id + '" title="Реакция">☺</button>' : ''}
-            ${isOwn && !msg.deleted ? `
-                <button class="action-btn edit-btn" data-id="${msg._id}" title="Редактировать">✎</button>
-                <button class="action-btn del-btn" data-id="${msg._id}" title="Удалить">✕</button>
-            ` : ''}
+        <div class="msg-body">
+            <div class="message-bubble">
+                ${replyHtml}
+                <div class="msg-sender" style="color:${color}">${isOwn ? '' : escapeHtml(msg.from)}</div>
+                ${imageHtml}
+                ${textHtml}
+                <div class="msg-meta">
+                    <span class="msg-time">${time}</span>
+                    ${msg.edited ? '<span class="edited-badge">ред.</span>' : ''}
+                    ${readStatusHtml}
+                </div>
+            </div>
+            <div class="reaction-bar"></div>
         </div>
     `;
 
@@ -337,29 +385,12 @@ function addMessageToChat(msg) {
     const bar = div.querySelector('.reaction-bar');
     if (msg.reactions && msg.reactions.length > 0) renderReactionBar(bar, msg.reactions, msg._id);
 
-    // Обработчики
-    div.querySelector('.reply-btn')?.addEventListener('click', (e) => {
-        e.stopPropagation();
-        setReply(msg._id, msg.from, msg.text);
+    // Контекстное меню по правой кнопке мыши
+    const bubble = div.querySelector('.message-bubble');
+    bubble.addEventListener('contextmenu', (e) => {
+        e.preventDefault();
+        openMsgMenu(msg, div, isOwn, e);
     });
-
-    div.querySelector('.react-btn')?.addEventListener('click', (e) => {
-        e.stopPropagation();
-        openReactionPicker(msg._id, e.currentTarget);
-    });
-
-    if (isOwn && !msg.deleted) {
-        div.querySelector('.edit-btn')?.addEventListener('click', (e) => {
-            e.stopPropagation();
-            const newText = prompt('Редактировать:', msg.text);
-            if (newText?.trim()) socket.emit('edit_message', { messageId: msg._id, newText: newText.trim() });
-        });
-        div.querySelector('.del-btn')?.addEventListener('click', (e) => {
-            e.stopPropagation();
-            if (confirm('Удалить для всех?')) socket.emit('delete_message', { messageId: msg._id });
-        });
-    }
-
     container.appendChild(div);
     container.scrollTop = container.scrollHeight;
 }
@@ -373,6 +404,135 @@ function renderMessages(messages) {
 function scrollToMessage(id) {
     const el = document.querySelector(`.message[data-id="${id}"]`);
     if (el) { el.scrollIntoView({ behavior: 'smooth', block: 'center' }); el.classList.add('highlight'); setTimeout(() => el.classList.remove('highlight'), 1500); }
+}
+
+// ========== Контекстное меню сообщения (TG-стиль) ==========
+function openMsgMenu(msg, msgDiv, isOwn, e) {
+    closeMsgMenu();
+    const menu = document.createElement('div');
+    menu.className = 'msg-context-menu';
+    menu.id = 'msgContextMenu';
+
+    const items = [];
+
+    // Реакция — всегда
+    if (!msg.deleted) {
+        items.push({ icon: '😊', label: 'Реакция', action: () => {
+            closeMsgMenu();
+            openReactionPicker(msg._id, msgDiv.querySelector('.message-bubble'));
+        }});
+    }
+
+    // Ответить — всегда
+    items.push({ icon: '↩', label: 'Ответить', action: () => {
+        closeMsgMenu();
+        setReply(msg._id, msg.from, msg.text);
+    }});
+
+    // Редактировать — только своё и не удалённое
+    if (isOwn && !msg.deleted && msg.text) {
+        items.push({ icon: '✎', label: 'Редактировать', action: () => {
+            closeMsgMenu();
+            openEditModal(msg);
+        }});
+    }
+
+    // Удалить — только своё и не удалённое
+    if (isOwn && !msg.deleted) {
+        items.push({ icon: '🗑', label: 'Удалить', danger: true, action: () => {
+            closeMsgMenu();
+            openDeleteModal(msg._id);
+        }});
+    }
+
+    items.forEach(item => {
+        const btn = document.createElement('button');
+        btn.className = 'msg-menu-btn' + (item.danger ? ' danger' : '');
+        btn.innerHTML = `<span class="msg-menu-icon">${item.icon}</span><span>${item.label}</span>`;
+        btn.onclick = item.action;
+        menu.appendChild(btn);
+    });
+
+    document.body.appendChild(menu);
+
+    // Позиционирование
+    const rect = msgDiv.querySelector('.message-bubble').getBoundingClientRect();
+    const menuW = 180, menuH = items.length * 44 + 12;
+    let top = rect.bottom + 6;
+    let left = isOwn ? rect.right - menuW : rect.left;
+    if (top + menuH > window.innerHeight - 10) top = rect.top - menuH - 6;
+    if (left < 8) left = 8;
+    if (left + menuW > window.innerWidth - 8) left = window.innerWidth - menuW - 8;
+    menu.style.top = top + window.scrollY + 'px';
+    menu.style.left = left + 'px';
+
+    // Анимация
+    requestAnimationFrame(() => menu.classList.add('open'));
+
+    setTimeout(() => {
+        document.addEventListener('click', closeMsgMenuOnOutside, { once: true });
+    }, 50);
+}
+
+function closeMsgMenuOnOutside(e) {
+    if (!document.getElementById('msgContextMenu')?.contains(e.target)) {
+        closeMsgMenu();
+    } else {
+        document.addEventListener('click', closeMsgMenuOnOutside, { once: true });
+    }
+}
+
+function closeMsgMenu() {
+    document.getElementById('msgContextMenu')?.remove();
+}
+
+// Редактирование inline
+let editingMsgId = null;
+
+function startInlineEdit(msg) {
+    editingMsgId = msg._id;
+    const input = document.getElementById('messageInput');
+    input.value = msg.text;
+    input.focus();
+    input.setSelectionRange(input.value.length, input.value.length);
+
+    // Показываем бар редактирования (переиспользуем replyBar)
+    document.getElementById('replyBar').style.display = 'flex';
+    document.getElementById('replyFrom').innerText = '✎ Редактирование';
+    document.getElementById('replyText').innerText = msg.text?.slice(0, 60) || '';
+
+    // Подменяем sendMessage на сохранение правки
+    document.getElementById('sendBtn').onclick = saveInlineEdit;
+    input.onkeypress = (e) => { if (e.key === 'Enter') saveInlineEdit(); };
+}
+
+function saveInlineEdit() {
+    const input = document.getElementById('messageInput');
+    const newText = input.value.trim();
+    if (newText && editingMsgId) {
+        socket.emit('edit_message', { messageId: editingMsgId, newText });
+    }
+    cancelInlineEdit();
+}
+
+function cancelInlineEdit() {
+    editingMsgId = null;
+    document.getElementById('messageInput').value = '';
+    clearReply();
+    // Восстанавливаем обычный sendMessage
+    document.getElementById('sendBtn').onclick = sendMessage;
+    document.getElementById('messageInput').onkeypress = (e) => { if (e.key === 'Enter') sendMessage(); };
+}
+
+// Удаление с подтверждением
+function openDeleteModal(messageId) {
+    const modal = document.getElementById('deleteMsgModal');
+    modal.classList.add('open');
+    document.getElementById('deleteMsgConfirmBtn').onclick = () => {
+        socket.emit('delete_message', { messageId });
+        modal.classList.remove('open');
+    };
+    document.getElementById('deleteMsgCancelBtn').onclick = () => modal.classList.remove('open');
 }
 
 // ========== Реакции ==========
@@ -391,8 +551,14 @@ function openReactionPicker(messageId, anchor) {
     });
     document.body.appendChild(picker);
     const rect = anchor.getBoundingClientRect();
-    picker.style.top = (rect.top - picker.offsetHeight - 8 + window.scrollY) + 'px';
-    picker.style.left = Math.min(rect.left, window.innerWidth - 220) + 'px';
+    const pickerW = quickReactions.length * 44 + 12;
+    let top = rect.top - 56 + window.scrollY;
+    let left = rect.left;
+    if (left + pickerW > window.innerWidth - 8) left = window.innerWidth - pickerW - 8;
+    if (left < 8) left = 8;
+    if (top < 8) top = rect.bottom + 8 + window.scrollY;
+    picker.style.top = top + 'px';
+    picker.style.left = left + 'px';
     setTimeout(() => document.addEventListener('click', () => picker.remove(), { once: true }), 50);
 }
 
@@ -414,14 +580,29 @@ function openImageModal(url) {
 function closeImageModal() { document.getElementById('imageModal').classList.remove('open'); }
 
 // ========== Переключение чатов ==========
+const chatDrafts = {};
+
+function saveDraft() {
+    const input = document.getElementById('messageInput');
+    const key = currentGroupId ? 'group_' + currentGroupId : currentChat ? 'dm_' + currentChat : null;
+    if (key) chatDrafts[key] = input.value;
+}
+
+function restoreDraft(key) {
+    const input = document.getElementById('messageInput');
+    input.value = chatDrafts[key] || '';
+}
+
 function switchChat(username) {
+    saveDraft();
     currentChat = username; currentGroupId = null;
     document.querySelector('.chat-title').innerText = username;
     document.getElementById('groupInfoBtn').style.display = 'none';
+    document.getElementById('callChatBtn').style.display = 'flex';
     document.getElementById('messageInput').placeholder = 'Сообщение...';
+    restoreDraft('dm_' + username);
     fetchHistoryForUser(username);
     markRead(username);
-    // Немедленно обновляем галочки в DOM без ожидания сервера
     document.querySelectorAll('.message.own .read-status').forEach(el => {
         el.innerHTML = '✓✓'; el.classList.add('read');
     });
@@ -430,10 +611,13 @@ function switchChat(username) {
 }
 
 async function switchGroupChat(groupId, groupName) {
+    saveDraft();
     currentGroupId = groupId; currentChat = null;
     document.querySelector('.chat-title').innerText = groupName;
     document.getElementById('groupInfoBtn').style.display = 'flex';
+    document.getElementById('callChatBtn').style.display = 'none';
     document.getElementById('messageInput').placeholder = 'Сообщение в группу...';
+    restoreDraft('group_' + groupId);
     if (window.innerWidth <= 768) sidebar.classList.remove('open');
     setActiveChatItem('group_' + groupId);
     const token = localStorage.getItem('token');
@@ -483,13 +667,33 @@ async function loadFriends() {
         div.setAttribute('data-chat-key', 'dm_' + friend.username);
         div.onclick = () => switchChat(friend.username);
         const count = unreadCounts[friend.username] || 0;
+
+        // Последнее сообщение
+        let lastMsgHtml = '';
+        if (friend.lastMessage) {
+            const prefix = friend.lastMessage.fromMe ? 'Вы: ' : '';
+            const txt = escapeHtml((friend.lastMessage.text || '').slice(0, 35));
+            const t = new Date(friend.lastMessage.timestamp);
+            const now = new Date();
+            const isToday = t.toDateString() === now.toDateString();
+            const timeStr = isToday
+                ? t.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+                : t.toLocaleDateString([], { day: '2-digit', month: '2-digit' });
+            lastMsgHtml = `<div class="friend-last-msg"><span class="last-msg-text">${prefix}${txt}</span><span class="last-msg-time">${timeStr}</span></div>`;
+        }
+
         div.innerHTML = `
-            <span class="user-avatar">${escapeHtml(friend.avatar || '😀')}</span>
-            <div class="user-info-row">
-                <span class="user-name">${escapeHtml(friend.username)}</span>
-                ${friend.online ? '<span class="online-dot"></span>' : ''}
+            <div class="friend-avatar-wrap">
+                <span class="user-avatar">${escapeHtml(friend.avatar || '😀')}</span>
+                ${friend.online ? '<span class="friend-online-dot"></span>' : ''}
             </div>
-            ${count > 0 ? `<span class="unread-badge">${count > 99 ? '99+' : count}</span>` : ''}
+            <div class="friend-info">
+                <div class="friend-name-row">
+                    <span class="user-name">${escapeHtml(friend.username)}</span>
+                    ${count > 0 ? `<span class="unread-badge">${count > 99 ? '99+' : count}</span>` : ''}
+                </div>
+                ${lastMsgHtml}
+            </div>
         `;
         container.appendChild(div);
     });
@@ -528,8 +732,9 @@ async function loadFriendRequests() {
 function updateFriendStatus(username, online) {
     document.querySelectorAll('#friendsList .user-item').forEach(div => {
         if (div.querySelector('.user-name')?.innerText === username) {
-            const dot = div.querySelector('.online-dot');
-            if (online && !dot) div.querySelector('.user-info-row')?.insertAdjacentHTML('beforeend', '<span class="online-dot"></span>');
+            const wrap = div.querySelector('.friend-avatar-wrap');
+            const dot = div.querySelector('.friend-online-dot');
+            if (online && !dot && wrap) wrap.insertAdjacentHTML('beforeend', '<span class="friend-online-dot"></span>');
             else if (!online && dot) dot.remove();
         }
     });
@@ -599,6 +804,32 @@ function closeCreateGroupModal() {
     document.getElementById('groupAvatarPreview').innerText = '👥';
 }
 
+function getGroupInviteLink() {
+    const code = document.getElementById('groupInfoCode')?.innerText?.trim();
+    if (!code) return;
+    const link = code;
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(link).then(() => {
+            const btn = document.querySelector('#groupInfoModal .secondary-btn');
+            const orig = btn.innerText;
+            btn.innerText = '✓ Скопировано';
+            setTimeout(() => btn.innerText = orig, 2000);
+        }).catch(() => fallbackCopyLink(link));
+    } else {
+        fallbackCopyLink(link);
+    }
+}
+
+function fallbackCopyLink(text) {
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    ta.style.cssText = 'position:fixed;opacity:0;top:0;left:0;';
+    document.body.appendChild(ta);
+    ta.focus(); ta.select();
+    try { document.execCommand('copy'); } catch(e) {}
+    document.body.removeChild(ta);
+}
+
 async function loadFriendsForGroupModal() {
     const token = localStorage.getItem('token');
     const friends = await (await fetch('/api/friends', { headers: { 'Authorization': `Bearer ${token}` } })).json();
@@ -617,7 +848,7 @@ async function createGroup() {
     const name = document.getElementById('newGroupName').value.trim();
     if (!name) return alert('Введите название');
     const description = document.getElementById('newGroupDesc').value.trim();
-    const type = document.getElementById('groupTypeSelect').value;
+    const type = document.querySelector('input[name="groupType"]:checked').value;
     const avatar = document.getElementById('groupAvatarPreview').innerText;
     const members = [...document.querySelectorAll('#groupMemberCheckboxes input:checked')].map(cb => cb.value);
     const token = localStorage.getItem('token');
@@ -640,9 +871,41 @@ function showInviteCode(code, name, type) {
 }
 function closeInviteModal() { document.getElementById('inviteCodeModal').classList.remove('open'); }
 function copyInviteCode() {
-    navigator.clipboard.writeText(document.getElementById('inviteCodeDisplay').innerText).then(() => {
-        const btn = document.getElementById('copyCodeBtn'); btn.innerText = '✓ Скопировано'; setTimeout(() => btn.innerText = 'Скопировать', 2000);
-    });
+    const code = document.getElementById('inviteCodeDisplay').innerText.trim();
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(code).then(() => {
+            const btn = document.getElementById('copyCodeBtn');
+            btn.innerText = '✓ Скопировано';
+            setTimeout(() => btn.innerText = 'Скопировать', 2000);
+        }).catch(() => fallbackCopy(code));
+    } else {
+        fallbackCopy(code);
+    }
+}
+
+function copyGroupInfoCode() {
+    const code = document.getElementById('groupInfoCode')?.innerText?.trim();
+    if (!code) return;
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(code).catch(() => fallbackCopy(code));
+    } else {
+        fallbackCopy(code);
+    }
+}
+
+function fallbackCopy(text) {
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    ta.style.cssText = 'position:fixed;opacity:0;top:0;left:0;';
+    document.body.appendChild(ta);
+    ta.focus(); ta.select();
+    try {
+        document.execCommand('copy');
+        const btn = document.getElementById('copyCodeBtn');
+        btn.innerText = '✓ Скопировано';
+        setTimeout(() => btn.innerText = 'Скопировать', 2000);
+    } catch(e) {}
+    document.body.removeChild(ta);
 }
 
 async function joinByCode() {
@@ -908,3 +1171,156 @@ window.onload = () => {
 document.getElementById('sendBtn').onclick = sendMessage;
 document.getElementById('messageInput').onkeypress = (e) => { if (e.key === 'Enter') sendMessage(); };
 document.getElementById('logoutBtn').onclick = logout;
+
+// ========== WebRTC Звонки ==========
+let peerConnection = null;
+let localStream = null;
+let callWith = null;
+let isMuted = false;
+let iceCandidateQueue = [];
+
+const iceServers = { iceServers: [
+    { urls: 'stun:stun.relay.metered.ca:80' },
+    {
+        urls: 'turn:global.relay.metered.ca:80',
+        username: 'f1e5775431e6d374bfd767cd',
+        credential: 'СЮДА_СВОЙ_CREDENTIAL'
+    },
+    {
+        urls: 'turn:global.relay.metered.ca:80?transport=tcp',
+        username: 'f1e5775431e6d374bfd767cd',
+        credential: 'foYdt5C8+xkLxK8N'
+    },
+    {
+        urls: 'turn:global.relay.metered.ca:443',
+        username: 'f1e5775431e6d374bfd767cd',
+        credential: 'foYdt5C8+xkLxK8N'
+    },
+    {
+        urls: 'turns:global.relay.metered.ca:443?transport=tcp',
+        username: 'f1e5775431e6d374bfd767cd',
+        credential: 'foYdt5C8+xkLxK8N'
+    }
+]};
+
+async function flushIceCandidates() {
+    while (iceCandidateQueue.length) {
+        const c = iceCandidateQueue.shift();
+        try { await peerConnection.addIceCandidate(new RTCIceCandidate(c)); } catch(e) {}
+    }
+}
+
+let callTimerInterval = null;
+let callSeconds = 0;
+
+function startCallTimer() {
+    callSeconds = 0;
+    document.getElementById('callTimer').style.display = 'block';
+    callTimerInterval = setInterval(() => {
+        callSeconds++;
+        const m = Math.floor(callSeconds / 60);
+        const s = String(callSeconds % 60).padStart(2, '0');
+        document.getElementById('callTimer').innerText = `${m}:${s}`;
+    }, 1000);
+}
+
+function stopCallTimer() {
+    clearInterval(callTimerInterval);
+    callTimerInterval = null;
+    document.getElementById('callTimer').style.display = 'none';
+    document.getElementById('callTimer').innerText = '0:00';
+}
+
+function showCallOverlay(username, avatar, status, showAccept) {
+    document.getElementById('callAvatar').innerText = avatar || '😀';
+    document.getElementById('callUsername').innerText = username;
+    document.getElementById('callStatus').innerText = status;
+    document.getElementById('callAcceptBtn').style.display = showAccept ? 'flex' : 'none';
+    document.getElementById('callMuteBtn').style.display = 'none';
+    document.getElementById('callTimer').style.display = 'none';
+    document.getElementById('callOverlay').style.display = 'flex';
+}
+
+function hideCallOverlay() {
+    document.getElementById('callOverlay').style.display = 'none';
+}
+
+async function startCall(username) {
+    iceCandidateQueue = [];
+    callWith = username;
+    localStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    peerConnection = new RTCPeerConnection(iceServers);
+    localStream.getTracks().forEach(t => peerConnection.addTrack(t, localStream));
+    peerConnection.ontrack = (e) => {
+        document.getElementById('remoteAudio').srcObject = e.streams[0];
+    };
+    peerConnection.onicecandidate = (e) => {
+        if (e.candidate) socket.emit('call_ice', { to: callWith, candidate: e.candidate });
+    };
+    peerConnection.onconnectionstatechange = () => {
+        const state = peerConnection?.connectionState;
+        if (state === 'connected') {
+            document.getElementById('callStatus').innerText = '';
+            document.getElementById('callMuteBtn').style.display = 'flex';
+            startCallTimer();
+        }
+        if (state === 'failed' || state === 'disconnected') {
+            document.getElementById('callStatus').innerText = 'Соединение прервано';
+            setTimeout(cleanupCall, 2000);
+        }
+    };
+    const offer = await peerConnection.createOffer();
+    await peerConnection.setLocalDescription(offer);
+    socket.emit('call_user', { to: username, offer });
+    showCallOverlay(username, '📞', 'Вызов...', false);
+}
+
+async function acceptCall() {
+    document.getElementById('callAcceptBtn').style.display = 'none';
+    document.getElementById('callStatus').innerText = 'Соединение...';
+    localStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    localStream.getTracks().forEach(t => peerConnection.addTrack(t, localStream));
+    peerConnection.ontrack = (e) => {
+        document.getElementById('remoteAudio').srcObject = e.streams[0];
+    };
+    peerConnection.onconnectionstatechange = () => {
+        const state = peerConnection?.connectionState;
+        if (state === 'connected') {
+            document.getElementById('callStatus').innerText = 'Звонок';
+            document.getElementById('callMuteBtn').style.display = 'flex';
+        }
+        if (state === 'failed' || state === 'disconnected') {
+            document.getElementById('callStatus').innerText = 'Соединение прервано';
+            setTimeout(cleanupCall, 2000);
+        }
+    };
+    const answer = await peerConnection.createAnswer();
+    await peerConnection.setLocalDescription(answer);
+    await flushIceCandidates();
+    socket.emit('call_answer', { to: callWith, answer });
+}
+
+function endCall() {
+    if (callWith) socket.emit('call_end', { to: callWith });
+    cleanupCall();
+}
+
+function cleanupCall() {
+    stopCallTimer();
+    peerConnection?.close();
+    peerConnection = null;
+    localStream?.getTracks().forEach(t => t.stop());
+    localStream = null;
+    callWith = null;
+    isMuted = false;
+    document.getElementById('remoteAudio').srcObject = null;
+    hideCallOverlay();
+}
+
+function toggleMute() {
+    if (!localStream) return;
+    isMuted = !isMuted;
+    localStream.getAudioTracks().forEach(t => t.enabled = !isMuted);
+    document.getElementById('callMuteBtn').classList.toggle('muted', isMuted);
+    document.getElementById('callMuteLabel').innerText = isMuted ? 'Без звука' : 'Микрофон';
+}

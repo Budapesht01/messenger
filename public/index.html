@@ -11,14 +11,16 @@
     <div id="auth" class="auth-container">
         <div class="auth-card">
             <h2>Добро пожаловать</h2>
-            <input type="text" id="authUsername" placeholder="Имя пользователя">
+            <form onsubmit="return false;">
+            <input type="text" id="authUsername" placeholder="Имя пользователя" autocomplete="username">
             <div class="auth-hint">Минимум 3 символа</div>
-            <input type="password" id="authPassword" placeholder="Пароль">
+            <input type="password" id="authPassword" placeholder="Пароль" autocomplete="current-password">
             <div class="auth-hint">Минимум 8 символов</div>
             <div class="auth-buttons">
-                <button onclick="register()">Зарегистрироваться</button>
-                <button onclick="login()">Войти</button>
+                <button type="button" onclick="register()">Зарегистрироваться</button>
+                <button type="button" onclick="login()">Войти</button>
             </div>
+            </form>
             <div id="authError" class="error"></div>
         </div>
     </div>
@@ -117,7 +119,12 @@
             <div class="chat-header">
                 <button id="menuToggleBtn" class="menu-toggle">☰</button>
                 <span class="chat-title">Выберите чат</span>
-                <button id="groupInfoBtn" class="group-info-btn" onclick="showGroupInfo()" style="display:none;">ℹ️</button>
+                <div class="chat-header-actions">
+                    <button id="callChatBtn" onclick="currentChat && startCall(currentChat)" class="chat-call-btn" style="display:none;" title="Позвонить">
+                        <svg viewBox="0 0 24 24" fill="currentColor" width="18" height="18"><path d="M6.6 10.8c1.4 2.8 3.8 5.1 6.6 6.6l2.2-2.2c.3-.3.7-.4 1-.2 1.1.4 2.3.6 3.6.6.6 0 1 .4 1 1V20c0 .6-.4 1-1 1-9.4 0-17-7.6-17-17 0-.6.4-1 1-1h3.5c.6 0 1 .4 1 1 0 1.3.2 2.5.6 3.6.1.3 0 .7-.2 1L6.6 10.8z"/></svg>
+                    </button>
+                    <button id="groupInfoBtn" class="group-info-btn" onclick="showGroupInfo()" style="display:none;">ℹ️</button>
+                </div>
             </div>
             <div class="messages" id="messages"></div>
             <div class="typing-indicator" id="typingIndicator"></div>
@@ -126,7 +133,7 @@
                     <span class="reply-bar-label">Ответ для <strong id="replyFrom"></strong></span>
                     <span class="reply-bar-text" id="replyText"></span>
                 </div>
-                <button class="reply-bar-close" onclick="clearReply()">✕</button>
+                <button class="reply-bar-close" onclick="editingMsgId ? cancelInlineEdit() : clearReply()">✕</button>
             </div>
             <div class="input-area" style="position:relative;">
                 <div class="emoji-picker-panel" id="emojiPickerPanel">
@@ -245,6 +252,69 @@
             <button onclick="closeImageModal()" style="position:absolute;top:-12px;right:-12px;background:#1a1a1a;border:none;color:#fff;font-size:18px;width:32px;height:32px;border-radius:50%;cursor:pointer;">✕</button>
         </div>
     </div>
+    <!-- Edit message modal -->
+    <div class="modal-overlay" id="editMsgModal">
+        <div class="modal-card narrow">
+            <div class="modal-header">
+                <h3>Редактировать сообщение</h3>
+                <button class="modal-close" id="editMsgCancelBtn">✕</button>
+            </div>
+            <div class="modal-body">
+                <textarea id="editMsgInput" class="edit-msg-textarea" rows="3" placeholder="Текст сообщения..."></textarea>
+            </div>
+            <div class="modal-footer">
+                <button class="secondary-btn" id="editMsgCancelBtn2" onclick="document.getElementById('editMsgModal').classList.remove('open')">Отмена</button>
+                <button class="primary-btn" id="editMsgSaveBtn" style="width:auto;margin-bottom:0;">Сохранить</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Delete message modal -->
+    <div class="modal-overlay" id="deleteMsgModal">
+        <div class="modal-card narrow">
+            <div class="modal-header">
+                <h3>Удалить сообщение?</h3>
+                <button class="modal-close" onclick="document.getElementById('deleteMsgModal').classList.remove('open')">✕</button>
+            </div>
+            <div class="modal-body" style="text-align:center;padding:20px;">
+                <p style="color:var(--text-secondary);font-size:14px;">Сообщение будет удалено у всех участников чата.</p>
+            </div>
+            <div class="modal-footer">
+                <button class="secondary-btn" id="deleteMsgCancelBtn">Отмена</button>
+                <button class="logout-btn" id="deleteMsgConfirmBtn" style="width:auto;margin-top:0;">Удалить</button>
+            </div>
+        </div>
+    </div>
+<!-- ===== ЗВОНОК UI ===== -->
+<div id="callOverlay">
+    <div class="call-card">
+        <div id="callAvatar" class="call-avatar"></div>
+        <div id="callUsername" class="call-username"></div>
+        <div id="callStatus" class="call-status"></div>
+        <div id="callTimer" class="call-timer" style="display:none;">0:00</div>
+        <div class="call-btns">
+            <div class="call-btn-wrap">
+                <button id="callAcceptBtn" onclick="acceptCall()" class="call-btn call-btn-accept" style="display:none;">
+                    <svg viewBox="0 0 24 24" fill="currentColor"><path d="M6.6 10.8c1.4 2.8 3.8 5.1 6.6 6.6l2.2-2.2c.3-.3.7-.4 1-.2 1.1.4 2.3.6 3.6.6.6 0 1 .4 1 1V20c0 .6-.4 1-1 1-9.4 0-17-7.6-17-17 0-.6.4-1 1-1h3.5c.6 0 1 .4 1 1 0 1.3.2 2.5.6 3.6.1.3 0 .7-.2 1L6.6 10.8z"/></svg>
+                </button>
+                <span class="call-btn-label">Принять</span>
+            </div>
+            <div class="call-btn-wrap">
+                <button id="callMuteBtn" onclick="toggleMute()" class="call-btn call-btn-mute" style="display:none;">
+                    <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3zm-1-9c0-.55.45-1 1-1s1 .45 1 1v6c0 .55-.45 1-1 1s-1-.45-1-1V5zm6 6c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/></svg>
+                </button>
+                <span class="call-btn-label" id="callMuteLabel">Микрофон</span>
+            </div>
+            <div class="call-btn-wrap">
+                <button id="callEndBtn" onclick="endCall()" class="call-btn call-btn-end">
+                    <svg viewBox="0 0 24 24" fill="currentColor"><path d="M6.6 10.8c1.4 2.8 3.8 5.1 6.6 6.6l2.2-2.2c.3-.3.7-.4 1-.2 1.1.4 2.3.6 3.6.6.6 0 1 .4 1 1V20c0 .6-.4 1-1 1-9.4 0-17-7.6-17-17 0-.6.4-1 1-1h3.5c.6 0 1 .4 1 1 0 1.3.2 2.5.6 3.6.1.3 0 .7-.2 1L6.6 10.8z" transform="rotate(135 12 12)"/></svg>
+                </button>
+                <span class="call-btn-label">Завершить</span>
+            </div>
+        </div>
+    </div>
+    <audio id="remoteAudio" autoplay></audio>
+</div>
     <script src="/socket.io/socket.io.js"></script>
     <script src="script.js?v=glass1"></script>
     <script>

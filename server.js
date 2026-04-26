@@ -178,7 +178,40 @@ app.get('/api/users/search', authenticateJWT, async (req, res) => {
 app.get('/api/friends', authenticateJWT, async (req, res) => {
   const user = await User.findOne({ username: req.user.username });
   const friends = await User.find({ username: { $in: user.friends } }, 'username avatar color online lastSeen');
-  res.json(friends);
+
+  // Для каждого друга находим последнее сообщение
+  const friendsWithLastMsg = await Promise.all(friends.map(async (friend) => {
+    const lastMsg = await Message.findOne({
+      groupId: null,
+      deleted: false,
+      $or: [
+        { from: req.user.username, to: friend.username },
+        { from: friend.username, to: req.user.username }
+      ]
+    }).sort({ timestamp: -1 }).select('text imageUrl timestamp from');
+
+    return {
+      username: friend.username,
+      avatar: friend.avatar,
+      color: friend.color,
+      online: friend.online,
+      lastSeen: friend.lastSeen,
+      lastMessage: lastMsg ? {
+        text: lastMsg.text || (lastMsg.imageUrl ? '📷 Фото' : ''),
+        timestamp: lastMsg.timestamp,
+        fromMe: lastMsg.from === req.user.username
+      } : null
+    };
+  }));
+
+  // Сортируем по времени последнего сообщения
+  friendsWithLastMsg.sort((a, b) => {
+    const ta = a.lastMessage?.timestamp || 0;
+    const tb = b.lastMessage?.timestamp || 0;
+    return new Date(tb) - new Date(ta);
+  });
+
+  res.json(friendsWithLastMsg);
 });
 
 app.get('/api/friend-requests', authenticateJWT, async (req, res) => {
@@ -564,13 +597,13 @@ io.on('connection', async (socket) => {
   socket.on('delete_message', async (data) => {
     const message = await Message.findById(data.messageId);
     if (!message || message.from !== user.username) return;
-    message.deleted = true;
-    await message.save();
-    const payload = { messageId: data.messageId };
+    const payload = { messageId: String(data.messageId), hardDelete: true };
     if (message.groupId) {
+      await Message.deleteOne({ _id: data.messageId });
       io.to(`group:${message.groupId}`).emit('message_deleted', payload);
     } else {
       const recipient = await User.findOne({ username: message.to });
+      await Message.deleteOne({ _id: data.messageId });
       if (recipient && recipient.socketId) io.to(recipient.socketId).emit('message_deleted', payload);
       socket.emit('message_deleted', payload);
     }
@@ -588,6 +621,46 @@ io.on('connection', async (socket) => {
   });
 
   socket.on('join_group_room', (groupId) => socket.join(`group:${groupId}`));
+
+  // ===== WebRTC Звонки =====
+  socket.on('call_user', async (data) => {
+    const callee = await User.findOne({ username: data.to });
+    if (callee && callee.socketId) {
+      io.to(callee.socketId).emit('incoming_call', {
+        from: user.username,
+        avatar: socket.user.avatar,
+        offer: data.offer
+      });
+    }
+  });
+
+  socket.on('call_answer', async (data) => {
+    const caller = await User.findOne({ username: data.to });
+    if (caller && caller.socketId) {
+      io.to(caller.socketId).emit('call_answered', { answer: data.answer });
+    }
+  });
+
+  socket.on('call_ice', async (data) => {
+    const peer = await User.findOne({ username: data.to });
+    if (peer && peer.socketId) {
+      io.to(peer.socketId).emit('call_ice', { candidate: data.candidate });
+    }
+  });
+
+  socket.on('call_reject', async (data) => {
+    const caller = await User.findOne({ username: data.to });
+    if (caller && caller.socketId) {
+      io.to(caller.socketId).emit('call_rejected', { by: user.username });
+    }
+  });
+
+  socket.on('call_end', async (data) => {
+    const peer = await User.findOne({ username: data.to });
+    if (peer && peer.socketId) {
+      io.to(peer.socketId).emit('call_ended', { by: user.username });
+    }
+  });
 
   socket.on('disconnect', async () => {
     await User.updateOne({ username: user.username }, { online: false, socketId: null, lastSeen: new Date() });
