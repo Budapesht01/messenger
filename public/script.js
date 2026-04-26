@@ -1235,8 +1235,8 @@ function showCallOverlay(username, avatar, status, showAccept) {
     document.getElementById('callAvatar').innerText = avatar || '😀';
     document.getElementById('callUsername').innerText = username;
     document.getElementById('callStatus').innerText = status;
-    document.getElementById('callAcceptBtn').style.display = showAccept ? 'flex' : 'none';
-    document.getElementById('callMuteBtn').style.display = 'none';
+    document.getElementById('callAcceptWrap').style.display = showAccept ? 'flex' : 'none';
+    document.getElementById('callMuteWrap').style.display = 'none';
     document.getElementById('callTimer').style.display = 'none';
     document.getElementById('callOverlay').style.display = 'flex';
 }
@@ -1248,12 +1248,14 @@ function hideCallOverlay() {
 async function startCall(username) {
     iceCandidateQueue = [];
     callWith = username;
+    // Микрофон получаем ДО создания offer — иначе звук идёт только в одну сторону
     localStream = await navigator.mediaDevices.getUserMedia({ audio: {
         echoCancellation: true,
         noiseSuppression: true,
         autoGainControl: true
     }});
     peerConnection = new RTCPeerConnection(iceServers);
+    // Треки добавляем ДО createOffer
     localStream.getTracks().forEach(t => peerConnection.addTrack(t, localStream));
     peerConnection.ontrack = (e) => {
         document.getElementById('remoteAudio').srcObject = e.streams[0];
@@ -1265,7 +1267,7 @@ async function startCall(username) {
         const state = peerConnection?.connectionState;
         if (state === 'connected') {
             document.getElementById('callStatus').innerText = '';
-            document.getElementById('callMuteBtn').style.display = 'flex';
+            document.getElementById('callMuteWrap').style.display = 'flex';
             startCallTimer();
         }
         if (state === 'failed' || state === 'disconnected') {
@@ -1280,13 +1282,15 @@ async function startCall(username) {
 }
 
 async function acceptCall() {
-    document.getElementById('callAcceptBtn').style.display = 'none';
+    document.getElementById('callAcceptWrap').style.display = 'none';
     document.getElementById('callStatus').innerText = 'Соединение...';
+    // Микрофон получаем ДО createAnswer — иначе звук идёт только в одну сторону
     localStream = await navigator.mediaDevices.getUserMedia({ audio: {
         echoCancellation: true,
         noiseSuppression: true,
         autoGainControl: true
     }});
+    // Треки добавляем ДО createAnswer
     localStream.getTracks().forEach(t => peerConnection.addTrack(t, localStream));
     peerConnection.ontrack = (e) => {
         document.getElementById('remoteAudio').srcObject = e.streams[0];
@@ -1295,7 +1299,7 @@ async function acceptCall() {
         const state = peerConnection?.connectionState;
         if (state === 'connected') {
             document.getElementById('callStatus').innerText = '';
-            document.getElementById('callMuteBtn').style.display = 'flex';
+            document.getElementById('callMuteWrap').style.display = 'flex';
             startCallTimer();
         }
         if (state === 'failed' || state === 'disconnected') {
@@ -1332,4 +1336,5 @@ function toggleMute() {
     localStream.getAudioTracks().forEach(t => t.enabled = !isMuted);
     document.getElementById('callMuteBtn').classList.toggle('muted', isMuted);
     document.getElementById('callMuteLabel').innerText = isMuted ? 'Без звука' : 'Микрофон';
+    document.getElementById('callMuteWrap').style.display = 'flex';
 }
