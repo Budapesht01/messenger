@@ -650,6 +650,11 @@ async function loadFriends() {
                 ${lastMsgHtml}
             </div>
         `;
+        div.querySelector('.friend-info').insertAdjacentHTML('afterend',
+            `<button onclick="event.stopPropagation(); startCall('${escapeHtml(friend.username)}')"
+             style="background:none; border:none; font-size:18px; cursor:pointer; padding:4px 6px; border-radius:8px; color:var(--text-secondary);"
+             title="Позвонить">📞</button>`
+        );
         container.appendChild(div);
     });
 }
