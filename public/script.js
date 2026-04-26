@@ -513,14 +513,28 @@ function openImageModal(url) {
 function closeImageModal() { document.getElementById('imageModal').classList.remove('open'); }
 
 // ========== Переключение чатов ==========
+const chatDrafts = {};
+
+function saveDraft() {
+    const input = document.getElementById('messageInput');
+    const key = currentGroupId ? 'group_' + currentGroupId : currentChat ? 'dm_' + currentChat : null;
+    if (key) chatDrafts[key] = input.value;
+}
+
+function restoreDraft(key) {
+    const input = document.getElementById('messageInput');
+    input.value = chatDrafts[key] || '';
+}
+
 function switchChat(username) {
+    saveDraft();
     currentChat = username; currentGroupId = null;
     document.querySelector('.chat-title').innerText = username;
     document.getElementById('groupInfoBtn').style.display = 'none';
     document.getElementById('messageInput').placeholder = 'Сообщение...';
+    restoreDraft('dm_' + username);
     fetchHistoryForUser(username);
     markRead(username);
-    // Немедленно обновляем галочки в DOM без ожидания сервера
     document.querySelectorAll('.message.own .read-status').forEach(el => {
         el.innerHTML = '✓✓'; el.classList.add('read');
     });
@@ -529,10 +543,12 @@ function switchChat(username) {
 }
 
 async function switchGroupChat(groupId, groupName) {
+    saveDraft();
     currentGroupId = groupId; currentChat = null;
     document.querySelector('.chat-title').innerText = groupName;
     document.getElementById('groupInfoBtn').style.display = 'flex';
     document.getElementById('messageInput').placeholder = 'Сообщение в группу...';
+    restoreDraft('group_' + groupId);
     if (window.innerWidth <= 768) sidebar.classList.remove('open');
     setActiveChatItem('group_' + groupId);
     const token = localStorage.getItem('token');
@@ -722,7 +738,7 @@ function closeCreateGroupModal() {
 function getGroupInviteLink() {
     const code = document.getElementById('groupInfoCode')?.innerText?.trim();
     if (!code) return;
-    const link = `${window.location.origin}?invite=${code}`;
+    const link = code;
     if (navigator.clipboard && navigator.clipboard.writeText) {
         navigator.clipboard.writeText(link).then(() => {
             const btn = document.querySelector('#groupInfoModal .secondary-btn');
