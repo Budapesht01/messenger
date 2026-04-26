@@ -128,7 +128,7 @@
                     <span class="reply-bar-label">Ответ для <strong id="replyFrom"></strong></span>
                     <span class="reply-bar-text" id="replyText"></span>
                 </div>
-                <button class="reply-bar-close" onclick="clearReply()">✕</button>
+                <button class="reply-bar-close" onclick="editingMsgId ? cancelInlineEdit() : clearReply()">✕</button>
             </div>
             <div class="input-area" style="position:relative;">
                 <div class="emoji-picker-panel" id="emojiPickerPanel">
