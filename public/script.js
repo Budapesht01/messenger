@@ -1350,9 +1350,9 @@ async function openAdminPanel() {
     // Статистика
     const stats = await (await fetch('/api/admin/stats', { headers: { 'Authorization': `Bearer ${token}` } })).json();
     document.getElementById('adminStats').innerHTML = [
-        { label: 'Пользователей', value: stats.users, icon: '👤' },
-        { label: 'Групп', value: stats.groups, icon: '👥' },
-        { label: 'Сообщений', value: stats.messages, icon: '💬' }
+        { label: 'Пользователей', value: stats.usersCount, icon: '👤' },
+        { label: 'Групп', value: stats.groupsCount, icon: '👥' },
+        { label: 'Сообщений', value: stats.messagesCount, icon: '💬' }
     ].map(s => `
         <div style="background:rgba(255,255,255,0.04); border-radius:10px; padding:12px; text-align:center; border:1px solid rgba(255,255,255,0.06);">
             <div style="font-size:24px;">${s.icon}</div>
