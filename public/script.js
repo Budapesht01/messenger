@@ -1248,14 +1248,8 @@ function hideCallOverlay() {
 async function startCall(username) {
     iceCandidateQueue = [];
     callWith = username;
-    // Микрофон получаем ДО создания offer — иначе звук идёт только в одну сторону
-    localStream = await navigator.mediaDevices.getUserMedia({ audio: {
-        echoCancellation: true,
-        noiseSuppression: true,
-        autoGainControl: true
-    }});
+    localStream = await navigator.mediaDevices.getUserMedia({ audio: true });
     peerConnection = new RTCPeerConnection(iceServers);
-    // Треки добавляем ДО createOffer
     localStream.getTracks().forEach(t => peerConnection.addTrack(t, localStream));
     peerConnection.ontrack = (e) => {
         document.getElementById('remoteAudio').srcObject = e.streams[0];
@@ -1267,7 +1261,7 @@ async function startCall(username) {
         const state = peerConnection?.connectionState;
         if (state === 'connected') {
             document.getElementById('callStatus').innerText = '';
-            document.getElementById('callMuteWrap').style.display = 'flex';
+            document.getElementById('callMuteBtn').style.display = 'flex';
             startCallTimer();
         }
         if (state === 'failed' || state === 'disconnected') {
