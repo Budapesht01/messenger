@@ -228,6 +228,18 @@ app.post('/api/friend/remove', authenticateJWT, async (req, res) => {
   res.json({ ok: true });
 });
 
+app.delete('/api/messages/clear', authenticateJWT, async (req, res) => {
+  const { with: withUser } = req.query;
+  if (!withUser) return res.status(400).json({ error: 'Missing user' });
+  await Message.deleteMany({
+    $or: [
+      { from: req.user.username, to: withUser },
+      { from: withUser, to: req.user.username }
+    ]
+  });
+  res.json({ ok: true });
+});
+
 app.post('/api/friend-request', authenticateJWT, async (req, res) => {
   const { to } = req.body;
   if (!to || to === req.user.username) return res.status(400).json({ error: 'Invalid' });
