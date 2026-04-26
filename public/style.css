@@ -1544,8 +1544,9 @@ body { background: var(--bg-gradient); }
     display: flex;
     gap: 28px;
     margin-top: 28px;
-    align-items: flex-start;
+    align-items: center;
     justify-content: center;
+    width: 100%;
 }
 .call-btn-wrap {
     display: flex;
@@ -1554,14 +1555,7 @@ body { background: var(--bg-gradient); }
     gap: 8px;
     min-width: 60px;
 }
-.call-btns {
-    display: flex;
-    gap: 28px;
-    margin-top: 28px;
-    align-items: center;
-    justify-content: center;
-    width: 100%;
-}
+
 .call-btn svg {
     width: 26px;
     height: 26px;
