@@ -622,6 +622,46 @@ io.on('connection', async (socket) => {
 
   socket.on('join_group_room', (groupId) => socket.join(`group:${groupId}`));
 
+  // ===== WebRTC Звонки =====
+  socket.on('call_user', async (data) => {
+    const callee = await User.findOne({ username: data.to });
+    if (callee && callee.socketId) {
+      io.to(callee.socketId).emit('incoming_call', {
+        from: user.username,
+        avatar: socket.user.avatar,
+        offer: data.offer
+      });
+    }
+  });
+
+  socket.on('call_answer', async (data) => {
+    const caller = await User.findOne({ username: data.to });
+    if (caller && caller.socketId) {
+      io.to(caller.socketId).emit('call_answered', { answer: data.answer });
+    }
+  });
+
+  socket.on('call_ice', async (data) => {
+    const peer = await User.findOne({ username: data.to });
+    if (peer && peer.socketId) {
+      io.to(peer.socketId).emit('call_ice', { candidate: data.candidate });
+    }
+  });
+
+  socket.on('call_reject', async (data) => {
+    const caller = await User.findOne({ username: data.to });
+    if (caller && caller.socketId) {
+      io.to(caller.socketId).emit('call_rejected', { by: user.username });
+    }
+  });
+
+  socket.on('call_end', async (data) => {
+    const peer = await User.findOne({ username: data.to });
+    if (peer && peer.socketId) {
+      io.to(peer.socketId).emit('call_ended', { by: user.username });
+    }
+  });
+
   socket.on('disconnect', async () => {
     await User.updateOne({ username: user.username }, { online: false, socketId: null, lastSeen: new Date() });
     for (const friend of userDoc.friends) {
