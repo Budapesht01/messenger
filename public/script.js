@@ -1336,5 +1336,4 @@ function toggleMute() {
     localStream.getAudioTracks().forEach(t => t.enabled = !isMuted);
     document.getElementById('callMuteBtn').classList.toggle('muted', isMuted);
     document.getElementById('callMuteLabel').innerText = isMuted ? 'Без звука' : 'Микрофон';
-    document.getElementById('callMuteWrap').style.display = 'flex';
 }
