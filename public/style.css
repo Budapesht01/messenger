@@ -1605,7 +1605,7 @@ body { background: var(--bg-gradient); }
     align-items: center;
     transition: color 0.15s, background 0.15s;
 }
-.chat-call-btn:hover { color: #22c55e; background: rgba(34,197,94,0.1); }
+.chat-call-btn:hover { color: var(--accent); background: var(--accent-dim); }
 
 .creator-name {
     background: linear-gradient(90deg, #d4a847, #f5d77e, #b8860b, #f0c040, #d4a847);
