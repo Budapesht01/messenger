@@ -1783,3 +1783,8 @@ body { background: var(--bg-gradient); }
     background: rgba(255,255,255,0.06);
     margin: 4px 0;
 }
+
+@keyframes fadeInUp {
+    from { opacity:0; transform:translateX(-50%) translateY(10px); }
+    to   { opacity:1; transform:translateX(-50%) translateY(0); }
+}
