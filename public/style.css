@@ -261,7 +261,6 @@ body::after {
 .tab-content::-webkit-scrollbar-track { background: transparent; }
 .tab-content::-webkit-scrollbar-thumb { background: var(--border-strong); border-radius: 2px; }
 
-/* User items */
 .user-item {
     display: flex;
     align-items: center;
@@ -271,6 +270,10 @@ body::after {
     margin: 1px 0;
     transition: background 0.15s;
     position: relative;
+    gap: 8px;
+}
+.user-item .friend-request-btn {
+    margin-left: auto;
 }
 .user-item:hover { background: var(--glass-hover); }
 .active-chat {
