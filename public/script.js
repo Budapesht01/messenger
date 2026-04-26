@@ -704,13 +704,25 @@ async function loadFriendRequests() {
     const requests = await (await fetch('/api/friend-requests', { headers: { 'Authorization': `Bearer ${token}` } })).json();
     const container = document.getElementById('requestsList');
     container.innerHTML = '';
+
+    // Бейдж на вкладке
+    const badge = document.getElementById('requestsBadge');
+    if (requests.length > 0) {
+        badge.innerText = requests.length;
+        badge.style.display = 'inline';
+    } else {
+        badge.style.display = 'none';
+    }
+
     if (requests.length === 0) { container.innerHTML = '<div class="empty-hint">Нет входящих запросов</div>'; return; }
     requests.forEach(from => {
         const div = document.createElement('div');
         div.className = 'user-item';
         div.innerHTML = `<span class="user-name">${escapeHtml(from)}</span>
-            <div><button class="accept-btn" data-from="${from}">Принять</button>
-            <button class="reject-btn" data-from="${from}">Отклонить</button></div>`;
+            <div style="display:flex; gap:6px; margin-left:auto;">
+                <button class="accept-btn" data-from="${from}" title="Принять" style="width:32px; height:32px; border-radius:50%; border:none; background:rgba(34,197,94,0.15); color:#22c55e; font-size:16px; cursor:pointer; display:flex; align-items:center; justify-content:center;">✓</button>
+                <button class="reject-btn" data-from="${from}" title="Отклонить" style="width:32px; height:32px; border-radius:50%; border:none; background:rgba(239,68,68,0.12); color:#ef4444; font-size:16px; cursor:pointer; display:flex; align-items:center; justify-content:center;">✕</button>
+            </div>`;
         container.appendChild(div);
     });
     document.querySelectorAll('.accept-btn').forEach(btn => {
