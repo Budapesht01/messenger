@@ -297,7 +297,6 @@ body::after {
     font-size: 14px;
     font-weight: 500;
     color: var(--text-primary);
-    overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
 }
@@ -1407,6 +1406,8 @@ body { background: var(--bg-gradient); }
     align-items: center;
     justify-content: space-between;
     gap: 6px;
+    overflow: visible;
+    position: relative;
 }
 .friend-last-msg {
     display: flex;
@@ -1547,6 +1548,7 @@ body { background: var(--bg-gradient); }
     align-items: center;
     justify-content: center;
     width: 100%;
+    min-height: 84px;
 }
 .call-btn-wrap {
     display: flex;
@@ -1658,4 +1660,10 @@ body { background: var(--bg-gradient); }
     visibility: visible;
     opacity: 1;
     transform: translateX(-50%) translateY(0);
+}
+
+.creator-name {
+    overflow: visible !important;
+    white-space: nowrap;
+    position: relative;
 }
