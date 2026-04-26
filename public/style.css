@@ -1493,4 +1493,110 @@ body { background: var(--bg-gradient); }
 /* Убираем старый hover на message — теперь меню по клику */
 .message-actions { display: none !important; }
 
+/* ===== ЗВОНОК ===== */
+#callOverlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.7);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    z-index: 10000;
+    align-items: center;
+    justify-content: center;
+}
+.call-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    padding: 48px 56px 40px;
+    background: rgba(18,20,36,0.95);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 28px;
+    box-shadow: 0 32px 80px rgba(0,0,0,0.6);
+    min-width: 300px;
+}
+.call-avatar {
+    font-size: 80px;
+    line-height: 1;
+    margin-bottom: 8px;
+}
+.call-username {
+    font-size: 22px;
+    font-weight: 700;
+    color: #fff;
+    letter-spacing: -0.3px;
+}
+.call-status {
+    font-size: 13px;
+    color: rgba(255,255,255,0.45);
+    min-height: 18px;
+}
+.call-timer {
+    font-size: 15px;
+    color: rgba(255,255,255,0.7);
+    font-variant-numeric: tabular-nums;
+    letter-spacing: 0.5px;
+    margin-top: 2px;
+}
+.call-btns {
+    display: flex;
+    gap: 28px;
+    margin-top: 28px;
+    align-items: flex-start;
+    justify-content: center;
+}
+.call-btn-wrap {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+}
+.call-btn {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    border: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: transform 0.15s, filter 0.15s;
+}
+.call-btn svg {
+    width: 26px;
+    height: 26px;
+}
+.call-btn:hover { transform: scale(1.08); filter: brightness(1.15); }
+.call-btn:active { transform: scale(0.95); }
+.call-btn-accept { background: #22c55e; color: #fff; }
+.call-btn-end { background: #ef4444; color: #fff; }
+.call-btn-mute { background: rgba(255,255,255,0.12); color: #fff; }
+.call-btn-mute.muted { background: rgba(239,68,68,0.25); color: #ef4444; }
+.call-btn-label {
+    font-size: 11px;
+    color: rgba(255,255,255,0.4);
+    text-align: center;
+    white-space: nowrap;
+}
 
+/* Кнопка звонка в хедере чата */
+.chat-header-actions {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-left: auto;
+}
+.chat-call-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: var(--text-secondary);
+    padding: 6px 8px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    transition: color 0.15s, background 0.15s;
+}
+.chat-call-btn:hover { color: #22c55e; background: rgba(34,197,94,0.1); }
