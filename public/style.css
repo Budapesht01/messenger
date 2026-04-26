@@ -444,13 +444,14 @@ body::after {
 .avatar-preview.large { font-size: 36px; width: 56px; height: 56px; }
 
 .secondary-btn {
-    padding: 7px 14px;
+    padding: 11px 20px;
     background: var(--glass-input);
     border: 1px solid var(--border);
-    border-radius: var(--radius-sm);
+    border-radius: var(--radius-md);
     color: var(--text-primary);
     font-family: var(--font);
-    font-size: 12px;
+    font-size: 14px;
+    font-weight: 500;
     cursor: pointer;
     transition: all 0.2s;
 }
@@ -1668,4 +1669,37 @@ body { background: var(--bg-gradient); }
     overflow: visible !important;
     white-space: nowrap;
     position: relative;
+}
+
+[data-theme="light"] .modal-card {
+    background: rgba(255,255,255,0.97);
+}
+[data-theme="light"] .modal-input {
+    background: rgba(0,0,0,0.04);
+    border-color: rgba(0,0,0,0.1);
+    color: #1a1d2e;
+}
+[data-theme="light"] .modal-input::placeholder {
+    color: rgba(26,29,46,0.4);
+}
+[data-theme="light"] .type-card {
+    background: rgba(0,0,0,0.04);
+    border-color: rgba(0,0,0,0.1);
+}
+[data-theme="light"] .type-label {
+    color: #1a1d2e;
+}
+[data-theme="light"] .member-checkbox-label {
+    color: #1a1d2e;
+}
+[data-theme="light"] .modal-header h3 {
+    color: #1a1d2e;
+}
+[data-theme="light"] .secondary-btn {
+    background: rgba(0,0,0,0.05);
+    border-color: rgba(0,0,0,0.12);
+    color: #1a1d2e;
+}
+[data-theme="light"] .secondary-btn:hover {
+    background: rgba(0,0,0,0.09);
 }
