@@ -686,10 +686,12 @@ body::after {
     max-width: 68%;
     margin-bottom: 6px;
     display: flex;
-    flex-direction: column;
+    flex-direction: row;
+    align-items: flex-end;
+    gap: 6px;
     position: relative;
 }
-.message.own { align-self: flex-end; }
+.message.own { align-self: flex-end; flex-direction: row-reverse; }
 .message.other { align-self: flex-start; }
 
 .message-bubble {
