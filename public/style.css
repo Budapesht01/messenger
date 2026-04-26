@@ -1616,14 +1616,14 @@ body { background: var(--bg-gradient); }
 }
 
 .creator-crown {
-    font-size: 12px;
-    margin-left: 4px;
+    font-size: 11px;
+    margin-left: 3px;
     cursor: default;
-    opacity: 0.85;
     vertical-align: middle;
     filter: drop-shadow(0 0 4px rgba(212,168,71,0.7));
+    transition: filter 0.2s;
+    -webkit-text-fill-color: initial;
 }
 .creator-crown:hover {
-    opacity: 1;
     filter: drop-shadow(0 0 8px rgba(212,168,71,1));
 }
