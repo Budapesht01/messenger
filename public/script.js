@@ -1402,17 +1402,21 @@ async function adminDeleteGroup(id) {
 function toggleChatMenu() {
     const dropdown = document.getElementById('chatDropdown');
     const btn = document.getElementById('chatMenuBtn');
+    const messages = document.getElementById('messages');
     if (dropdown.classList.contains('open')) {
         dropdown.classList.remove('open');
+        messages.classList.remove('menu-open');
         return;
     }
     const rect = btn.getBoundingClientRect();
     dropdown.style.top = (rect.bottom + 6) + 'px';
     dropdown.style.right = (window.innerWidth - rect.right) + 'px';
     dropdown.classList.add('open');
+    messages.classList.add('menu-open');
 }
 function closeChatMenu() {
     document.getElementById('chatDropdown').classList.remove('open');
+    document.getElementById('messages').classList.remove('menu-open');
 }
 document.addEventListener('click', (e) => {
     if (!e.target.closest('#chatMenuWrap')) closeChatMenu();
@@ -1478,17 +1482,21 @@ function removeFriendCurrent() {
 function toggleGroupMenu() {
     const dropdown = document.getElementById('groupDropdown');
     const btn = document.querySelector('#groupMenuWrap .chat-call-btn');
+    const messages = document.getElementById('messages');
     if (dropdown.classList.contains('open')) {
         dropdown.classList.remove('open');
+        messages.classList.remove('menu-open');
         return;
     }
     const rect = btn.getBoundingClientRect();
     dropdown.style.top = (rect.bottom + 6) + 'px';
     dropdown.style.right = (window.innerWidth - rect.right) + 'px';
     dropdown.classList.add('open');
+    messages.classList.add('menu-open');
 }
 function closeGroupMenu() {
     document.getElementById('groupDropdown').classList.remove('open');
+    document.getElementById('messages').classList.remove('menu-open');
 }
 document.addEventListener('click', (e) => {
     if (!e.target.closest('#groupMenuWrap')) closeGroupMenu();
