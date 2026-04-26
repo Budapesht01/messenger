@@ -337,10 +337,6 @@ function addMessageToChat(msg) {
     const bar = div.querySelector('.reaction-bar');
     if (msg.reactions && msg.reactions.length > 0) renderReactionBar(bar, msg.reactions, msg._id);
 
-    // Реакции
-    const bar = div.querySelector('.reaction-bar');
-    if (msg.reactions && msg.reactions.length > 0) renderReactionBar(bar, msg.reactions, msg._id);
-
     // Контекстное меню TG-стиля при клике на пузырь
     const bubble = div.querySelector('.message-bubble');
     bubble.addEventListener('click', (e) => {
