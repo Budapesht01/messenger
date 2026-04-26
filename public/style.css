@@ -1614,3 +1614,16 @@ body { background: var(--bg-gradient); }
     0% { background-position: 0% center; }
     100% { background-position: 200% center; }
 }
+
+.creator-crown {
+    font-size: 12px;
+    margin-left: 4px;
+    cursor: default;
+    opacity: 0.85;
+    vertical-align: middle;
+    filter: drop-shadow(0 0 4px rgba(212,168,71,0.7));
+}
+.creator-crown:hover {
+    opacity: 1;
+    filter: drop-shadow(0 0 8px rgba(212,168,71,1));
+}
