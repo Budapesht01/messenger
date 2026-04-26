@@ -349,6 +349,13 @@ body::after {
     outline: none;
     margin-bottom: 10px;
     transition: border-color 0.2s;
+    box-sizing: border-box;
+}
+#joinCodeInput {
+    width: auto;
+    flex: 1;
+    margin-bottom: 0;
+    border-radius: 20px;
 }
 #searchUserInput:focus, #joinCodeInput:focus, #searchGroupInput:focus {
     border-color: var(--accent);
@@ -392,6 +399,29 @@ body::after {
     padding: 8px;
     border-bottom: 1px solid var(--border);
 }
+
+.join-code-row {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+}
+.join-code-btn {
+    width: 34px;
+    height: 34px;
+    min-width: 34px;
+    border-radius: 50%;
+    border: none;
+    background: var(--accent);
+    color: #fff;
+    font-size: 18px;
+    cursor: pointer;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: opacity 0.15s;
+}
+.join-code-btn:hover { opacity: 0.85; }
 
 .group-meta {
     font-size: 11px;
@@ -1717,8 +1747,10 @@ body { background: var(--bg-gradient); }
 .chat-dropdown {
     display: none;
     position: fixed;
-    background: var(--bg-card, #1a1d2e);
-    border: 1px solid rgba(255,255,255,0.08);
+    background: var(--glass-sidebar);
+    backdrop-filter: var(--blur-md);
+    -webkit-backdrop-filter: var(--blur-md);
+    border: 1px solid var(--border-strong);
     border-radius: 12px;
     padding: 6px;
     min-width: 190px;
