@@ -705,13 +705,12 @@ body::after {
 
 .message-bubble {
     background: var(--glass-message-other);
-    backdrop-filter: var(--blur-sm);
-    -webkit-backdrop-filter: var(--blur-sm);
     border: 1px solid var(--border);
     border-radius: var(--radius-msg);
     padding: 9px 13px 7px;
     position: relative;
     word-break: break-word;
+    z-index: 1;
 }
 .message.own .message-bubble {
     background: var(--glass-message-own);
