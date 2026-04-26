@@ -598,6 +598,7 @@ function switchChat(username) {
     currentChat = username; currentGroupId = null;
     document.querySelector('.chat-title').innerText = username;
     document.getElementById('groupInfoBtn').style.display = 'none';
+    document.getElementById('callChatBtn').style.display = 'flex';
     document.getElementById('messageInput').placeholder = 'Сообщение...';
     restoreDraft('dm_' + username);
     fetchHistoryForUser(username);
@@ -614,6 +615,7 @@ async function switchGroupChat(groupId, groupName) {
     currentGroupId = groupId; currentChat = null;
     document.querySelector('.chat-title').innerText = groupName;
     document.getElementById('groupInfoBtn').style.display = 'flex';
+    document.getElementById('callChatBtn').style.display = 'none';
     document.getElementById('messageInput').placeholder = 'Сообщение в группу...';
     restoreDraft('group_' + groupId);
     if (window.innerWidth <= 768) sidebar.classList.remove('open');
@@ -693,11 +695,6 @@ async function loadFriends() {
                 ${lastMsgHtml}
             </div>
         `;
-        div.querySelector('.friend-info').insertAdjacentHTML('afterend',
-            `<button onclick="event.stopPropagation(); startCall('${escapeHtml(friend.username)}')"
-             style="background:none; border:none; font-size:18px; cursor:pointer; padding:4px 6px; border-radius:8px; color:var(--text-secondary);"
-             title="Позвонить">📞</button>`
-        );
         container.appendChild(div);
     });
 }
@@ -1213,12 +1210,34 @@ async function flushIceCandidates() {
     }
 }
 
+let callTimerInterval = null;
+let callSeconds = 0;
+
+function startCallTimer() {
+    callSeconds = 0;
+    document.getElementById('callTimer').style.display = 'block';
+    callTimerInterval = setInterval(() => {
+        callSeconds++;
+        const m = Math.floor(callSeconds / 60);
+        const s = String(callSeconds % 60).padStart(2, '0');
+        document.getElementById('callTimer').innerText = `${m}:${s}`;
+    }, 1000);
+}
+
+function stopCallTimer() {
+    clearInterval(callTimerInterval);
+    callTimerInterval = null;
+    document.getElementById('callTimer').style.display = 'none';
+    document.getElementById('callTimer').innerText = '0:00';
+}
+
 function showCallOverlay(username, avatar, status, showAccept) {
     document.getElementById('callAvatar').innerText = avatar || '😀';
     document.getElementById('callUsername').innerText = username;
     document.getElementById('callStatus').innerText = status;
     document.getElementById('callAcceptBtn').style.display = showAccept ? 'flex' : 'none';
     document.getElementById('callMuteBtn').style.display = 'none';
+    document.getElementById('callTimer').style.display = 'none';
     document.getElementById('callOverlay').style.display = 'flex';
 }
 
@@ -1229,7 +1248,11 @@ function hideCallOverlay() {
 async function startCall(username) {
     iceCandidateQueue = [];
     callWith = username;
-    localStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    localStream = await navigator.mediaDevices.getUserMedia({ audio: {
+        echoCancellation: true,
+        noiseSuppression: true,
+        autoGainControl: true
+    }});
     peerConnection = new RTCPeerConnection(iceServers);
     localStream.getTracks().forEach(t => peerConnection.addTrack(t, localStream));
     peerConnection.ontrack = (e) => {
@@ -1241,8 +1264,9 @@ async function startCall(username) {
     peerConnection.onconnectionstatechange = () => {
         const state = peerConnection?.connectionState;
         if (state === 'connected') {
-            document.getElementById('callStatus').innerText = 'Звонок';
+            document.getElementById('callStatus').innerText = '';
             document.getElementById('callMuteBtn').style.display = 'flex';
+            startCallTimer();
         }
         if (state === 'failed' || state === 'disconnected') {
             document.getElementById('callStatus').innerText = 'Соединение прервано';
@@ -1258,7 +1282,11 @@ async function startCall(username) {
 async function acceptCall() {
     document.getElementById('callAcceptBtn').style.display = 'none';
     document.getElementById('callStatus').innerText = 'Соединение...';
-    localStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    localStream = await navigator.mediaDevices.getUserMedia({ audio: {
+        echoCancellation: true,
+        noiseSuppression: true,
+        autoGainControl: true
+    }});
     localStream.getTracks().forEach(t => peerConnection.addTrack(t, localStream));
     peerConnection.ontrack = (e) => {
         document.getElementById('remoteAudio').srcObject = e.streams[0];
@@ -1266,8 +1294,9 @@ async function acceptCall() {
     peerConnection.onconnectionstatechange = () => {
         const state = peerConnection?.connectionState;
         if (state === 'connected') {
-            document.getElementById('callStatus').innerText = 'Звонок';
+            document.getElementById('callStatus').innerText = '';
             document.getElementById('callMuteBtn').style.display = 'flex';
+            startCallTimer();
         }
         if (state === 'failed' || state === 'disconnected') {
             document.getElementById('callStatus').innerText = 'Соединение прервано';
@@ -1286,6 +1315,7 @@ function endCall() {
 }
 
 function cleanupCall() {
+    stopCallTimer();
     peerConnection?.close();
     peerConnection = null;
     localStream?.getTracks().forEach(t => t.stop());
@@ -1300,5 +1330,6 @@ function toggleMute() {
     if (!localStream) return;
     isMuted = !isMuted;
     localStream.getAudioTracks().forEach(t => t.enabled = !isMuted);
-    document.getElementById('callMuteBtn').innerText = isMuted ? '🔇' : '🎤';
+    document.getElementById('callMuteBtn').classList.toggle('muted', isMuted);
+    document.getElementById('callMuteLabel').innerText = isMuted ? 'Без звука' : 'Микрофон';
 }
