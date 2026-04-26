@@ -237,11 +237,13 @@
                 </div>
                 <span id="groupInfoCode" style="display:none;"></span>
             </div>
-            <div class="modal-footer">
-                <button class="secondary-btn" onclick="getGroupInviteLink()">🔗 Скопировать ссылку</button>
-                <button class="logout-btn" id="deleteGroupBtn" onclick="deleteGroup()" style="display:none;">Удалить группу</button>
-                <button class="logout-btn" id="leaveGroupBtn" onclick="leaveGroup()" style="display:none;">Покинуть группу</button>
-                <button class="secondary-btn" onclick="closeGroupInfoModal()">Закрыть</button>
+            <div class="modal-footer" style="flex-direction:column; gap:8px;">
+                <div style="display:flex; gap:8px; width:100%;">
+                    <button class="secondary-btn" onclick="getGroupInviteLink()" style="flex:1;">🔗 Скопировать ссылку</button>
+                    <button class="secondary-btn" onclick="closeGroupInfoModal()" style="flex:1;">Закрыть</button>
+                </div>
+                <button class="logout-btn" id="deleteGroupBtn" onclick="deleteGroup()" style="display:none; width:100%;">🗑 Удалить группу</button>
+                <button class="logout-btn" id="leaveGroupBtn" onclick="leaveGroup()" style="display:none; width:100%;">🚪 Покинуть группу</button>
             </div>
         </div>
     </div>
