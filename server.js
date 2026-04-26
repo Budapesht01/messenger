@@ -115,8 +115,9 @@ const authenticateJWT = (req, res, next) => {
   }
 };
 
+const ADMIN_USERNAME = 'Budapesht';
 const requireAdmin = (req, res, next) => {
-  if (req.user.username !== 'user123') return res.status(403).json({ error: 'Access denied' });
+  if (req.user.username !== ADMIN_USERNAME) return res.status(403).json({ error: 'Access denied' });
   next();
 };
 
@@ -217,6 +218,14 @@ app.get('/api/friends', authenticateJWT, async (req, res) => {
 app.get('/api/friend-requests', authenticateJWT, async (req, res) => {
   const user = await User.findOne({ username: req.user.username });
   res.json(user.friendRequests);
+});
+
+app.post('/api/friend/remove', authenticateJWT, async (req, res) => {
+  const { username } = req.body;
+  if (!username) return res.status(400).json({ error: 'Username required' });
+  await User.updateOne({ username: req.user.username }, { $pull: { friends: username } });
+  await User.updateOne({ username }, { $pull: { friends: req.user.username } });
+  res.json({ ok: true });
 });
 
 app.post('/api/friend-request', authenticateJWT, async (req, res) => {
@@ -452,7 +461,7 @@ app.get('/api/admin/users', authenticateJWT, requireAdmin, async (req, res) => {
 });
 app.delete('/api/admin/users/:username', authenticateJWT, requireAdmin, async (req, res) => {
   const { username } = req.params;
-  if (username === 'user123') return res.status(400).json({ error: 'Cannot delete admin' });
+  if (username === ADMIN_USERNAME) return res.status(400).json({ error: 'Cannot delete admin' });
   await User.deleteOne({ username });
   await Message.deleteMany({ $or: [{ from: username }, { to: username }] });
   await Group.updateMany({ members: username }, { $pull: { members: username } });
