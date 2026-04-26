@@ -245,6 +245,40 @@
             <button onclick="closeImageModal()" style="position:absolute;top:-12px;right:-12px;background:#1a1a1a;border:none;color:#fff;font-size:18px;width:32px;height:32px;border-radius:50%;cursor:pointer;">✕</button>
         </div>
     </div>
+    <!-- Edit message modal -->
+    <div class="modal-overlay" id="editMsgModal">
+        <div class="modal-card narrow">
+            <div class="modal-header">
+                <h3>Редактировать сообщение</h3>
+                <button class="modal-close" id="editMsgCancelBtn">✕</button>
+            </div>
+            <div class="modal-body">
+                <textarea id="editMsgInput" class="edit-msg-textarea" rows="3" placeholder="Текст сообщения..."></textarea>
+            </div>
+            <div class="modal-footer">
+                <button class="secondary-btn" id="editMsgCancelBtn2" onclick="document.getElementById('editMsgModal').classList.remove('open')">Отмена</button>
+                <button class="primary-btn" id="editMsgSaveBtn" style="width:auto;margin-bottom:0;">Сохранить</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Delete message modal -->
+    <div class="modal-overlay" id="deleteMsgModal">
+        <div class="modal-card narrow">
+            <div class="modal-header">
+                <h3>Удалить сообщение?</h3>
+                <button class="modal-close" onclick="document.getElementById('deleteMsgModal').classList.remove('open')">✕</button>
+            </div>
+            <div class="modal-body" style="text-align:center;padding:20px;">
+                <p style="color:var(--text-secondary);font-size:14px;">Сообщение будет удалено у всех участников чата.</p>
+            </div>
+            <div class="modal-footer">
+                <button class="secondary-btn" id="deleteMsgCancelBtn">Отмена</button>
+                <button class="logout-btn" id="deleteMsgConfirmBtn" style="width:auto;margin-top:0;">Удалить</button>
+            </div>
+        </div>
+    </div>
+
     <script src="/socket.io/socket.io.js"></script>
     <script src="script.js?v=glass1"></script>
     <script>
