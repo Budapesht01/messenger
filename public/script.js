@@ -598,7 +598,7 @@ function switchChat(username) {
     currentChat = username; currentGroupId = null;
     document.querySelector('.chat-title').innerText = username;
     document.getElementById('groupInfoBtn').style.display = 'none';
-    document.getElementById('callChatBtn').style.display = 'flex';
+    document.getElementById('chatMenuWrap').style.display = 'flex';
     document.getElementById('messageInput').placeholder = 'Сообщение...';
     restoreDraft('dm_' + username);
     fetchHistoryForUser(username);
@@ -615,7 +615,7 @@ async function switchGroupChat(groupId, groupName) {
     currentGroupId = groupId; currentChat = null;
     document.querySelector('.chat-title').innerText = groupName;
     document.getElementById('groupInfoBtn').style.display = 'flex';
-    document.getElementById('callChatBtn').style.display = 'none';
+    document.getElementById('chatMenuWrap').style.display = 'none';
     document.getElementById('messageInput').placeholder = 'Сообщение в группу...';
     restoreDraft('group_' + groupId);
     if (window.innerWidth <= 768) sidebar.classList.remove('open');
@@ -666,17 +666,6 @@ async function loadFriends() {
         div.className = 'user-item';
         div.setAttribute('data-chat-key', 'dm_' + friend.username);
         div.onclick = () => switchChat(friend.username);
-        // Кнопка удалить из друзей (в контекстном меню правой кнопкой)
-        div.addEventListener('contextmenu', (e) => {
-            e.preventDefault();
-            if (confirm(`Удалить ${friend.username} из друзей?`)) {
-                fetch('/api/friend/remove', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('token')}` },
-                    body: JSON.stringify({ username: friend.username })
-                }).then(() => loadFriends());
-            }
-        });
         const count = unreadCounts[friend.username] || 0;
 
         // Последнее сообщение
@@ -1406,4 +1395,71 @@ async function adminDeleteGroup(id) {
     const res = await fetch(`/api/admin/groups/${id}`, { method: 'DELETE', headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` } });
     if (res.ok) { openAdminPanel(); loadGroups(); }
     else alert('Ошибка удаления');
+}
+
+// ===== CHAT DROPDOWN MENU =====
+function toggleChatMenu() {
+    document.getElementById('chatDropdown').classList.toggle('open');
+}
+function closeChatMenu() {
+    document.getElementById('chatDropdown').classList.remove('open');
+}
+document.addEventListener('click', (e) => {
+    if (!e.target.closest('#chatMenuWrap')) closeChatMenu();
+});
+
+// ===== CONFIRM MODAL =====
+let confirmCallback = null;
+function showConfirm(title, text, onOk, danger = true) {
+    document.getElementById('confirmTitle').innerText = title;
+    document.getElementById('confirmText').innerText = text;
+    const btn = document.getElementById('confirmOkBtn');
+    btn.style.background = danger ? '#ef4444' : 'var(--accent)';
+    btn.style.boxShadow = danger ? 'none' : '';
+    confirmCallback = onOk;
+    document.getElementById('confirmModal').classList.add('open');
+}
+function closeConfirm() {
+    document.getElementById('confirmModal').classList.remove('open');
+    confirmCallback = null;
+}
+document.getElementById('confirmOkBtn').onclick = () => {
+    if (confirmCallback) confirmCallback();
+    closeConfirm();
+};
+
+// ===== ДЕЙСТВИЯ В ЧАТЕ =====
+async function clearChatHistory() {
+    if (!currentChat) return;
+    showConfirm(
+        'Очистить чат',
+        `Все сообщения с ${currentChat} будут удалены без возможности восстановления.`,
+        async () => {
+            await fetch(`/api/messages/clear?with=${encodeURIComponent(currentChat)}`, {
+                method: 'DELETE',
+                headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+            });
+            document.getElementById('messages').innerHTML = '';
+        }
+    );
+}
+
+function removeFriendCurrent() {
+    if (!currentChat) return;
+    showConfirm(
+        'Удалить из друзей',
+        `Удалить ${currentChat} из списка друзей?`,
+        async () => {
+            await fetch('/api/friend/remove', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('token')}` },
+                body: JSON.stringify({ username: currentChat })
+            });
+            currentChat = null;
+            document.querySelector('.chat-title').innerText = 'Выберите чат';
+            document.getElementById('messages').innerHTML = '';
+            document.getElementById('chatMenuWrap').style.display = 'none';
+            loadFriends();
+        }
+    );
 }
