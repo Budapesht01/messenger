@@ -212,7 +212,6 @@ function initSocket(token) {
         setTimeout(cleanupCall, 1500);
     });
 }
-}
 
 // ========== Сообщения ==========
 function sendMessage() {
