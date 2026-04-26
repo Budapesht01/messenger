@@ -689,7 +689,7 @@ async function loadFriends() {
             </div>
             <div class="friend-info">
                 <div class="friend-name-row">
-                    <span class="${friend.username === 'Budapesht' ? 'user-name creator-name' : 'user-name'}">${escapeHtml(friend.username)}${friend.username === 'Budapesht' ? ' <span class="creator-crown" title="Creator">👑</span>' : ''}</span>
+                    <span class="${friend.username === 'Budapesht' ? 'user-name creator-name' : 'user-name'}">${escapeHtml(friend.username)}${friend.username === 'Budapesht' ? '<span class="creator-crown">👑<span class="creator-tooltip">Creator</span></span>' : ''}</span>
                     ${count > 0 ? `<span class="unread-badge">${count > 99 ? '99+' : count}</span>` : ''}
                 </div>
                 ${lastMsgHtml}
