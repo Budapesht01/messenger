@@ -310,26 +310,26 @@ function addMessageToChat(msg) {
     const isRead = msg.readBy && msg.readBy.includes(currentChat || '');
     const readStatusHtml = isOwn ? `<span class="read-status ${isRead ? 'read' : ''}">✓</span>` : '';
 
+    // Аватарка: берём из DOM текущих друзей для актуальности
+    const senderAvatar = msg.avatar || '😀';
+
     div.innerHTML = `
-        <div class="message-bubble">
-            ${replyHtml}
-            <div class="msg-sender" style="color:${color}">${isOwn ? '' : escapeHtml(msg.from)}</div>
-            ${imageHtml}
-            ${textHtml}
-            <div class="msg-meta">
-                <span class="msg-time">${time}</span>
-                ${msg.edited ? '<span class="edited-badge">ред.</span>' : ''}
-                ${readStatusHtml}
-            </div>
+        <div class="msg-avatar-wrap">
+            ${!isOwn ? `<span class="msg-avatar">${escapeHtml(senderAvatar)}</span>` : ''}
         </div>
-        <div class="reaction-bar"></div>
-        <div class="message-actions">
-            <button class="action-btn reply-btn" data-id="${msg._id}" title="Ответить">↩</button>
-            ${!msg.deleted ? '<button class="action-btn react-btn" data-id="' + msg._id + '" title="Реакция">☺</button>' : ''}
-            ${isOwn && !msg.deleted ? `
-                <button class="action-btn edit-btn" data-id="${msg._id}" title="Редактировать">✎</button>
-                <button class="action-btn del-btn" data-id="${msg._id}" title="Удалить">✕</button>
-            ` : ''}
+        <div class="msg-body">
+            <div class="message-bubble">
+                ${replyHtml}
+                <div class="msg-sender" style="color:${color}">${isOwn ? '' : escapeHtml(msg.from)}</div>
+                ${imageHtml}
+                ${textHtml}
+                <div class="msg-meta">
+                    <span class="msg-time">${time}</span>
+                    ${msg.edited ? '<span class="edited-badge">ред.</span>' : ''}
+                    ${readStatusHtml}
+                </div>
+            </div>
+            <div class="reaction-bar"></div>
         </div>
     `;
 
@@ -337,28 +337,16 @@ function addMessageToChat(msg) {
     const bar = div.querySelector('.reaction-bar');
     if (msg.reactions && msg.reactions.length > 0) renderReactionBar(bar, msg.reactions, msg._id);
 
-    // Обработчики
-    div.querySelector('.reply-btn')?.addEventListener('click', (e) => {
-        e.stopPropagation();
-        setReply(msg._id, msg.from, msg.text);
-    });
+    // Реакции
+    const bar = div.querySelector('.reaction-bar');
+    if (msg.reactions && msg.reactions.length > 0) renderReactionBar(bar, msg.reactions, msg._id);
 
-    div.querySelector('.react-btn')?.addEventListener('click', (e) => {
-        e.stopPropagation();
-        openReactionPicker(msg._id, e.currentTarget);
+    // Контекстное меню TG-стиля при клике на пузырь
+    const bubble = div.querySelector('.message-bubble');
+    bubble.addEventListener('click', (e) => {
+        if (e.target.closest('.reply-preview') || e.target.closest('.msg-image')) return;
+        openMsgMenu(msg, div, isOwn, e);
     });
-
-    if (isOwn && !msg.deleted) {
-        div.querySelector('.edit-btn')?.addEventListener('click', (e) => {
-            e.stopPropagation();
-            const newText = prompt('Редактировать:', msg.text);
-            if (newText?.trim()) socket.emit('edit_message', { messageId: msg._id, newText: newText.trim() });
-        });
-        div.querySelector('.del-btn')?.addEventListener('click', (e) => {
-            e.stopPropagation();
-            if (confirm('Удалить для всех?')) socket.emit('delete_message', { messageId: msg._id });
-        });
-    }
 
     container.appendChild(div);
     container.scrollTop = container.scrollHeight;
@@ -373,6 +361,120 @@ function renderMessages(messages) {
 function scrollToMessage(id) {
     const el = document.querySelector(`.message[data-id="${id}"]`);
     if (el) { el.scrollIntoView({ behavior: 'smooth', block: 'center' }); el.classList.add('highlight'); setTimeout(() => el.classList.remove('highlight'), 1500); }
+}
+
+// ========== Контекстное меню сообщения (TG-стиль) ==========
+function openMsgMenu(msg, msgDiv, isOwn, e) {
+    closeMsgMenu();
+    const menu = document.createElement('div');
+    menu.className = 'msg-context-menu';
+    menu.id = 'msgContextMenu';
+
+    const items = [];
+
+    // Реакция — всегда
+    if (!msg.deleted) {
+        items.push({ icon: '😊', label: 'Реакция', action: () => {
+            closeMsgMenu();
+            openReactionPicker(msg._id, msgDiv.querySelector('.message-bubble'));
+        }});
+    }
+
+    // Ответить — всегда
+    items.push({ icon: '↩', label: 'Ответить', action: () => {
+        closeMsgMenu();
+        setReply(msg._id, msg.from, msg.text);
+    }});
+
+    // Редактировать — только своё и не удалённое
+    if (isOwn && !msg.deleted && msg.text) {
+        items.push({ icon: '✎', label: 'Редактировать', action: () => {
+            closeMsgMenu();
+            openEditModal(msg);
+        }});
+    }
+
+    // Удалить — только своё и не удалённое
+    if (isOwn && !msg.deleted) {
+        items.push({ icon: '🗑', label: 'Удалить', danger: true, action: () => {
+            closeMsgMenu();
+            openDeleteModal(msg._id);
+        }});
+    }
+
+    items.forEach(item => {
+        const btn = document.createElement('button');
+        btn.className = 'msg-menu-btn' + (item.danger ? ' danger' : '');
+        btn.innerHTML = `<span class="msg-menu-icon">${item.icon}</span><span>${item.label}</span>`;
+        btn.onclick = item.action;
+        menu.appendChild(btn);
+    });
+
+    document.body.appendChild(menu);
+
+    // Позиционирование
+    const rect = msgDiv.querySelector('.message-bubble').getBoundingClientRect();
+    const menuW = 180, menuH = items.length * 44 + 12;
+    let top = rect.bottom + 6;
+    let left = isOwn ? rect.right - menuW : rect.left;
+    if (top + menuH > window.innerHeight - 10) top = rect.top - menuH - 6;
+    if (left < 8) left = 8;
+    if (left + menuW > window.innerWidth - 8) left = window.innerWidth - menuW - 8;
+    menu.style.top = top + window.scrollY + 'px';
+    menu.style.left = left + 'px';
+
+    // Анимация
+    requestAnimationFrame(() => menu.classList.add('open'));
+
+    setTimeout(() => {
+        document.addEventListener('click', closeMsgMenuOnOutside, { once: true });
+    }, 50);
+}
+
+function closeMsgMenuOnOutside(e) {
+    if (!document.getElementById('msgContextMenu')?.contains(e.target)) {
+        closeMsgMenu();
+    } else {
+        document.addEventListener('click', closeMsgMenuOnOutside, { once: true });
+    }
+}
+
+function closeMsgMenu() {
+    document.getElementById('msgContextMenu')?.remove();
+}
+
+// Редактирование inline
+function openEditModal(msg) {
+    const modal = document.getElementById('editMsgModal');
+    const input = document.getElementById('editMsgInput');
+    input.value = msg.text;
+    modal.classList.add('open');
+    input.focus();
+    input.setSelectionRange(input.value.length, input.value.length);
+
+    document.getElementById('editMsgSaveBtn').onclick = () => {
+        const newText = input.value.trim();
+        if (newText && newText !== msg.text) {
+            socket.emit('edit_message', { messageId: msg._id, newText });
+        }
+        modal.classList.remove('open');
+    };
+    document.getElementById('editMsgCancelBtn').onclick = () => modal.classList.remove('open');
+    input.onkeydown = (e) => {
+        if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); document.getElementById('editMsgSaveBtn').click(); }
+        if (e.key === 'Escape') modal.classList.remove('open');
+    };
+}
+
+// Удаление с подтверждением
+function openDeleteModal(messageId) {
+    const modal = document.getElementById('deleteMsgModal');
+    modal.classList.add('open');
+    document.getElementById('deleteMsgConfirmBtn').onclick = () => {
+        socket.emit('delete_message', { messageId });
+        modal.classList.remove('open');
+    };
+    document.getElementById('deleteMsgCancelBtn').onclick = () => modal.classList.remove('open');
 }
 
 // ========== Реакции ==========
@@ -483,13 +585,33 @@ async function loadFriends() {
         div.setAttribute('data-chat-key', 'dm_' + friend.username);
         div.onclick = () => switchChat(friend.username);
         const count = unreadCounts[friend.username] || 0;
+
+        // Последнее сообщение
+        let lastMsgHtml = '';
+        if (friend.lastMessage) {
+            const prefix = friend.lastMessage.fromMe ? 'Вы: ' : '';
+            const txt = escapeHtml((friend.lastMessage.text || '').slice(0, 35));
+            const t = new Date(friend.lastMessage.timestamp);
+            const now = new Date();
+            const isToday = t.toDateString() === now.toDateString();
+            const timeStr = isToday
+                ? t.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+                : t.toLocaleDateString([], { day: '2-digit', month: '2-digit' });
+            lastMsgHtml = `<div class="friend-last-msg"><span class="last-msg-text">${prefix}${txt}</span><span class="last-msg-time">${timeStr}</span></div>`;
+        }
+
         div.innerHTML = `
-            <span class="user-avatar">${escapeHtml(friend.avatar || '😀')}</span>
-            <div class="user-info-row">
-                <span class="user-name">${escapeHtml(friend.username)}</span>
-                ${friend.online ? '<span class="online-dot"></span>' : ''}
+            <div class="friend-avatar-wrap">
+                <span class="user-avatar">${escapeHtml(friend.avatar || '😀')}</span>
+                ${friend.online ? '<span class="friend-online-dot"></span>' : ''}
             </div>
-            ${count > 0 ? `<span class="unread-badge">${count > 99 ? '99+' : count}</span>` : ''}
+            <div class="friend-info">
+                <div class="friend-name-row">
+                    <span class="user-name">${escapeHtml(friend.username)}</span>
+                    ${count > 0 ? `<span class="unread-badge">${count > 99 ? '99+' : count}</span>` : ''}
+                </div>
+                ${lastMsgHtml}
+            </div>
         `;
         container.appendChild(div);
     });
@@ -528,8 +650,9 @@ async function loadFriendRequests() {
 function updateFriendStatus(username, online) {
     document.querySelectorAll('#friendsList .user-item').forEach(div => {
         if (div.querySelector('.user-name')?.innerText === username) {
-            const dot = div.querySelector('.online-dot');
-            if (online && !dot) div.querySelector('.user-info-row')?.insertAdjacentHTML('beforeend', '<span class="online-dot"></span>');
+            const wrap = div.querySelector('.friend-avatar-wrap');
+            const dot = div.querySelector('.friend-online-dot');
+            if (online && !dot && wrap) wrap.insertAdjacentHTML('beforeend', '<span class="friend-online-dot"></span>');
             else if (!online && dot) dot.remove();
         }
     });
@@ -640,9 +763,41 @@ function showInviteCode(code, name, type) {
 }
 function closeInviteModal() { document.getElementById('inviteCodeModal').classList.remove('open'); }
 function copyInviteCode() {
-    navigator.clipboard.writeText(document.getElementById('inviteCodeDisplay').innerText).then(() => {
-        const btn = document.getElementById('copyCodeBtn'); btn.innerText = '✓ Скопировано'; setTimeout(() => btn.innerText = 'Скопировать', 2000);
-    });
+    const code = document.getElementById('inviteCodeDisplay').innerText.trim();
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(code).then(() => {
+            const btn = document.getElementById('copyCodeBtn');
+            btn.innerText = '✓ Скопировано';
+            setTimeout(() => btn.innerText = 'Скопировать', 2000);
+        }).catch(() => fallbackCopy(code));
+    } else {
+        fallbackCopy(code);
+    }
+}
+
+function copyGroupInfoCode() {
+    const code = document.getElementById('groupInfoCode')?.innerText?.trim();
+    if (!code) return;
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(code).catch(() => fallbackCopy(code));
+    } else {
+        fallbackCopy(code);
+    }
+}
+
+function fallbackCopy(text) {
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    ta.style.cssText = 'position:fixed;opacity:0;top:0;left:0;';
+    document.body.appendChild(ta);
+    ta.focus(); ta.select();
+    try {
+        document.execCommand('copy');
+        const btn = document.getElementById('copyCodeBtn');
+        btn.innerText = '✓ Скопировано';
+        setTimeout(() => btn.innerText = 'Скопировать', 2000);
+    } catch(e) {}
+    document.body.removeChild(ta);
 }
 
 async function joinByCode() {
