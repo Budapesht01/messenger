@@ -1277,6 +1277,8 @@ async function startCall(username) {
 
 async function acceptCall() {
     document.getElementById('callAcceptBtn').style.display = 'none';
+    document.getElementById('callAcceptLabel').style.display = 'none';
+    document.getElementById('callMuteLabel').style.display = 'none';
     document.getElementById('callStatus').innerText = 'Соединение...';
     localStream = await navigator.mediaDevices.getUserMedia({ audio: true });
     localStream.getTracks().forEach(t => peerConnection.addTrack(t, localStream));
