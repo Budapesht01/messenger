@@ -1003,8 +1003,17 @@ async function loadProfile() {
 async function updateProfile(avatar, color) {
     const token = localStorage.getItem('token');
     const res = await fetch('/api/me/update', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` }, body: JSON.stringify({ avatar, color }) });
-    if (res.ok) { currentUser.avatar = avatar; currentUser.color = color; alert('Профиль обновлён'); }
-    else alert('Ошибка обновления');
+    if (res.ok) {
+        currentUser.avatar = avatar;
+        currentUser.color = color;
+        // Обновить цвет ника у всех своих сообщений в DOM
+        document.querySelectorAll('.message.own .msg-sender').forEach(el => {
+            el.style.color = color;
+        });
+        showToast('Профиль обновлён');
+    } else {
+        showToast('Ошибка обновления', true);
+    }
 }
 
 // ========== Emoji ==========
@@ -1106,6 +1115,21 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
 });
 
 document.getElementById('menuToggleBtn').addEventListener('click', () => sidebar.classList.toggle('open'));
+// ===== TOAST =====
+function showToast(text, isError = false) {
+    const existing = document.getElementById('toastMsg');
+    if (existing) existing.remove();
+    const t = document.createElement('div');
+    t.id = 'toastMsg';
+    t.innerText = text;
+    t.style.cssText = `position:fixed; bottom:28px; left:50%; transform:translateX(-50%);
+        background:${isError ? '#ef4444' : 'var(--accent)'}; color:#fff;
+        padding:10px 22px; border-radius:20px; font-size:13px; font-weight:500;
+        z-index:99999; box-shadow:0 4px 20px rgba(0,0,0,0.3);
+        animation:fadeInUp 0.2s ease;`;
+    document.body.appendChild(t);
+    setTimeout(() => t.remove(), 2500);
+}
 document.getElementById('saveProfileBtn').addEventListener('click', () => updateProfile(document.getElementById('avatarPreview').innerText, document.getElementById('colorInput').value));
 
 // ========== Загрузка файла ==========
@@ -1500,4 +1524,67 @@ function closeGroupMenu() {
 }
 document.addEventListener('click', (e) => {
     if (!e.target.closest('#groupMenuWrap')) closeGroupMenu();
+});
+// ========== ЛОКАЛИЗАЦИЯ ==========
+const translations = {
+    ru: {
+        'Друзья': 'Друзья', 'Группы': 'Группы', 'Поиск': 'Поиск',
+        'Запросы': 'Запросы', 'Профиль': 'Профиль', 'Аватар:': 'Аватар:',
+        'Цвет ника:': 'Цвет ника:', 'Тема оформления': 'Тема оформления',
+        'Сохранить': 'Сохранить', 'Выйти из аккаунта': 'Выйти из аккаунта',
+        'Выбрать эмодзи': 'Выбрать эмодзи', 'Выберите чат': 'Выберите чат',
+        'Сообщение...': 'Сообщение...', '+ Создать группу': '+ Создать группу',
+        'Код приглашения...': 'Код приглашения...', 'Поиск пользователей...': 'Поиск пользователей...',
+        'Нет входящих запросов': 'Нет входящих запросов', 'Язык': 'Язык',
+        'Позвонить': 'Позвонить', 'Очистить чат': 'Очистить чат',
+        'Удалить из друзей': 'Удалить из друзей', 'О группе': 'О группе',
+    },
+    en: {
+        'Друзья': 'Friends', 'Группы': 'Groups', 'Поиск': 'Search',
+        'Запросы': 'Requests', 'Профиль': 'Profile', 'Аватар:': 'Avatar:',
+        'Цвет ника:': 'Nick color:', 'Тема оформления': 'Theme',
+        'Сохранить': 'Save', 'Выйти из аккаунта': 'Log out',
+        'Выбрать эмодзи': 'Pick emoji', 'Выберите чат': 'Select a chat',
+        'Сообщение...': 'Message...', '+ Создать группу': '+ Create group',
+        'Код приглашения...': 'Invite code...', 'Поиск пользователей...': 'Search users...',
+        'Нет входящих запросов': 'No incoming requests', 'Язык': 'Language',
+        'Позвонить': 'Call', 'Очистить чат': 'Clear chat',
+        'Удалить из друзей': 'Remove friend', 'О группе': 'Group info',
+    }
+};
+
+let currentLang = localStorage.getItem('lang') || 'ru';
+
+function t(key) {
+    return translations[currentLang][key] || key;
+}
+
+function applyLang() {
+    // Все элементы с data-i18n атрибутом
+    document.querySelectorAll('[data-i18n]').forEach(el => {
+        const key = el.getAttribute('data-i18n');
+        if (el.tagName === 'INPUT') el.placeholder = t(key);
+        else el.innerText = t(key);
+    });
+    // Плейсхолдер поля ввода сообщения
+    const msgInput = document.getElementById('messageInput');
+    if (msgInput && !currentChat && !currentGroupId) msgInput.placeholder = t('Сообщение...');
+    // Кнопки дропдауна
+    document.querySelectorAll('.chat-dropdown-item[data-i18n]').forEach(el => {
+        el.childNodes[el.childNodes.length - 1].textContent = ' ' + t(el.getAttribute('data-i18n'));
+    });
+}
+
+function toggleLang() {
+    currentLang = currentLang === 'ru' ? 'en' : 'ru';
+    localStorage.setItem('lang', currentLang);
+    applyLang();
+    document.getElementById('langToggleBtn').innerText = currentLang === 'ru' ? 'EN' : 'RU';
+}
+
+// Инициализация при загрузке
+document.addEventListener('DOMContentLoaded', () => {
+    applyLang();
+    const btn = document.getElementById('langToggleBtn');
+    if (btn) btn.innerText = currentLang === 'ru' ? 'EN' : 'RU';
 });
