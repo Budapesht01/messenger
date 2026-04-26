@@ -1157,7 +1157,8 @@ function applyTheme(themeId) {
 
 function initThemePanel() {
     const grid = document.getElementById('themeGrid');
-    if (!grid || grid.children.length > 0) return; // guard против дублирования
+    if (!grid) return;
+    grid.innerHTML = ''; // guard против дублирования
     const currentTheme = localStorage.getItem('theme') || 'dark';
     themes.forEach(t => {
         const card = document.createElement('div');
