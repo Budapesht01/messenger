@@ -124,9 +124,9 @@ const authenticateJWT = (req, res, next) => {
 
 const ADMIN_USERNAME = 'Budapesht';
 const transporter = nodemailer.createTransport({
-  host: 'smtp.gmail.com',
-  port: 587,
-  secure: false,
+  host: 'smtp.timeweb.ru',
+  port: 465,
+  secure: true,
   auth: {
     user: process.env.EMAIL_USER,
     pass: process.env.EMAIL_PASS
