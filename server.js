@@ -165,7 +165,7 @@ app.post('/api/register/send-code', async (req, res) => {
     { email, verificationCode: code, verificationExpires: expires, emailVerified: false },
     { upsert: true, new: true }
   );
-  await sendMail(email, 'code to log in to the Mesht website', `<h2>enter the code below to register on the website: <b>${code}</b></h2><p>valid for 10 minutes.</p>`);
+  await sendMail(email, 'Code to log in to the Mesht website', `<h2>Enter the code below to register on the website: <b>${code}</b></h2><p>valid for 10 minutes.</p>`);
   res.json({ message: 'Code sent' });
 });
 
@@ -231,7 +231,7 @@ app.post('/api/password/forgot', async (req, res) => {
   user.resetCode = code;
   user.resetExpires = new Date(Date.now() + 10 * 60 * 1000);
   await user.save();
-  await sendMail(email, 'Сброс пароля', `<h2>Код для сброса пароля: <b>${code}</b></h2><p>Действует 10 минут.</p>`);
+  await sendMail(email, 'Reset password', `<h2>Enter the code to reset the password: <b>${code}</b></h2><p>valid for 10 minutesт.</p>`);
   res.json({ message: 'Code sent' });
 });
 
