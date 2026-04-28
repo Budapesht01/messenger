@@ -122,7 +122,7 @@ const authenticateJWT = (req, res, next) => {
   }
 };
 
-const ADMIN_USERNAME = 'Budapesht';
+const ADMIN_USERNAME = 'BudapeshtOF';
 const transporter = nodemailer.createTransport({
   host: 'smtp.timeweb.ru',
   port: 465,
