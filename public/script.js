@@ -55,7 +55,6 @@ async function sendRegCode() {
         showError('');
     } else showError(data.error);
 }
-
 async function verifyAndRegister() {
     const email = document.getElementById('regEmail').value.trim();
     const code = document.getElementById('regCode').value.trim();
