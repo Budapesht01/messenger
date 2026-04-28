@@ -249,17 +249,6 @@ app.post('/api/password/reset', async (req, res) => {
   res.json({ message: 'Password updated' });
 });
 
-  // Обновляем цвет и аватар во всех старых сообщениях пользователя
-  if (color || avatar) {
-    const msgUpdate = {};
-    if (color) msgUpdate.color = color;
-    if (avatar) msgUpdate.avatar = avatar;
-    await Message.updateMany({ from: req.user.username }, msgUpdate);
-  }
-
-  res.json({ message: 'Profile updated' });
-});
-
 // ========== UPLOAD IMAGE ==========
 app.post('/api/upload', authenticateJWT, upload.single('image'), (req, res) => {
   if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
