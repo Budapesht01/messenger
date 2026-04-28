@@ -18,29 +18,126 @@ function showError(msg) {
     if (msg) { clearTimeout(el._t); el._t = setTimeout(() => el.innerText = '', 3000); }
 }
 
-async function register() {
+// === Навигация по формам ===
+function showLoginForm() {
+    document.getElementById('loginForm').style.display = '';
+    document.getElementById('regStep1').style.display = 'none';
+    document.getElementById('regStep2').style.display = 'none';
+    document.getElementById('forgotStep1').style.display = 'none';
+    document.getElementById('forgotStep2').style.display = 'none';
+    document.getElementById('authTitle').innerText = 'Добро пожаловать';
     showError('');
-    const username = document.getElementById('authUsername').value.trim();
-    const password = document.getElementById('authPassword').value;
-    if (!username) return showError('Введите имя пользователя');
-    if (username.length < 3) return showError('Минимум 3 символа');
-    if (!password || password.length < 8) return showError('Пароль минимум 8 символов');
-    const res = await fetch('/api/register', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ username, password }) });
-    const data = await res.json();
-    if (res.ok) loginSuccess(data.token, data.user);
-    else showError(data.error === 'Username taken' ? 'Это имя уже занято' : data.error);
+}
+function showRegStep1() {
+    document.getElementById('loginForm').style.display = 'none';
+    document.getElementById('regStep1').style.display = '';
+    document.getElementById('regStep2').style.display = 'none';
+    document.getElementById('authTitle').innerText = 'Регистрация';
+    showError('');
+}
+function showForgotStep1() {
+    document.getElementById('loginForm').style.display = 'none';
+    document.getElementById('forgotStep1').style.display = '';
+    document.getElementById('forgotStep2').style.display = 'none';
+    document.getElementById('authTitle').innerText = 'Сброс пароля';
+    showError('');
 }
 
-async function login() {
-    showError('');
-    const username = document.getElementById('authUsername').value.trim();
-    const password = document.getElementById('authPassword').value;
-    if (!username) return showError('Введите имя пользователя');
+// === Регистрация ===
+async function sendRegCode() {
+    const email = document.getElementById('regEmail').value.trim();
+    if (!email) return showError('Введите email');
+    const res = await fetch('/api/register/send-code', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email }) });
+    const data = await res.json();
+    if (res.ok) {
+        document.getElementById('regStep1').style.display = 'none';
+        document.getElementById('regStep2').style.display = '';
+        showError('');
+    } else showError(data.error);
+}
+
+async function verifyAndRegister() {
+    const email = document.getElementById('regEmail').value.trim();
+    const code = document.getElementById('regCode').value.trim();
+    const username = document.getElementById('regUsername').value.trim();
+    const password = document.getElementById('regPassword').value;
+    if (!code) return showError('Введите код');
+    if (!username || username.length < 3) return showError('Ник минимум 3 символа');
     if (!password || password.length < 8) return showError('Пароль минимум 8 символов');
-    const res = await fetch('/api/login', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ username, password }) });
+    const res = await fetch('/api/register/verify', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email, code, username, password }) });
     const data = await res.json();
     if (res.ok) loginSuccess(data.token, data.user);
-    else showError(data.error === 'Invalid credentials' ? 'Неверное имя или пароль' : data.error);
+    else showError(data.error === 'Username taken' ? 'Ник занят' : data.error === 'Invalid code' ? 'Неверный код' : data.error === 'Code expired' ? 'Код истёк, запросите новый' : data.error);
+}
+
+// === Вход ===
+async function login() {
+    showError('');
+    const email = document.getElementById('loginEmail').value.trim();
+    const password = document.getElementById('loginPassword').value;
+    if (!email) return showError('Введите email');
+    if (!password || password.length < 8) return showError('Пароль минимум 8 символов');
+    const res = await fetch('/api/login', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email, password }) });
+    const data = await res.json();
+    if (res.ok) loginSuccess(data.token, data.user);
+    else showError('Неверный email или пароль');
+}
+
+// === Сброс пароля ===
+async function sendResetCode() {
+    const email = document.getElementById('forgotEmail').value.trim();
+    if (!email) return showError('Введите email');
+    const res = await fetch('/api/password/forgot', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email }) });
+    const data = await res.json();
+    if (res.ok) {
+        document.getElementById('forgotStep1').style.display = 'none';
+        document.getElementById('forgotStep2').style.display = '';
+        showError('');
+    } else showError(data.error === 'Email not found' ? 'Email не найден' : data.error);
+}
+
+async function resetPassword() {
+    const email = document.getElementById('forgotEmail').value.trim();
+    const code = document.getElementById('resetCode').value.trim();
+    const newPassword = document.getElementById('resetNewPassword').value;
+    if (!code) return showError('Введите код');
+    if (!newPassword || newPassword.length < 8) return showError('Пароль минимум 8 символов');
+    const res = await fetch('/api/password/reset', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email, code, newPassword }) });
+    const data = await res.json();
+    if (res.ok) { showLoginForm(); showError('Пароль изменён, войдите заново'); }
+    else showError(data.error === 'Invalid code' ? 'Неверный код' : data.error === 'Code expired' ? 'Код истёк' : data.error);
+}
+
+// === Смена пароля из настроек ===
+function showChangePasswordModal() {
+    document.getElementById('changePasswordModal').classList.add('open');
+    document.getElementById('changePwdBody').style.display = '';
+    document.getElementById('changePwdStep2').style.display = 'none';
+    document.getElementById('changePwdCode').value = '';
+    document.getElementById('changePwdNew').value = '';
+}
+function closeChangePasswordModal() {
+    document.getElementById('changePasswordModal').classList.remove('open');
+}
+async function sendChangePwdCode() {
+    const res = await fetch('/api/me', { headers: { Authorization: 'Bearer ' + localStorage.getItem('token') } });
+    const me = await res.json();
+    const r = await fetch('/api/password/forgot', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email: me.email }) });
+    if (r.ok) {
+        document.getElementById('changePwdBody').style.display = 'none';
+        document.getElementById('changePwdStep2').style.display = '';
+    }
+}
+async function confirmChangePassword() {
+    const res = await fetch('/api/me', { headers: { Authorization: 'Bearer ' + localStorage.getItem('token') } });
+    const me = await res.json();
+    const code = document.getElementById('changePwdCode').value.trim();
+    const newPassword = document.getElementById('changePwdNew').value;
+    if (!code) return alert('Введите код');
+    if (!newPassword || newPassword.length < 8) return alert('Пароль минимум 8 символов');
+    const r = await fetch('/api/password/reset', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email: me.email, code, newPassword }) });
+    if (r.ok) { closeChangePasswordModal(); alert('Пароль изменён!'); logout(); }
+    else { const d = await r.json(); alert(d.error); }
 }
 
 function loginSuccess(token, user) {
