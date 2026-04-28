@@ -1,4 +1,5 @@
 require('dotenv').config();
+const nodemailer = require('nodemailer');
 const express = require('express');
 const http = require('http');
 const { Server } = require('socket.io');
@@ -54,8 +55,14 @@ mongoose.connect(process.env.MONGODB_URI)
 
 // ========== Модели ==========
 const UserSchema = new mongoose.Schema({
-  username: { type: String, unique: true, required: true },
-  password: { type: String, required: true },
+  username: { type: String, unique: true, sparse: true },
+  email: { type: String, unique: true, required: true },
+  password: { type: String, default: null },
+  emailVerified: { type: Boolean, default: false },
+  verificationCode: { type: String, default: null },
+  verificationExpires: { type: Date, default: null },
+  resetCode: { type: String, default: null },
+  resetExpires: { type: Date, default: null },
   avatar: { type: String, default: '😀' },
   color: { type: String, default: '#6ab0f3' },
   online: { type: Boolean, default: false },
@@ -116,6 +123,23 @@ const authenticateJWT = (req, res, next) => {
 };
 
 const ADMIN_USERNAME = 'Budapesht';
+const transporter = nodemailer.createTransport({
+  host: 'smtp.gmail.com',
+  port: 587,
+  secure: false,
+  auth: {
+    user: process.env.EMAIL_USER,
+    pass: process.env.EMAIL_PASS
+  }
+});
+
+async function sendMail(to, subject, html) {
+  await transporter.sendMail({ from: process.env.EMAIL_USER, to, subject, html });
+}
+
+function genCode() {
+  return Math.floor(100000 + Math.random() * 900000).toString();
+}
 const requireAdmin = (req, res, next) => {
   if (req.user.username !== ADMIN_USERNAME) return res.status(403).json({ error: 'Access denied' });
   next();
@@ -126,21 +150,50 @@ function generateInviteCode() {
 }
 
 // ========== AUTH ==========
-app.post('/api/register', async (req, res) => {
-  const { username, password } = req.body;
-  if (!username || !password) return res.status(400).json({ error: 'All fields required' });
-  const existing = await User.findOne({ username });
-  if (existing) return res.status(400).json({ error: 'Username taken' });
+// ========== AUTH ==========
+
+// Шаг 1: отправить код на email
+app.post('/api/register/send-code', async (req, res) => {
+  const { email } = req.body;
+  if (!email) return res.status(400).json({ error: 'Email required' });
+  const existing = await User.findOne({ email, emailVerified: true });
+  if (existing) return res.status(400).json({ error: 'Email already registered' });
+  const code = genCode();
+  const expires = new Date(Date.now() + 10 * 60 * 1000); // 10 минут
+  await User.findOneAndUpdate(
+    { email },
+    { email, verificationCode: code, verificationExpires: expires, emailVerified: false },
+    { upsert: true, new: true }
+  );
+  await sendMail(email, 'Код подтверждения', `<h2>Ваш код: <b>${code}</b></h2><p>Действует 10 минут.</p>`);
+  res.json({ message: 'Code sent' });
+});
+
+// Шаг 2: проверить код + задать ник и пароль
+app.post('/api/register/verify', async (req, res) => {
+  const { email, code, username, password } = req.body;
+  if (!email || !code || !username || !password) return res.status(400).json({ error: 'All fields required' });
+  const user = await User.findOne({ email });
+  if (!user || user.verificationCode !== code) return res.status(400).json({ error: 'Invalid code' });
+  if (user.verificationExpires < new Date()) return res.status(400).json({ error: 'Code expired' });
+  const takenUsername = await User.findOne({ username, email: { $ne: email } });
+  if (takenUsername) return res.status(400).json({ error: 'Username taken' });
   const hashed = await bcrypt.hash(password, 10);
-  const user = new User({ username, password: hashed });
+  user.username = username;
+  user.password = hashed;
+  user.emailVerified = true;
+  user.verificationCode = null;
+  user.verificationExpires = null;
   await user.save();
   const token = jwt.sign({ username: user.username }, process.env.JWT_SECRET, { expiresIn: '7d' });
   res.json({ token, user: { username: user.username, avatar: user.avatar, color: user.color } });
 });
 
+// Вход по email + пароль
 app.post('/api/login', async (req, res) => {
-  const { username, password } = req.body;
-  const user = await User.findOne({ username });
+  const { email, password } = req.body;
+  if (!email || !password) return res.status(400).json({ error: 'All fields required' });
+  const user = await User.findOne({ email, emailVerified: true });
   if (!user) return res.status(400).json({ error: 'Invalid credentials' });
   const valid = await bcrypt.compare(password, user.password);
   if (!valid) return res.status(400).json({ error: 'Invalid credentials' });
@@ -150,7 +203,7 @@ app.post('/api/login', async (req, res) => {
 
 app.get('/api/me', authenticateJWT, async (req, res) => {
   const user = await User.findOne({ username: req.user.username });
-  res.json({ username: user.username, avatar: user.avatar, color: user.color });
+  res.json({ username: user.username, avatar: user.avatar, color: user.color, email: user.email });
 });
 
 app.post('/api/me/update', authenticateJWT, async (req, res) => {
@@ -159,6 +212,42 @@ app.post('/api/me/update', authenticateJWT, async (req, res) => {
   if (avatar) update.avatar = avatar;
   if (color) update.color = color;
   await User.updateOne({ username: req.user.username }, update);
+  if (color || avatar) {
+    const msgUpdate = {};
+    if (color) msgUpdate.color = color;
+    if (avatar) msgUpdate.avatar = avatar;
+    await Message.updateMany({ from: req.user.username }, msgUpdate);
+  }
+  res.json({ message: 'Profile updated' });
+});
+
+// Сброс пароля — шаг 1: отправить код
+app.post('/api/password/forgot', async (req, res) => {
+  const { email } = req.body;
+  if (!email) return res.status(400).json({ error: 'Email required' });
+  const user = await User.findOne({ email, emailVerified: true });
+  if (!user) return res.status(400).json({ error: 'Email not found' });
+  const code = genCode();
+  user.resetCode = code;
+  user.resetExpires = new Date(Date.now() + 10 * 60 * 1000);
+  await user.save();
+  await sendMail(email, 'Сброс пароля', `<h2>Код для сброса пароля: <b>${code}</b></h2><p>Действует 10 минут.</p>`);
+  res.json({ message: 'Code sent' });
+});
+
+// Сброс пароля — шаг 2: ввести код + новый пароль
+app.post('/api/password/reset', async (req, res) => {
+  const { email, code, newPassword } = req.body;
+  if (!email || !code || !newPassword) return res.status(400).json({ error: 'All fields required' });
+  const user = await User.findOne({ email, emailVerified: true });
+  if (!user || user.resetCode !== code) return res.status(400).json({ error: 'Invalid code' });
+  if (user.resetExpires < new Date()) return res.status(400).json({ error: 'Code expired' });
+  user.password = await bcrypt.hash(newPassword, 10);
+  user.resetCode = null;
+  user.resetExpires = null;
+  await user.save();
+  res.json({ message: 'Password updated' });
+});
 
   // Обновляем цвет и аватар во всех старых сообщениях пользователя
   if (color || avatar) {
