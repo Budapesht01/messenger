@@ -165,7 +165,7 @@ app.post('/api/register/send-code', async (req, res) => {
     { email, verificationCode: code, verificationExpires: expires, emailVerified: false },
     { upsert: true, new: true }
   );
-  await sendMail(email, 'Код подтверждения', `<h2>Ваш код: <b>${code}</b></h2><p>Действует 10 минут.</p>`);
+  await sendMail(email, 'code to log in to the Mesht website', `<h2>enter the code below to register on the website: <b>${code}</b></h2><p>valid for 10 minutes.</p>`);
   res.json({ message: 'Code sent' });
 });
 
