@@ -1,5 +1,5 @@
 require('dotenv').config();
-const nodemailer = require('nodemailer');
+const https = require('https');
 const express = require('express');
 const http = require('http');
 const { Server } = require('socket.io');
@@ -40,6 +40,7 @@ const io = new Server(server, { cors: { origin: "*", methods: ["GET", "POST"] } 
 app.use(cors());
 app.use(express.json());
 app.use(express.static('public'));
+app.use('/api/', apiLimiter);
 app.use('/api/login', authLimiter);
 app.use('/api/register/verify', authLimiter);
 app.use('/api/register/send-code', emailLimiter);
@@ -157,31 +158,42 @@ const authenticateJWT = (req, res, next) => {
 };
 
 const ADMIN_USERNAME = 'Budapesht';
-const transporter = nodemailer.createTransport({
-  host: 'smtp.timeweb.ru',
-  port: 465,
-  secure: true,
-  auth: {
-    user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASS
-  },
-  tls: {
-    rejectUnauthorized: false,
-    minVersion: 'TLSv1'
-  },
-  connectionTimeout: 10000,
-  greetingTimeout: 10000,
-  socketTimeout: 15000
-});
+const RESEND_API_KEY = process.env.RESEND_API_KEY || 're_chmobYxE_2brStkE2zE8zWatPbjakhq2b';
 
-async function sendMail(to, subject, html) {
-  try {
-    await transporter.sendMail({ from: `"Mesht" <${process.env.EMAIL_USER}>`, to, subject, html });
-    console.log(`✅ Email sent to ${to}`);
-  } catch (err) {
-    console.error('❌ Email error:', err.message);
-    throw new Error('Не удалось отправить письмо. Проверьте email адрес.');
-  }
+function sendMail(to, subject, html) {
+  return new Promise((resolve, reject) => {
+    const body = JSON.stringify({
+      from: 'Mesht <onboarding@resend.dev>',
+      to: [to],
+      subject,
+      html
+    });
+    const req = https.request({
+      hostname: 'api.resend.com',
+      path: '/emails',
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${RESEND_API_KEY}`,
+        'Content-Type': 'application/json',
+        'Content-Length': Buffer.byteLength(body)
+      }
+    }, (res) => {
+      let data = '';
+      res.on('data', chunk => data += chunk);
+      res.on('end', () => {
+        if (res.statusCode >= 200 && res.statusCode < 300) {
+          console.log(`✅ Email sent to ${to}`);
+          resolve(data);
+        } else {
+          console.error('❌ Resend error:', data);
+          reject(new Error('Не удалось отправить письмо'));
+        }
+      });
+    });
+    req.on('error', reject);
+    req.write(body);
+    req.end();
+  });
 }
 function genCode() {
   return Math.floor(100000 + Math.random() * 900000).toString();
