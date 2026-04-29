@@ -1795,6 +1795,10 @@ body { background: var(--bg-gradient); }
     border-radius: 14px;
     padding: 16px;
     margin-bottom: 12px;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
 }
 .settings-section-title {
     font-size: 13px;
