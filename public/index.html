@@ -119,51 +119,78 @@
 
             <!-- Настройки -->
             <div class="tab-content" id="settings-tab">
-                <div class="settings-panel">
-                    <h4 data-i18n="Профиль">Профиль</h4>
-                    <div class="avatar-selector">
-                        <label data-i18n="Аватар:">Аватар:</label>
-                        <div class="avatar-preview" id="avatarPreview">😀</div>
-                        <button id="pickAvatarBtn" class="secondary-btn" data-i18n="Выбрать эмодзи">Выбрать эмодзи</button>
-                    </div>
-                    <div class="avatar-emoji-panel" id="avatarEmojiPanel">
-                        <div class="emoji-categories" id="avatarEmojiCategories"></div>
-                        <div class="emoji-grid" id="avatarEmojiGrid"></div>
-                    </div>
-                    <div class="color-selector">
-                        <label data-i18n="Цвет ника:">Цвет ника:</label>
-                        <div class="color-picker-wrapper">
-                            <div class="color-preview" id="colorPreview"></div>
-                            <input type="color" id="colorInput">
-                            <span class="color-hex" id="colorHex">#6ab0f3</span>
-                        </div>
-                        <div class="color-presets">
-                            <div class="color-preset" style="background:#6ab0f3" data-color="#6ab0f3"></div>
-                            <div class="color-preset" style="background:#f36a6a" data-color="#f36a6a"></div>
-                            <div class="color-preset" style="background:#6af3a0" data-color="#6af3a0"></div>
-                            <div class="color-preset" style="background:#f3c66a" data-color="#f3c66a"></div>
-                            <div class="color-preset" style="background:#c46af3" data-color="#c46af3"></div>
-                            <div class="color-preset" style="background:#f36ac4" data-color="#f36ac4"></div>
-                            <div class="color-preset" style="background:#6af3f3" data-color="#6af3f3"></div>
-                            <div class="color-preset" style="background:#ffffff" data-color="#ffffff"></div>
-                        </div>
-                    </div>
-                    <div class="theme-section">
-                        <label class="settings-label" data-i18n="Тема оформления">Тема оформления</label>
-                        <div class="theme-grid-inline" id="themeGrid"></div>
-                    </div>
-                    <label class="settings-label" data-i18n="Язык">Язык</label>
-                    <button id="langToggleBtn" onclick="toggleLang()" class="secondary-btn" style="width:100%;margin-bottom:16px;">EN</button>
-                    <button id="saveProfileBtn" class="primary-btn" data-i18n="Сохранить">Сохранить</button>
-                    <hr class="settings-divider">
-                    <h4>Сменить пароль</h4>
-                    <button class="secondary-btn" style="width:100%; margin-bottom:8px;" onclick="showChangePasswordModal()">Сменить пароль через Email</button>
-                    <hr class="settings-divider">
-                    <button id="logoutBtn" class="logout-btn" data-i18n="Выйти из аккаунта">Выйти из аккаунта</button>
+    <div class="settings-panel">
+
+        <!-- ПРОФИЛЬ -->
+        <div class="settings-section">
+            <div class="settings-section-title">👤 Профиль</div>
+            <div class="avatar-selector">
+                <label>Аватар</label>
+                <div style="display:flex; align-items:center; gap:12px; margin-top:6px;">
+                    <div class="avatar-preview" id="avatarPreview" style="font-size:32px; width:52px; height:52px; display:flex; align-items:center; justify-content:center; background:var(--input-bg); border-radius:50%; border:2px solid var(--border-color);">😀</div>
+                    <button id="pickAvatarBtn" class="secondary-btn" style="flex:1;">Выбрать эмодзи</button>
                 </div>
             </div>
-
+            <div class="avatar-emoji-panel" id="avatarEmojiPanel">
+                <div class="emoji-categories" id="avatarEmojiCategories"></div>
+                <div class="emoji-grid" id="avatarEmojiGrid"></div>
+            </div>
+            <div class="color-selector" style="margin-top:14px;">
+                <label>Цвет ника</label>
+                <div style="display:flex; align-items:center; gap:10px; margin-top:6px;">
+                    <div class="color-picker-wrapper">
+                        <div class="color-preview" id="colorPreview"></div>
+                        <input type="color" id="colorInput">
+                        <span class="color-hex" id="colorHex">#6ab0f3</span>
+                    </div>
+                </div>
+                <div class="color-presets" style="margin-top:8px;">
+                    <div class="color-preset" style="background:#6ab0f3" data-color="#6ab0f3"></div>
+                    <div class="color-preset" style="background:#f36a6a" data-color="#f36a6a"></div>
+                    <div class="color-preset" style="background:#6af3a0" data-color="#6af3a0"></div>
+                    <div class="color-preset" style="background:#f3c66a" data-color="#f3c66a"></div>
+                    <div class="color-preset" style="background:#c46af3" data-color="#c46af3"></div>
+                    <div class="color-preset" style="background:#f36ac4" data-color="#f36ac4"></div>
+                    <div class="color-preset" style="background:#6af3f3" data-color="#6af3f3"></div>
+                    <div class="color-preset" style="background:#ffffff" data-color="#ffffff"></div>
+                </div>
+            </div>
+            <button id="saveProfileBtn" class="primary-btn" style="width:100%; margin-top:14px;">💾 Сохранить профиль</button>
         </div>
+
+        <!-- ТЕМА -->
+        <div class="settings-section">
+            <div class="settings-section-title">🎨 Тема оформления</div>
+            <div class="theme-grid-inline" id="themeGrid"></div>
+        </div>
+
+        <!-- БЕЗОПАСНОСТЬ -->
+        <div class="settings-section">
+            <div class="settings-section-title">🔒 Безопасность</div>
+            <button class="secondary-btn" style="width:100%;" onclick="showChangePasswordModal()">✉️ Сменить пароль через Email</button>
+        </div>
+
+        <!-- ПОДДЕРЖКА -->
+        <div class="settings-section">
+            <div class="settings-section-title">💬 Поддержка</div>
+            <p style="font-size:13px; color:var(--text-secondary); margin:0 0 10px;">Есть вопросы или проблемы? Напишите нам:</p>
+            <a href="mailto:Meshtsupport@budapesht.org" class="support-btn">
+                <span style="font-size:18px;">📧</span>
+                <span>Написать на Email</span>
+            </a>
+            <a href="https://t.me/budapesht" target="_blank" class="support-btn" style="margin-top:8px;">
+                <span style="font-size:18px;">✈️</span>
+                <span>Написать в Telegram</span>
+            </a>
+        </div>
+
+        <!-- ВЫХОД -->
+        <div class="settings-section" style="padding-bottom:4px;">
+            <button id="logoutBtn" class="logout-btn" style="width:100%;">🚪 Выйти из аккаунта</button>
+        </div>
+
+    </div>
+</div>
 
         <!-- Основная область чата -->
         <div class="main">
