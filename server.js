@@ -161,15 +161,18 @@ const ADMIN_USERNAME = 'Budapesht';
 const transporter = nodemailer.createTransport({
   host: 'smtp.timeweb.ru',
   port: 465,
-  secure: false,
-  requireTLS: true,
+  secure: true,
   auth: {
     user: process.env.EMAIL_USER,
     pass: process.env.EMAIL_PASS
   },
   tls: {
-    rejectUnauthorized: false
-  }
+    rejectUnauthorized: false,
+    minVersion: 'TLSv1'
+  },
+  connectionTimeout: 10000,
+  greetingTimeout: 10000,
+  socketTimeout: 15000
 });
 
 async function sendMail(to, subject, html) {
