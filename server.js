@@ -88,8 +88,6 @@ const UserSchema = new mongoose.Schema({
   emailVerified: { type: Boolean, default: false },
   verificationCode: { type: String, default: null },
   verificationExpires: { type: Date, default: null },
-  verificationCode: { type: String, default: null },
-  verificationExpires: { type: Date, default: null },
   resetCode: { type: String, default: null },
   resetExpires: { type: Date, default: null },
   avatar: { type: String, default: '😀' },
@@ -136,7 +134,11 @@ const GroupSchema = new mongoose.Schema({
 const User = mongoose.model('User', UserSchema);
 const Message = mongoose.model('Message', MessageSchema);
 const Group = mongoose.model('Group', GroupSchema);
-
+const PendingVerification = mongoose.model('PendingVerification', new mongoose.Schema({
+  email: { type: String, unique: true, required: true },
+  code: { type: String, required: true },
+  expires: { type: Date, required: true }
+}));
 // ========== Middleware ==========
 const authenticateJWT = (req, res, next) => {
   const authHeader = req.headers.authorization;
@@ -200,38 +202,38 @@ app.post('/api/register/send-code', async (req, res) => {
   const existing = await User.findOne({ email, emailVerified: true });
   if (existing) return res.status(400).json({ error: 'Email already registered' });
   const code = genCode();
-  const expires = new Date(Date.now() + 10 * 60 * 1000); // 10 минут
-  await User.findOneAndUpdate(
+  const expires = new Date(Date.now() + 10 * 60 * 1000);
+  await PendingVerification.findOneAndUpdate(
     { email },
-    { email, verificationCode: code, verificationExpires: expires, emailVerified: false },
+    { email, code, expires },
     { upsert: true, new: true }
   );
   try {
-  await sendMail(email, 'Code to log in to the Mesht website', `<h2>Enter the code below to register on the website: <b>${code}</b></h2><p>valid for 10 minutes.</p>`);
-} catch (e) {
-  return res.status(500).json({ error: e.message });
-}
+    await sendMail(email, 'Код регистрации — Mesht', `<div style="font-family:sans-serif;padding:24px;background:#1a1d2e;border-radius:12px;color:#fff;max-width:400px;margin:auto"><h2 style="color:#6ab0f3;margin:0 0 8px">Mesht</h2><p style="color:rgba(255,255,255,0.6);margin:0 0 20px">Код подтверждения регистрации</p><div style="font-size:32px;font-weight:700;letter-spacing:8px;text-align:center;padding:16px;background:rgba(255,255,255,0.05);border-radius:8px">${code}</div><p style="color:rgba(255,255,255,0.4);font-size:12px;margin-top:12px;text-align:center">Действует 10 минут</p></div>`);
+  } catch (e) {
+    return res.status(500).json({ error: e.message });
+  }
   res.json({ message: 'Code sent' });
 });
 
-// Шаг 2: проверить код + задать ник и пароль
 app.post('/api/register/verify', async (req, res) => {
   const { email, code, username, password } = req.body;
   if (!email || !code || !username || !password) return res.status(400).json({ error: 'All fields required' });
-  const user = await User.findOne({ email });
-  if (!user || user.verificationCode !== code) return res.status(400).json({ error: 'Invalid code' });
-  if (user.verificationExpires < new Date()) return res.status(400).json({ error: 'Code expired' });
-  const takenUsername = await User.findOne({ username, email: { $ne: email } });
-  if (takenUsername) return res.status(400).json({ error: 'Username taken' });
+  if (username.length < 3) return res.status(400).json({ error: 'Ник минимум 3 символа' });
+  if (password.length < 8) return res.status(400).json({ error: 'Пароль минимум 8 символов' });
+  const pending = await PendingVerification.findOne({ email });
+  if (!pending || pending.code !== code) return res.status(400).json({ error: 'Неверный код' });
+  if (pending.expires < new Date()) return res.status(400).json({ error: 'Код истёк, запросите новый' });
+  const takenUsername = await User.findOne({ username });
+  if (takenUsername) return res.status(400).json({ error: 'Ник уже занят' });
+  const takenEmail = await User.findOne({ email, emailVerified: true });
+  if (takenEmail) return res.status(400).json({ error: 'Email уже зарегистрирован' });
   const hashed = await bcrypt.hash(password, 10);
-  user.username = username;
-  user.password = hashed;
-  user.emailVerified = true;
-  user.verificationCode = null;
-  user.verificationExpires = null;
-  await user.save();
-  const token = jwt.sign({ username: user.username, tokenVersion: 0 }, process.env.JWT_SECRET, { expiresIn: '7d' });
-  res.json({ token, user: { username: user.username, avatar: user.avatar, color: user.color } });
+  const newUser = new User({ username, email, password: hashed, emailVerified: true });
+  await newUser.save();
+  await PendingVerification.deleteOne({ email });
+  const token = jwt.sign({ username: newUser.username, tokenVersion: 0 }, process.env.JWT_SECRET, { expiresIn: '7d' });
+  res.json({ token, user: { username: newUser.username, avatar: newUser.avatar, color: newUser.color } });
 });
 
 // Вход по email + пароль
