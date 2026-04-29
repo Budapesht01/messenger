@@ -40,7 +40,6 @@ const io = new Server(server, { cors: { origin: "*", methods: ["GET", "POST"] } 
 app.use(cors());
 app.use(express.json());
 app.use(express.static('public'));
-app.use('/api/', apiLimiter);
 app.use('/api/login', authLimiter);
 app.use('/api/register/verify', authLimiter);
 app.use('/api/register/send-code', emailLimiter);
