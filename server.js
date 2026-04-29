@@ -45,10 +45,6 @@ const io = new Server(server, { cors: { origin: allowedOrigins, methods: ["GET",
 app.use(cors({ origin: allowedOrigins }));
 app.use(express.json());
 app.use(express.static('public'));
-app.get('/admin.html', authenticateJWT, (req, res, next) => {
-  if (req.user.username !== ADMIN_USERNAME) return res.status(403).send('Forbidden');
-  next();
-});
 app.use('/api/', apiLimiter);
 app.use('/api/login', authLimiter);
 app.use('/api/register/verify', authLimiter);
