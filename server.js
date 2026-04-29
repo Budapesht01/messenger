@@ -82,7 +82,7 @@ mongoose.connect(process.env.MONGODB_URI)
 
 // ========== Модели ==========
 const UserSchema = new mongoose.Schema({
-  username: { type: String, unique: true, sparse: true },
+  username: { type: String, unique: true, sparse: true, default: null },
   email: { type: String, unique: true, required: true },
   password: { type: String, default: null },
   emailVerified: { type: Boolean, default: false },
@@ -158,7 +158,7 @@ const authenticateJWT = (req, res, next) => {
 const ADMIN_USERNAME = 'Budapesht';
 const transporter = nodemailer.createTransport({
   host: 'smtp.timeweb.ru',
-  port: 587,
+  port: 465,
   secure: false,
   requireTLS: true,
   auth: {
