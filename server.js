@@ -165,9 +165,14 @@ const transporter = nodemailer.createTransport({
 });
 
 async function sendMail(to, subject, html) {
-  await transporter.sendMail({ from: process.env.EMAIL_USER, to, subject, html });
+  try {
+    await transporter.sendMail({ from: `"Mesht" <${process.env.EMAIL_USER}>`, to, subject, html });
+    console.log(`✅ Email sent to ${to}`);
+  } catch (err) {
+    console.error('❌ Email error:', err.message);
+    throw new Error('Не удалось отправить письмо. Проверьте email адрес.');
+  }
 }
-
 function genCode() {
   return Math.floor(100000 + Math.random() * 900000).toString();
 }
@@ -195,7 +200,11 @@ app.post('/api/register/send-code', async (req, res) => {
     { email, verificationCode: code, verificationExpires: expires, emailVerified: false },
     { upsert: true, new: true }
   );
+  try {
   await sendMail(email, 'Code to log in to the Mesht website', `<h2>Enter the code below to register on the website: <b>${code}</b></h2><p>valid for 10 minutes.</p>`);
+} catch (e) {
+  return res.status(500).json({ error: e.message });
+}
   res.json({ message: 'Code sent' });
 });
 
@@ -264,7 +273,11 @@ app.post('/api/password/forgot', async (req, res) => {
   user.resetCode = code;
   user.resetExpires = new Date(Date.now() + 10 * 60 * 1000);
   await user.save();
-  await sendMail(email, 'Reset password', `<h2>Enter the code to reset the password: <b>${code}</b></h2><p>valid for 10 minutesт.</p>`);
+  try {
+  await sendMail(email, 'Reset password', `<h2>Enter the code to reset the password: <b>${code}</b></h2><p>valid for 10 minutes.</p>`);
+} catch (e) {
+  return res.status(500).json({ error: e.message });
+}
   res.json({ message: 'Code sent' });
 });
 
