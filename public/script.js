@@ -1688,16 +1688,8 @@ function applyLang() {
     });
 }
 
-function toggleLang() {
-    currentLang = currentLang === 'ru' ? 'en' : 'ru';
-    localStorage.setItem('lang', currentLang);
-    applyLang();
-    document.getElementById('langToggleBtn').innerText = currentLang === 'ru' ? 'EN' : 'RU';
-}
-
 // Инициализация при загрузке
 document.addEventListener('DOMContentLoaded', () => {
     applyLang();
-    const btn = document.getElementById('langToggleBtn');
     if (btn) btn.innerText = currentLang === 'ru' ? 'EN' : 'RU';
 });
