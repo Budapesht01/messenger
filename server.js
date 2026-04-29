@@ -11,6 +11,7 @@ const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
 const rateLimit = require('express-rate-limit');
+const helmet = require('helmet');
 
 // Rate limiters
 const authLimiter = rateLimit({
@@ -34,12 +35,20 @@ const apiLimiter = rateLimit({
 });
 const app = express();
 app.set('trust proxy', 1);
+app.use(helmet({
+  contentSecurityPolicy: false, // включи и настрой отдельно если нужно
+  crossOriginEmbedderPolicy: false
+}));
 const server = http.createServer(app);
-const io = new Server(server, { cors: { origin: process.env.SITE_URL || '*', methods: ["GET", "POST"] } });
-
-app.use(cors({ origin: process.env.SITE_URL || '*' }));
+const allowedOrigins = process.env.SITE_URL ? [process.env.SITE_URL] : [];
+const io = new Server(server, { cors: { origin: allowedOrigins, methods: ["GET", "POST"] } });
+app.use(cors({ origin: allowedOrigins }));
 app.use(express.json());
 app.use(express.static('public'));
+app.get('/admin.html', authenticateJWT, (req, res, next) => {
+  if (req.user.username !== ADMIN_USERNAME) return res.status(403).send('Forbidden');
+  next();
+});
 app.use('/api/', apiLimiter);
 app.use('/api/login', authLimiter);
 app.use('/api/register/verify', authLimiter);
@@ -61,10 +70,15 @@ const upload = multer({
   storage,
   limits: { fileSize: 10 * 1024 * 1024 }, // 10mb
   fileFilter: (req, file, cb) => {
-    const allowed = ['.jpg', '.jpeg', '.png', '.gif', '.webp'];
-    const ext = path.extname(file.originalname).toLowerCase();
-    cb(null, allowed.includes(ext));
+  const allowedExts = ['.jpg', '.jpeg', '.png', '.gif', '.webp'];
+  const allowedMimes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+  const ext = path.extname(file.originalname).toLowerCase();
+  if (allowedExts.includes(ext) && allowedMimes.includes(file.mimetype)) {
+    cb(null, true);
+  } else {
+    cb(new Error('Only image files allowed'), false);
   }
+}
 });
 
 if (!process.env.MONGODB_URI || !process.env.JWT_SECRET) {
@@ -157,7 +171,8 @@ const authenticateJWT = (req, res, next) => {
   });
 };
 
-const ADMIN_USERNAME = 'Budapesht';
+const ADMIN_USERNAME = process.env.ADMIN_USERNAME
+
 const RESEND_API_KEY = process.env.RESEND_API_KEY;
 
 function sendMail(to, subject, html) {
