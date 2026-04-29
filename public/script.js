@@ -372,6 +372,22 @@ async function markRead(fromUser) {
     if (socket) socket.emit('mark_read', { chatWith: fromUser });
 }
 
+async function apiFetch(url, options = {}) {
+    const token = localStorage.getItem('token');
+    const res = await fetch(url, {
+        ...options,
+        headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json', ...(options.headers || {}) }
+    });
+    if (res.status === 401 || res.status === 403) {
+        const data = await res.json().catch(() => ({}));
+        if (data.error?.includes('revoked') || data.error?.includes('expired')) {
+            logout();
+            return null;
+        }
+    }
+    return res;
+}
+
 async function loadUnread() {
     const token = localStorage.getItem('token');
     const res = await fetch('/api/unread', { headers: { 'Authorization': `Bearer ${token}` } });
