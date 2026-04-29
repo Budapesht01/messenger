@@ -202,7 +202,7 @@ body::after {
    SIDEBAR
    ============================================================ */
 .sidebar {
-    width: 300px;
+    width: 320px;
     background: var(--glass-sidebar);
     backdrop-filter: var(--blur-md);
     -webkit-backdrop-filter: var(--blur-md);
@@ -1793,7 +1793,7 @@ body { background: var(--bg-gradient); }
     background: var(--message-bg, rgba(255,255,255,0.04));
     border: 1px solid var(--border-color);
     border-radius: 14px;
-    padding: 16px;
+    padding: 12px;
     margin-bottom: 12px;
     box-sizing: border-box;
     display: flex;
