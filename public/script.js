@@ -1701,3 +1701,13 @@ document.addEventListener('DOMContentLoaded', () => {
     const btn = document.getElementById('langToggleBtn');
     if (btn) btn.innerText = currentLang === 'ru' ? 'EN' : 'RU';
 });
+
+
+// ========== PWA Service Worker ==========
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/sw.js')
+      .then(reg => console.log('SW registered:', reg.scope))
+      .catch(err => console.log('SW error:', err));
+  });
+}
