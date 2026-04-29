@@ -1292,6 +1292,14 @@ function initThemePanel() {
 }
 
 window.onload = () => {
+    // Убираем splash screen
+const splash = document.getElementById('splashScreen');
+if (splash) {
+    setTimeout(() => {
+        splash.style.opacity = '0';
+        setTimeout(() => splash.remove(), 400);
+    }, 1400);
+}
     // Применяем сохранённую тему
     const savedTheme = localStorage.getItem('theme') || 'dark';
     document.documentElement.setAttribute('data-theme', savedTheme);
