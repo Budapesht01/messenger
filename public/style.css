@@ -460,7 +460,7 @@ body::after {
     border-radius: var(--radius-md);
     padding: 10px 14px;
     margin-bottom: 12px;
-    flex-wrap: nowrap;
+    flex-wrap: wrap;
 }
 .avatar-selector label { font-size: 12px; color: var(--text-secondary); }
 .avatar-preview {
@@ -488,6 +488,7 @@ body::after {
     cursor: pointer;
     transition: all 0.2s;
     flex: 1;
+   min-width: 120px;
 }
 .secondary-btn:hover { background: var(--glass-hover); border-color: var(--border-strong); }
 
