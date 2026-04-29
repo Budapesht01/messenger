@@ -42,9 +42,9 @@ app.use(express.json());
 app.use(express.static('public'));
 app.use('/api/', apiLimiter);
 app.use('/api/login', authLimiter);
-app.use('/api/register', authLimiter);
+app.use('/api/register/verify', authLimiter);
 app.use('/api/register/send-code', emailLimiter);
-app.use('/api/reset-password', emailLimiter);
+app.use('/api/password/forgot', emailLimiter);
 
 // Uploads папка
 const uploadsDir = path.join(__dirname, 'public', 'uploads');
