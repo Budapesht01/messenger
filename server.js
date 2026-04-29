@@ -45,6 +45,16 @@ const io = new Server(server, { cors: { origin: allowedOrigins, methods: ["GET",
 app.use(cors({ origin: allowedOrigins }));
 app.use(express.json());
 app.use(express.static('public'));
+app.get('/.well-known/assetlinks.json', (req, res) => {
+  res.json([{
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "org.budapesht.www.twa",
+      "sha256_cert_fingerprints": ["6D:4C:C7:2A:F9:EE:52:35:67:25:38:43:3C:4E:E8:EC:61:95:52:CC:7F:56:01:A7:05:54:8A:5F:24:F3:24:5F"]
+    }
+  }]);
+});
 app.use('/api/', apiLimiter);
 app.use('/api/login', authLimiter);
 app.use('/api/register/verify', authLimiter);
