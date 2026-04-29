@@ -2,7 +2,7 @@
       "relation": ["delegate_permission/common.handle_all_urls"],
       "target": {
         "namespace": "android_app",
-        "package_name": "org.budapesht.www.twa",
-        "sha256_cert_fingerprints": ["A9:CB:CA:1F:D9:F0:41:7F:12:AA:1E:F7:08:56:A5:E9:48:99:A2:F8:1A:CC:4F:FE:69:3B:53:7D:53:8D:F7:11"]
+        "package_name": "org.budapesht.twa",
+        "sha256_cert_fingerprints": ["52:A0:60:0A:A9:4C:7F:32:CF:87:C5:9B:D6:CD:6A:8C:1B:77:99:EC:DA:C0:16:E6:F1:8B:9E:F9:ED:19:6C:A0"]
       }
     }]
