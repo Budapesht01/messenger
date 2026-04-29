@@ -281,7 +281,23 @@ app.post('/api/password/forgot', async (req, res) => {
   res.json({ message: 'Code sent' });
 });
 
-// Сброс пароля — шаг 2: ввести код + новый пароль
+// Сброс пароля — шаг 2: ввести код + новый пароль (без авторизации)
+app.post('/api/password/reset', async (req, res) => {
+  const { email, code, newPassword } = req.body;
+  if (!email || !code || !newPassword) return res.status(400).json({ error: 'Все поля обязательны' });
+  if (newPassword.length < 8) return res.status(400).json({ error: 'Пароль минимум 8 символов' });
+  const user = await User.findOne({ email: email.toLowerCase() });
+  if (!user) return res.status(400).json({ error: 'Email не найден' });
+  if (!user.resetCode || user.resetCode !== code) return res.status(400).json({ error: 'Неверный код' });
+  if (!user.resetExpires || user.resetExpires < new Date()) return res.status(400).json({ error: 'Код истёк, запросите новый' });
+  user.password = await bcrypt.hash(newPassword, 10);
+  user.resetCode = null;
+  user.resetExpires = null;
+  await user.save();
+  res.json({ ok: true, message: 'Пароль изменён' });
+});
+
+// Смена пароля для авторизованного пользователя
 app.post('/api/change-password', authenticateJWT, async (req, res) => {
   const { oldPassword, newPassword } = req.body;
   if (!oldPassword || !newPassword) return res.status(400).json({ error: 'All fields required' });
