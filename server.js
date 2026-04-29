@@ -10,7 +10,28 @@ const cors = require('cors');
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
+const rateLimit = require('express-rate-limit');
 
+// Rate limiters
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 минут
+  max: 10, // максимум 10 попыток
+  message: { error: 'Слишком много попыток. Подождите 15 минут.' },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+const emailLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000, // 1 час
+  max: 5, // максимум 5 писем в час
+  message: { error: 'Слишком много запросов на отправку письма.' },
+});
+
+const apiLimiter = rateLimit({
+  windowMs: 60 * 1000, // 1 минута
+  max: 100, // 100 запросов в минуту
+  message: { error: 'Слишком много запросов.' },
+});
 const app = express();
 const server = http.createServer(app);
 const io = new Server(server, { cors: { origin: "*", methods: ["GET", "POST"] } });
@@ -18,6 +39,11 @@ const io = new Server(server, { cors: { origin: "*", methods: ["GET", "POST"] } 
 app.use(cors());
 app.use(express.json());
 app.use(express.static('public'));
+app.use('/api/', apiLimiter);
+app.use('/api/login', authLimiter);
+app.use('/api/register', authLimiter);
+app.use('/api/register/send-code', emailLimiter);
+app.use('/api/reset-password', emailLimiter);
 
 // Uploads папка
 const uploadsDir = path.join(__dirname, 'public', 'uploads');
@@ -69,7 +95,8 @@ const UserSchema = new mongoose.Schema({
   socketId: { type: String, default: null },
   lastSeen: { type: Date, default: Date.now },
   friends: [{ type: String }],
-  friendRequests: [{ type: String }]
+  friendRequests: [{ type: String }],
+  tokenVersion: { type: Number, default: 0 }
 });
 
 const MessageSchema = new mongoose.Schema({
@@ -110,16 +137,19 @@ const Group = mongoose.model('Group', GroupSchema);
 // ========== Middleware ==========
 const authenticateJWT = (req, res, next) => {
   const authHeader = req.headers.authorization;
-  if (authHeader) {
-    const token = authHeader.split(' ')[1];
-    jwt.verify(token, process.env.JWT_SECRET, (err, user) => {
-      if (err) return res.status(403).json({ error: 'Token invalid or expired' });
-      req.user = user;
-      next();
-    });
-  } else {
-    res.status(401).json({ error: 'No token provided' });
-  }
+  if (!authHeader) return res.status(401).json({ error: 'No token provided' });
+  const token = authHeader.split(' ')[1];
+  jwt.verify(token, process.env.JWT_SECRET, async (err, decoded) => {
+    if (err) return res.status(403).json({ error: 'Token invalid or expired' });
+    // Проверяем версию токена
+    const user = await User.findOne({ username: decoded.username });
+    if (!user) return res.status(403).json({ error: 'User not found' });
+    if ((decoded.tokenVersion ?? 0) !== user.tokenVersion) {
+      return res.status(403).json({ error: 'Token revoked. Please login again.' });
+    }
+    req.user = decoded;
+    next();
+  });
 };
 
 const ADMIN_USERNAME = 'Budapesht';
@@ -149,7 +179,6 @@ function generateInviteCode() {
   return Math.random().toString(36).substring(2, 10).toUpperCase();
 }
 
-// ========== AUTH ==========
 // ========== AUTH ==========
 
 // Шаг 1: отправить код на email
@@ -185,19 +214,22 @@ app.post('/api/register/verify', async (req, res) => {
   user.verificationCode = null;
   user.verificationExpires = null;
   await user.save();
-  const token = jwt.sign({ username: user.username }, process.env.JWT_SECRET, { expiresIn: '7d' });
+  const token = jwt.sign({ username: user.username, tokenVersion: 0 }, process.env.JWT_SECRET, { expiresIn: '7d' });
   res.json({ token, user: { username: user.username, avatar: user.avatar, color: user.color } });
 });
 
 // Вход по email + пароль
 app.post('/api/login', async (req, res) => {
   const { email, password } = req.body;
-  if (!email || !password) return res.status(400).json({ error: 'All fields required' });
-  const user = await User.findOne({ email, emailVerified: true });
-  if (!user) return res.status(400).json({ error: 'Invalid credentials' });
+  const user = await User.findOne({ email });
+  if (!user || !user.password) return res.status(400).json({ error: 'Invalid credentials' });
   const valid = await bcrypt.compare(password, user.password);
   if (!valid) return res.status(400).json({ error: 'Invalid credentials' });
-  const token = jwt.sign({ username: user.username }, process.env.JWT_SECRET, { expiresIn: '7d' });
+  const token = jwt.sign(
+    { username: user.username, tokenVersion: user.tokenVersion },
+    process.env.JWT_SECRET,
+    { expiresIn: '7d' }
+  );
   res.json({ token, user: { username: user.username, avatar: user.avatar, color: user.color } });
 });
 
@@ -236,17 +268,17 @@ app.post('/api/password/forgot', async (req, res) => {
 });
 
 // Сброс пароля — шаг 2: ввести код + новый пароль
-app.post('/api/password/reset', async (req, res) => {
-  const { email, code, newPassword } = req.body;
-  if (!email || !code || !newPassword) return res.status(400).json({ error: 'All fields required' });
-  const user = await User.findOne({ email, emailVerified: true });
-  if (!user || user.resetCode !== code) return res.status(400).json({ error: 'Invalid code' });
-  if (user.resetExpires < new Date()) return res.status(400).json({ error: 'Code expired' });
+app.post('/api/change-password', authenticateJWT, async (req, res) => {
+  const { oldPassword, newPassword } = req.body;
+  if (!oldPassword || !newPassword) return res.status(400).json({ error: 'All fields required' });
+  if (newPassword.length < 8) return res.status(400).json({ error: 'Password too short' });
+  const user = await User.findOne({ username: req.user.username });
+  const valid = await bcrypt.compare(oldPassword, user.password);
+  if (!valid) return res.status(400).json({ error: 'Неверный текущий пароль' });
   user.password = await bcrypt.hash(newPassword, 10);
-  user.resetCode = null;
-  user.resetExpires = null;
+  user.tokenVersion = (user.tokenVersion || 0) + 1; // инвалидируем все старые токены
   await user.save();
-  res.json({ message: 'Password updated' });
+  res.json({ message: 'Пароль изменён. Войдите заново.' });
 });
 
 // ========== UPLOAD IMAGE ==========
@@ -606,9 +638,14 @@ io.use(async (socket, next) => {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     const user = await User.findOne({ username: decoded.username });
     if (!user) return next(new Error('User not found'));
+    if ((decoded.tokenVersion ?? 0) !== user.tokenVersion) {
+      return next(new Error('Token revoked'));
+    }
     socket.user = user;
     next();
-  } catch (err) { next(new Error('Invalid token')); }
+  } catch (err) {
+    next(new Error('Invalid token'));
+  }
 });
 
 io.on('connection', async (socket) => {
