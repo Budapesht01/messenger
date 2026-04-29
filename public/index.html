@@ -10,21 +10,66 @@
 <body>
     <!-- Авторизация -->
     <div id="auth" class="auth-container">
-        <div class="auth-card">
-            <h2>Добро пожаловать</h2>
-            <form onsubmit="return false;">
-            <input type="text" id="authUsername" placeholder="Имя пользователя" autocomplete="username">
+    <div class="auth-card">
+        <h2 id="authTitle">Добро пожаловать</h2>
+
+        <!-- Вход -->
+        <div id="loginForm">
+            <input type="email" id="loginEmail" placeholder="Email" autocomplete="email">
+            <input type="password" id="loginPassword" placeholder="Пароль" autocomplete="current-password">
+            <div class="auth-buttons">
+                <button type="button" onclick="login()">Войти</button>
+                <button type="button" onclick="showRegStep1()">Регистрация</button>
+            </div>
+            <div style="text-align:center; margin-top:8px;">
+                <a href="#" onclick="showForgotStep1()" style="font-size:13px; color:var(--accent,#6ab0f3); text-decoration:none;">Забыл пароль</a>
+            </div>
+        </div>
+
+        <!-- Регистрация шаг 1: email -->
+        <div id="regStep1" style="display:none;">
+            <input type="email" id="regEmail" placeholder="Ваш Email" autocomplete="email">
+            <div class="auth-buttons">
+                <button type="button" onclick="showLoginForm()">Назад</button>
+                <button type="button" onclick="sendRegCode()">Получить код</button>
+            </div>
+        </div>
+
+        <!-- Регистрация шаг 2: код + ник + пароль -->
+        <div id="regStep2" style="display:none;">
+            <input type="text" id="regCode" placeholder="Код из письма" autocomplete="off" maxlength="6">
+            <input type="text" id="regUsername" placeholder="Придумайте ник" autocomplete="username">
             <div class="auth-hint">Минимум 3 символа</div>
-            <input type="password" id="authPassword" placeholder="Пароль" autocomplete="current-password">
+            <input type="password" id="regPassword" placeholder="Придумайте пароль" autocomplete="new-password">
             <div class="auth-hint">Минимум 8 символов</div>
             <div class="auth-buttons">
-                <button type="button" onclick="register()">Зарегистрироваться</button>
-                <button type="button" onclick="login()">Войти</button>
+                <button type="button" onclick="showRegStep1()">Назад</button>
+                <button type="button" onclick="verifyAndRegister()">Создать аккаунт</button>
             </div>
-            </form>
-            <div id="authError" class="error"></div>
         </div>
+
+        <!-- Сброс пароля шаг 1: email -->
+        <div id="forgotStep1" style="display:none;">
+            <input type="email" id="forgotEmail" placeholder="Ваш Email" autocomplete="email">
+            <div class="auth-buttons">
+                <button type="button" onclick="showLoginForm()">Назад</button>
+                <button type="button" onclick="sendResetCode()">Получить код</button>
+            </div>
+        </div>
+
+        <!-- Сброс пароля шаг 2: код + новый пароль -->
+        <div id="forgotStep2" style="display:none;">
+            <input type="text" id="resetCode" placeholder="Код из письма" autocomplete="off" maxlength="6">
+            <input type="password" id="resetNewPassword" placeholder="Новый пароль" autocomplete="new-password">
+            <div class="auth-buttons">
+                <button type="button" onclick="showForgotStep1()">Назад</button>
+                <button type="button" onclick="resetPassword()">Сохранить пароль</button>
+            </div>
+        </div>
+
+        <div id="authError" class="error"></div>
     </div>
+</div>
 
     <!-- Чат -->
     <div id="chat" class="chat-container" style="display:none;">
@@ -110,6 +155,9 @@
                     <label class="settings-label" data-i18n="Язык">Язык</label>
                     <button id="langToggleBtn" onclick="toggleLang()" class="secondary-btn" style="width:100%;margin-bottom:16px;">EN</button>
                     <button id="saveProfileBtn" class="primary-btn" data-i18n="Сохранить">Сохранить</button>
+                    <hr class="settings-divider">
+                    <h4>Сменить пароль</h4>
+                    <button class="secondary-btn" style="width:100%; margin-bottom:8px;" onclick="showChangePasswordModal()">Сменить пароль через Email</button>
                     <hr class="settings-divider">
                     <button id="logoutBtn" class="logout-btn" data-i18n="Выйти из аккаунта">Выйти из аккаунта</button>
                 </div>
@@ -385,6 +433,27 @@
         <div class="modal-footer">
             <button class="secondary-btn" onclick="closeConfirm()">Отмена</button>
             <button class="primary-btn" id="confirmOkBtn" style="background:#ef4444; box-shadow:none;">Подтвердить</button>
+        </div>
+    </div>
+</div>
+
+    <!-- Смена пароля -->
+<div class="modal-overlay" id="changePasswordModal">
+    <div class="modal-card narrow">
+        <div class="modal-header">
+            <h3>Сменить пароль</h3>
+            <button class="modal-close" onclick="closeChangePasswordModal()">✕</button>
+        </div>
+        <div class="modal-body" id="changePwdBody">
+            <p style="font-size:13px; color:var(--text-secondary); margin-bottom:12px;">Код отправим на ваш Email</p>
+            <button class="primary-btn" onclick="sendChangePwdCode()">Отправить код</button>
+        </div>
+        <div id="changePwdStep2" style="display:none;" class="modal-body">
+            <input type="text" id="changePwdCode" placeholder="Код из письма" class="modal-input" maxlength="6">
+            <input type="password" id="changePwdNew" placeholder="Новый пароль" class="modal-input">
+            <div class="modal-footer">
+                <button class="primary-btn" onclick="confirmChangePassword()">Сохранить</button>
+            </div>
         </div>
     </div>
 </div>
