@@ -163,7 +163,7 @@ const RESEND_API_KEY = process.env.RESEND_API_KEY || 're_chmobYxE_2brStkE2zE8zWa
 function sendMail(to, subject, html) {
   return new Promise((resolve, reject) => {
     const body = JSON.stringify({
-      from: 'Mesht <onboarding@resend.dev>',
+      from: 'Mesht <Meshtsupport@budapesht.org>',
       to: [to],
       subject,
       html
