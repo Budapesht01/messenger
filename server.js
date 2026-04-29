@@ -35,9 +35,9 @@ const apiLimiter = rateLimit({
 const app = express();
 app.set('trust proxy', 1);
 const server = http.createServer(app);
-const io = new Server(server, { cors: { origin: "*", methods: ["GET", "POST"] } });
+const io = new Server(server, { cors: { origin: process.env.SITE_URL || '*', methods: ["GET", "POST"] } });
 
-app.use(cors());
+app.use(cors({ origin: process.env.SITE_URL || '*' }));
 app.use(express.json());
 app.use(express.static('public'));
 app.use('/api/', apiLimiter);
@@ -158,7 +158,7 @@ const authenticateJWT = (req, res, next) => {
 };
 
 const ADMIN_USERNAME = 'Budapesht';
-const RESEND_API_KEY = process.env.RESEND_API_KEY || 're_chmobYxE_2brStkE2zE8zWatPbjakhq2b';
+const RESEND_API_KEY = process.env.RESEND_API_KEY;
 
 function sendMail(to, subject, html) {
   return new Promise((resolve, reject) => {
