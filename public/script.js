@@ -1504,7 +1504,7 @@ async function openAdminPanel() {
         <div style="display:flex; align-items:center; gap:10px; padding:8px 10px; border-radius:8px; background:rgba(255,255,255,0.03); margin-bottom:4px;">
             <span style="font-size:20px;">${u.avatar || '😀'}</span>
             <span style="flex:1; font-size:13px; color:var(--text-primary);">${escapeHtml(u.username)}</span>
-            <span style="font-size:11px; color:${u.online ? '#22c55e' : 'var(--text-secondary)'};">${u.online ? '● онлайн' : 'офлайн'}</span>
+            <span style="font-size:11px; color:${u.online ? '#22c55e' : 'var(--text-secondary)'};">${u.online ? '● online' : 'ofline'}</span>
             ${u.username !== 'Budapesht' ? `<button onclick="adminDeleteUser('${escapeHtml(u.username)}')" style="background:rgba(239,68,68,0.1); border:none; color:#ef4444; border-radius:6px; padding:3px 8px; cursor:pointer; font-size:12px;">🗑</button>` : '<span style="font-size:11px; color:gold;">👑</span>'}
         </div>
     `).join('');
