@@ -1295,10 +1295,21 @@ window.onload = () => {
     // Убираем splash screen
 const splash = document.getElementById('splashScreen');
 if (splash) {
+    // Запускаем анимацию входа
+    requestAnimationFrame(() => {
+        document.getElementById('splashLogo').style.opacity = '1';
+        document.getElementById('splashLogo').style.transform = 'scale(1) translateY(0)';
+        document.getElementById('splashTitle').style.opacity = '1';
+        document.getElementById('splashTitle').style.transform = 'translateY(0)';
+        document.getElementById('splashSub').style.opacity = '1';
+        document.getElementById('splashSub').style.transform = 'translateY(0)';
+        document.getElementById('splashDots').style.opacity = '1';
+    });
+    // Убираем через 1.8 сек
     setTimeout(() => {
         splash.style.opacity = '0';
-        setTimeout(() => splash.remove(), 400);
-    }, 1400);
+        setTimeout(() => splash.remove(), 500);
+    }, 1800);
 }
     // Применяем сохранённую тему
     const savedTheme = localStorage.getItem('theme') || 'dark';
