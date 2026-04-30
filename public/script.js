@@ -372,6 +372,8 @@ document.addEventListener('keydown', (e) => {
         document.getElementById('chatMenuWrap').style.display = 'none';
         document.getElementById('groupMenuWrap').style.display = 'none';
         document.getElementById('messages').innerHTML = '';
+        document.getElementById('noChatSelected').style.display = 'flex';
+        document.getElementById('inputArea').style.display = 'none';
         if (window.innerWidth <= 425) {
             sidebar.classList.add('open');
         }
