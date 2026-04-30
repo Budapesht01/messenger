@@ -1874,3 +1874,28 @@ body { background: var(--bg-gradient); }
     font-size: 14px;
     color: var(--text-secondary);
 }
+
+.pinned-msg { border-left: 3px solid var(--accent, #6ab0f3) !important; }
+.pin-badge { font-size: 11px; position: absolute; top: 4px; right: 4px; }
+
+.forward-friend-btn {
+    width: 100%; text-align: left; padding: 10px 12px;
+    background: none; border: none; color: var(--text-primary);
+    font-size: 14px; cursor: pointer; border-radius: 8px;
+    display: flex; align-items: center;
+}
+.forward-friend-btn:hover { background: var(--hover-bg, rgba(255,255,255,0.06)); }
+
+.selected-msg { background: rgba(106,176,243,0.15) !important; border-radius: 8px; }
+
+.select-bar {
+    position: absolute; bottom: 70px; left: 0; right: 0;
+    background: var(--glass-header); border-top: 1px solid var(--border);
+    padding: 10px 16px; display: flex; justify-content: space-between;
+    align-items: center; z-index: 50; font-size: 14px;
+}
+.select-bar button {
+    background: none; border: none; color: var(--text-primary);
+    cursor: pointer; font-size: 14px; padding: 4px 8px; border-radius: 6px;
+}
+.select-bar button:hover { background: var(--hover-bg, rgba(255,255,255,0.06)); }
