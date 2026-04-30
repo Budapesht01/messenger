@@ -46,14 +46,24 @@ app.use(cors({ origin: allowedOrigins }));
 app.use(express.json());
 app.use(express.static('public'));
 app.get('/.well-known/assetlinks.json', (req, res) => {
-  res.json([{
-    "relation": ["delegate_permission/common.handle_all_urls"],
-    "target": {
-      "namespace": "android_app",
-      "package_name": "org.budapesht.www.twa",
-      "sha256_cert_fingerprints": ["6D:4C:C7:2A:F9:EE:52:35:67:25:38:43:3C:4E:E8:EC:61:95:52:CC:7F:56:01:A7:05:54:8A:5F:24:F3:24:5F"]
+  res.json([
+    {
+      "relation": ["delegate_permission/common.handle_all_urls"],
+      "target": {
+        "namespace": "android_app",
+        "package_name": "org.budapesht.www.twa",
+        "sha256_cert_fingerprints": ["6D:4C:C7:2A:F9:EE:52:35:67:25:38:43:3C:4E:E8:EC:61:95:52:CC:7F:56:01:A7:05:54:8A:5F:24:F3:24:5F"]
+      }
+    },
+    {
+      "relation": ["delegate_permission/common.handle_all_urls"],
+      "target": {
+        "namespace": "android_app",
+        "package_name": "org.budapesht.twa",
+        "sha256_cert_fingerprints": ["52:A0:60:0A:A9:4C:7F:32:CF:87:C5:9B:D6:CD:6A:8C:1B:77:99:EC:DA:C0:16:E6:F1:8B:9E:F9:ED:19:6C:A0"]
+      }
     }
-  }]);
+  ]);
 });
 app.use('/api/', apiLimiter);
 app.use('/api/login', authLimiter);
