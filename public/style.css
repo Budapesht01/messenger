@@ -1818,3 +1818,43 @@ body { background: var(--bg-gradient); }
   background: linear-gradient(135deg, #1a85c2, #1570a8);
   color: #fff;
 }
+
+.no-chat-selected {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1;
+    pointer-events: none;
+}
+.no-chat-inner {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    opacity: 0.85;
+}
+.no-chat-logo {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    background: var(--accent, #6ab0f3);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 42px;
+    font-weight: 800;
+    color: #fff;
+    margin-bottom: 6px;
+    box-shadow: 0 4px 24px rgba(106,176,243,0.25);
+}
+.no-chat-title {
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--text-primary);
+}
+.no-chat-sub {
+    font-size: 14px;
+    color: var(--text-secondary);
+}
