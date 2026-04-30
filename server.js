@@ -724,6 +724,20 @@ io.use(async (socket, next) => {
 });
 
 io.on('connection', async (socket) => {
+
+socket.on('mark_read', async ({ chatWith }) => {
+    const user = await User.findOne({ socketId: socket.id });
+    if (!user) return;
+    await Message.updateMany(
+        { from: chatWith, to: user.username, deleted: false, readBy: { $ne: user.username } },
+        { $addToSet: { readBy: user.username } }
+    );
+    const chatUser = await User.findOne({ username: chatWith });
+    if (chatUser?.socketId) {
+        io.to(chatUser.socketId).emit('messages_read', { by: user.username, chatWith: chatWith });
+    }
+});
+  
   const user = socket.user;
   await User.updateOne({ username: user.username }, { online: true, socketId: socket.id, lastSeen: new Date() });
   const userDoc = await User.findOne({ username: user.username });
