@@ -3,6 +3,6 @@
       "target": {
         "namespace": "android_app",
         "package_name": "org.budapesht.twa",
-        "sha256_cert_fingerprints": ["52:A0:60:0A:A9:4C:7F:32:CF:87:C5:9B:D6:CD:6A:8C:1B:77:99:EC:DA:C0:16:E6:F1:8B:9E:F9:ED:19:6C:A0"]
+        "sha256_cert_fingerprints": ["12:F4:E6:88:F3:AB:59:38:74:1C:55:FA:EA:20:C2:A3:7F:EF:3E:98:A6:3C:E3:1A:67:43:93:91:48:AE:FE:01"]
       }
     }]
