@@ -169,11 +169,15 @@ function initSocket(token) {
     socket.on('connect', () => console.log('connected'));
     socket.on('history', () => {});
 
-    socket.on('private_message', (msg) => {
-        if (currentChat === msg.from || currentChat === msg.to) {
+   socket.on('private_message', (msg) => {
+        const isOwn = msg.from === currentUser?.username;
+        const chatPartner = isOwn ? msg.to : msg.from;
+        if (currentChat === chatPartner) {
+            // Не добавлять дубликат если сообщение уже есть в DOM
+            if (msg._id && document.querySelector(`.message[data-id="${msg._id}"]`)) return;
             addMessageToChat(msg);
-            markRead(msg.from);
-        } else {
+            if (!isOwn) markRead(msg.from);
+        } else if (!isOwn) {
             unreadCounts[msg.from] = (unreadCounts[msg.from] || 0) + 1;
             updateUnreadBadge(msg.from);
             showNotification(`💬 ${msg.from}: ${msg.text || '📷 Фото'}`);
@@ -231,14 +235,14 @@ function initSocket(token) {
     });
 
     socket.on('messages_read', (data) => {
-        // data.by = кто прочитал, data.chatWith = с кем чат (это username отправителя)
-        const reader = data.by;
-        if (currentChat === reader) {
-            document.querySelectorAll('.message.own .read-status').forEach(el => {
-                el.innerHTML = '✓✓'; el.classList.add('read');
-            });
-        }
-    });
+            const reader = data.by;
+            // Обновить галочки если читает наш собеседник
+            if (currentChat === reader || data.chatWith === currentUser?.username) {
+                document.querySelectorAll('.message.own .read-status').forEach(el => {
+                    el.innerHTML = '✓✓'; el.classList.add('read');
+                });
+            }
+        });
 
     socket.on('private_message_sent', (data) => {
         // Сервер подтвердил — сообщение доставлено, галочка одна
