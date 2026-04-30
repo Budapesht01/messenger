@@ -1842,7 +1842,7 @@ body { background: var(--bg-gradient); }
     justify-content: center;
     z-index: 1;
     pointer-events: none;
-    background: var(--bg-primary, #0a0f1e);
+    background: var(--bg-primary);
 }
 .no-chat-inner {
     display: flex;
