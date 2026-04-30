@@ -721,6 +721,8 @@ function restoreDraft(key) {
 function switchChat(username) {
     saveDraft();
     currentChat = username; currentGroupId = null;
+    document.getElementById('noChatSelected').style.display = 'none';
+    document.getElementById('inputArea').style.display = 'flex';
     document.querySelector('.chat-title').innerText = username;
     document.getElementById('groupInfoBtn').style.display = 'none';
     document.getElementById('chatMenuWrap').style.display = 'flex';
@@ -736,6 +738,8 @@ function switchChat(username) {
 async function switchGroupChat(groupId, groupName) {
     saveDraft();
     currentGroupId = groupId; currentChat = null;
+    document.getElementById('noChatSelected').style.display = 'none';
+    document.getElementById('inputArea').style.display = 'flex';
     document.querySelector('.chat-title').innerText = groupName;
     document.getElementById('groupInfoBtn').style.display = 'none';
     document.getElementById('groupMenuWrap').style.display = 'flex';
