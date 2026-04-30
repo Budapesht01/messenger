@@ -363,6 +363,13 @@ function clearReply() {
     document.getElementById('replyBar').style.display = 'none';
 }
 
+
+document.addEventListener('visibilitychange', () => {
+    if (!document.hidden && currentChat) markRead(currentChat);
+});
+window.addEventListener('focus', () => {
+    if (currentChat) markRead(currentChat);
+});
 async function markRead(fromUser) {
     const token = localStorage.getItem('token');
     await fetch('/api/messages/read', {
