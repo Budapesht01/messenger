@@ -558,28 +558,14 @@ function openMsgMenu(msg, msgDiv, isOwn, e) {
 
     // Реакция — всегда
     if (!msg.deleted) {
-        items.push({ icon: '😊', label: 'Реакция', action: () => {
-            closeMsgMenu();
-            openReactionPicker(msg._id, msgDiv.querySelector('.message-bubble'));
-        }});
-    }
-
-    // Ответить — всегда
-    if (!msg.deleted) {
     items.push({ icon: '↩️', label: 'Ответить', action: () => { closeMsgMenu(); setReply(msg._id, msg.from, msg.text); }});
+    items.push({ icon: '😊', label: 'Реакция', action: () => { closeMsgMenu(); openReactionPicker(msg._id, msgDiv.querySelector('.message-bubble')); }});
     items.push({ icon: '📌', label: msg.pinned ? 'Открепить' : 'Закрепить', action: () => { closeMsgMenu(); togglePin(msg._id); }});
     items.push({ icon: '📤', label: 'Переслать', action: () => { closeMsgMenu(); openForwardModal(msg._id); }});
     if (msg.text) items.push({ icon: '📋', label: 'Копировать текст', action: () => { closeMsgMenu(); navigator.clipboard.writeText(msg.text); }});
     items.push({ icon: '☑️', label: 'Выделить', action: () => { closeMsgMenu(); toggleSelectMode(msg._id); }});
-}
-if (!msg.deleted) {
-    items.push({ icon: '😊', label: 'Реакция', action: () => { closeMsgMenu(); openReactionPicker(msg._id, msgDiv.querySelector('.message-bubble')); }});
-}
-if (isOwn && !msg.deleted && msg.text) {
-    items.push({ icon: '✎', label: 'Редактировать', action: () => { closeMsgMenu(); openEditModal(msg); }});
-}
-if (isOwn && !msg.deleted) {
-    items.push({ icon: '🗑', label: 'Удалить', danger: true, action: () => { closeMsgMenu(); openDeleteModal(msg._id); }});
+    if (isOwn && msg.text) items.push({ icon: '✎', label: 'Редактировать', action: () => { closeMsgMenu(); openEditModal(msg); }});
+    if (isOwn) items.push({ icon: '🗑', label: 'Удалить', danger: true, action: () => { closeMsgMenu(); openDeleteModal(msg._id); }});
 }
 
     items.forEach(item => {
