@@ -362,7 +362,21 @@ function clearReply() {
     replyingTo = null;
     document.getElementById('replyBar').style.display = 'none';
 }
-
+document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && (currentChat || currentGroupId)) {
+        currentChat = null;
+        currentGroupId = null;
+        document.getElementById('noChatSelected').style.display = 'flex';
+        document.getElementById('inputArea').style.display = 'none';
+        document.querySelector('.chat-title').innerText = 'Выберите чат';
+        document.getElementById('chatMenuWrap').style.display = 'none';
+        document.getElementById('groupMenuWrap').style.display = 'none';
+        document.getElementById('messages').innerHTML = '';
+        if (window.innerWidth <= 425) {
+            sidebar.classList.add('open');
+        }
+    }
+});
 
 document.addEventListener('visibilitychange', () => {
     if (!document.hidden && currentChat) markRead(currentChat);
