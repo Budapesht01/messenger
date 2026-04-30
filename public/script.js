@@ -1263,9 +1263,13 @@ const themes = [
     { id: 'green', name: 'Зелёная',  sidebar: 'rgba(6,13,15,0.9)',  main: '#091412',  own: 'rgba(0,168,100,0.35)', other: 'rgba(255,255,255,0.08)' },
 ];
 
+const themeColors = { dark: '#0a0f1e', light: '#f0f4fb', gray: '#151618', green: '#091412' };
+
 function applyTheme(themeId) {
     document.documentElement.setAttribute('data-theme', themeId);
     localStorage.setItem('theme', themeId);
+    const meta = document.getElementById('themeColorMeta');
+    if (meta) meta.setAttribute('content', themeColors[themeId] || '#0a0f1e');
     document.querySelectorAll('.theme-card').forEach(card => {
         card.classList.toggle('active', card.dataset.theme === themeId);
     });
