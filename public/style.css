@@ -1294,6 +1294,21 @@ body::after {
     .typing-indicator { position: static; background: transparent; }
     .input-area { position: static; border-radius: 0; }
     #messageInput { font-size: 16px; }
+   @media (max-width: 425px) {
+    .sidebar {
+        position: fixed;
+        left: 0; top: 0; bottom: 0;
+        width: 100% !important;
+        z-index: 100;
+        transform: translateX(0);
+    }
+    .sidebar:not(.open) {
+        transform: translateX(-100%);
+    }
+    .main {
+        width: 100%;
+    }
+}
 }
 
 @media (max-width: 480px) {
