@@ -565,26 +565,22 @@ function openMsgMenu(msg, msgDiv, isOwn, e) {
     }
 
     // Ответить — всегда
-    items.push({ icon: '↩', label: 'Ответить', action: () => {
-        closeMsgMenu();
-        setReply(msg._id, msg.from, msg.text);
-    }});
-
-    // Редактировать — только своё и не удалённое
-    if (isOwn && !msg.deleted && msg.text) {
-        items.push({ icon: '✎', label: 'Редактировать', action: () => {
-            closeMsgMenu();
-            openEditModal(msg);
-        }});
-    }
-
-    // Удалить — только своё и не удалённое
-    if (isOwn && !msg.deleted) {
-        items.push({ icon: '🗑', label: 'Удалить', danger: true, action: () => {
-            closeMsgMenu();
-            openDeleteModal(msg._id);
-        }});
-    }
+    if (!msg.deleted) {
+    items.push({ icon: '↩️', label: 'Ответить', action: () => { closeMsgMenu(); setReply(msg._id, msg.from, msg.text); }});
+    items.push({ icon: '📌', label: msg.pinned ? 'Открепить' : 'Закрепить', action: () => { closeMsgMenu(); togglePin(msg._id); }});
+    items.push({ icon: '📤', label: 'Переслать', action: () => { closeMsgMenu(); openForwardModal(msg._id); }});
+    if (msg.text) items.push({ icon: '📋', label: 'Копировать текст', action: () => { closeMsgMenu(); navigator.clipboard.writeText(msg.text); }});
+    items.push({ icon: '☑️', label: 'Выделить', action: () => { closeMsgMenu(); toggleSelectMode(msg._id); }});
+}
+if (!msg.deleted) {
+    items.push({ icon: '😊', label: 'Реакция', action: () => { closeMsgMenu(); openReactionPicker(msg._id, msgDiv.querySelector('.message-bubble')); }});
+}
+if (isOwn && !msg.deleted && msg.text) {
+    items.push({ icon: '✎', label: 'Редактировать', action: () => { closeMsgMenu(); openEditModal(msg); }});
+}
+if (isOwn && !msg.deleted) {
+    items.push({ icon: '🗑', label: 'Удалить', danger: true, action: () => { closeMsgMenu(); openDeleteModal(msg._id); }});
+}
 
     items.forEach(item => {
         const btn = document.createElement('button');
@@ -625,6 +621,122 @@ function closeMsgMenuOnOutside(e) {
 
 function closeMsgMenu() {
     document.getElementById('msgContextMenu')?.remove();
+}
+
+// Закрепление
+async function togglePin(msgId) {
+    const token = localStorage.getItem('token');
+    const res = await fetch(`/api/messages/${msgId}/pin`, { method: 'POST', headers: { Authorization: 'Bearer ' + token } });
+    if (res.ok) {
+        const data = await res.json();
+        const bubble = document.querySelector(`.message[data-id="${msgId}"] .message-bubble`);
+        if (bubble) {
+            bubble.classList.toggle('pinned-msg', data.pinned);
+            let pin = bubble.querySelector('.pin-badge');
+            if (data.pinned && !pin) {
+                pin = document.createElement('span');
+                pin.className = 'pin-badge';
+                pin.innerText = '📌';
+                bubble.appendChild(pin);
+            } else if (!data.pinned && pin) pin.remove();
+        }
+    }
+}
+
+// Пересылка
+let forwardMsgId = null;
+function openForwardModal(msgId) {
+    forwardMsgId = msgId;
+    const modal = document.getElementById('forwardModal');
+    if (!modal) return buildForwardModal(msgId);
+    document.getElementById('forwardList').innerHTML = '';
+    buildForwardList();
+    modal.classList.add('open');
+}
+
+function buildForwardModal(msgId) {
+    const modal = document.createElement('div');
+    modal.className = 'modal-overlay';
+    modal.id = 'forwardModal';
+    modal.innerHTML = `
+        <div class="modal-card narrow">
+            <div class="modal-header">
+                <h3>Переслать</h3>
+                <button class="modal-close" onclick="document.getElementById('forwardModal').classList.remove('open')">✕</button>
+            </div>
+            <div class="modal-body">
+                <div id="forwardList" style="max-height:300px; overflow-y:auto;"></div>
+            </div>
+        </div>`;
+    document.body.appendChild(modal);
+    buildForwardList();
+    modal.classList.add('open');
+}
+
+async function buildForwardList() {
+    const token = localStorage.getItem('token');
+    const res = await fetch('/api/friends', { headers: { Authorization: 'Bearer ' + token } });
+    if (!res.ok) return;
+    const friends = await res.json();
+    const list = document.getElementById('forwardList');
+    list.innerHTML = '';
+    friends.forEach(f => {
+        const btn = document.createElement('button');
+        btn.className = 'forward-friend-btn';
+        btn.innerHTML = `<span style="margin-right:8px">${f.avatar || '😀'}</span>${f.username}`;
+        btn.onclick = async () => {
+            const t = localStorage.getItem('token');
+            await fetch('/api/messages/forward', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + t }, body: JSON.stringify({ messageId: forwardMsgId, to: f.username }) });
+            document.getElementById('forwardModal').classList.remove('open');
+        };
+        list.appendChild(btn);
+    });
+}
+
+// Выделение
+let selectedMessages = new Set();
+let selectMode = false;
+
+function toggleSelectMode(msgId) {
+    selectMode = true;
+    selectedMessages.add(msgId);
+    const el = document.querySelector(`.message[data-id="${msgId}"]`);
+    if (el) el.classList.add('selected-msg');
+    showSelectBar();
+}
+
+function showSelectBar() {
+    let bar = document.getElementById('selectBar');
+    if (!bar) {
+        bar = document.createElement('div');
+        bar.id = 'selectBar';
+        bar.className = 'select-bar';
+        bar.innerHTML = `<span id="selectCount">1 сообщение</span><div style="display:flex;gap:8px"><button onclick="forwardSelected()">📤 Переслать</button><button onclick="deleteSelected()" style="color:var(--danger,#f36a6a)">🗑 Удалить</button><button onclick="cancelSelect()">✕</button></div>`;
+        document.querySelector('.main').appendChild(bar);
+    }
+    document.getElementById('selectCount').innerText = `${selectedMessages.size} сообщ.`;
+}
+
+function cancelSelect() {
+    selectMode = false;
+    selectedMessages.clear();
+    document.querySelectorAll('.selected-msg').forEach(el => el.classList.remove('selected-msg'));
+    document.getElementById('selectBar')?.remove();
+}
+
+async function deleteSelected() {
+    const token = localStorage.getItem('token');
+    for (const id of selectedMessages) {
+        await fetch(`/api/messages/${id}`, { method: 'DELETE', headers: { Authorization: 'Bearer ' + token } });
+        document.querySelector(`.message[data-id="${id}"]`)?.remove();
+    }
+    cancelSelect();
+}
+
+function forwardSelected() {
+    const ids = [...selectedMessages];
+    cancelSelect();
+    if (ids.length > 0) openForwardModal(ids[0]);
 }
 
 // Редактирование inline
