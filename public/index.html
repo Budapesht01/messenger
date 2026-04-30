@@ -3,11 +3,37 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, interactive-widget=resizes-content">
+    <link rel="manifest" href="/manifest.json">
+    <meta name="theme-color" id="themeColorMeta" content="#0a0f1e">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Mesht">
+    <link rel="apple-touch-icon" href="/logo.png">
     <title>Mesht</title>
     <link rel="icon" type="image/x-icon" href="logo.png">
     <link rel="stylesheet" href="style.css?v=glass1">
 </head>
 <body>
+
+<div id="splashScreen" style="position:fixed;inset:0;background:radial-gradient(ellipse at 50% 40%, #0e1628 0%, #070b14 60%, #040609 100%);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:99999;transition:opacity 0.5s ease;">
+    <div style="position:absolute;width:320px;height:320px;border-radius:50%;background:radial-gradient(circle, rgba(99,160,255,0.12) 0%, transparent 70%);top:50%;left:50%;transform:translate(-50%,-60%);pointer-events:none;"></div>
+    <div id="splashLogo" style="width:90px;height:90px;border-radius:24px;overflow:hidden;box-shadow:0 0 50px rgba(99,160,255,0.25),0 20px 60px rgba(0,0,0,0.6);opacity:0;transform:scale(0.7) translateY(20px);transition:all 0.6s cubic-bezier(0.34,1.4,0.64,1);margin-bottom:20px;">
+        <img src="/logo.png" style="width:100%;height:100%;object-fit:cover;">
+    </div>
+    <div id="splashTitle" style="font-family:'DM Sans',sans-serif;font-size:30px;font-weight:700;color:#f0f2f8;letter-spacing:-0.5px;opacity:0;transform:translateY(10px);transition:all 0.5s ease 0.25s;margin-bottom:6px;">Mesht</div>
+    <div id="splashSub" style="font-family:'DM Sans',sans-serif;font-size:13px;color:rgba(240,242,248,0.35);opacity:0;transform:translateY(8px);transition:all 0.5s ease 0.4s;">мессенджер</div>
+    <div id="splashDots" style="position:absolute;bottom:60px;display:flex;gap:6px;opacity:0;transition:opacity 0.4s ease 0.7s;">
+        <span style="width:5px;height:5px;border-radius:50%;background:rgba(99,160,255,0.6);animation:dotPulse 1.2s 0.0s infinite ease-in-out alternate;display:block;"></span>
+        <span style="width:5px;height:5px;border-radius:50%;background:rgba(99,160,255,0.6);animation:dotPulse 1.2s 0.2s infinite ease-in-out alternate;display:block;"></span>
+        <span style="width:5px;height:5px;border-radius:50%;background:rgba(99,160,255,0.6);animation:dotPulse 1.2s 0.4s infinite ease-in-out alternate;display:block;"></span>
+    </div>
+</div>
+<style>
+@keyframes dotPulse {
+    from { opacity:0.3; transform:scale(0.8); }
+    to   { opacity:1;   transform:scale(1.2); }
+}
+</style>
     <!-- Авторизация -->
     <div id="auth" class="auth-container">
     <div class="auth-card">
@@ -122,7 +148,6 @@
                 <div class="settings-panel">
                     <h4 data-i18n="Профиль">Профиль</h4>
                     <div class="avatar-selector">
-                        <label data-i18n="Аватар:">Аватар:</label>
                         <div class="avatar-preview" id="avatarPreview">😀</div>
                         <button id="pickAvatarBtn" class="secondary-btn" data-i18n="Выбрать эмодзи">Выбрать эмодзи</button>
                     </div>
@@ -156,8 +181,17 @@
                     <button id="langToggleBtn" onclick="toggleLang()" class="secondary-btn" style="width:100%;margin-bottom:16px;">EN</button>
                     <button id="saveProfileBtn" class="primary-btn" data-i18n="Сохранить">Сохранить</button>
                     <hr class="settings-divider">
-                    <h4>Сменить пароль</h4>
-                    <button class="secondary-btn" style="width:100%; margin-bottom:8px;" onclick="showChangePasswordModal()">Сменить пароль через Email</button>
+                    <div class="settings-section-title">🔐 Безопасность</div>
+                    <button class="secondary-btn settings-full-btn" onclick="showChangePasswordModal()">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
+                      Сменить пароль
+                    </button>
+                    <hr class="settings-divider">
+                    <div class="settings-section-title">💬 Поддержка</div>
+                    <a href="https://t.me/Maksimkamolodec" target="_blank" class="secondary-btn settings-full-btn settings-tg-btn">
+                      <svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16"><path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.562 8.248l-2.04 9.61c-.152.67-.548.835-1.11.52l-3.063-2.257-1.478 1.42c-.164.164-.3.3-.613.3l.218-3.1 5.636-5.092c.245-.218-.054-.34-.38-.122L7.26 14.41l-3.018-.944c-.656-.205-.67-.656.137-.97l11.79-4.55c.545-.2 1.022.133.393.302z"/></svg>
+                      Написать в Telegram
+                    </a>
                     <hr class="settings-divider">
                     <button id="logoutBtn" class="logout-btn" data-i18n="Выйти из аккаунта">Выйти из аккаунта</button>
                 </div>
@@ -205,6 +239,13 @@
                     </div>
                 </div>
             </div>
+            <div class="no-chat-selected" id="noChatSelected">
+                <div class="no-chat-inner">
+                    <div class="no-chat-logo">М</div>
+                    <div class="no-chat-title">Mesht</div>
+                    <div class="no-chat-sub">Выберите чат чтобы начать общение</div>
+                </div>
+            </div>
             <div class="messages" id="messages"></div>
             <div class="typing-indicator" id="typingIndicator"></div>
             <div id="replyBar" class="reply-bar" style="display:none;">
@@ -214,7 +255,7 @@
                 </div>
                 <button class="reply-bar-close" onclick="editingMsgId ? cancelInlineEdit() : clearReply()">✕</button>
             </div>
-            <div class="input-area" style="position:relative;">
+            <div class="input-area" id="inputArea" style="position:relative; display:none;">
                 <div class="emoji-picker-panel" id="emojiPickerPanel">
                     <div class="emoji-categories" id="emojiCategories"></div>
                     <div class="emoji-grid" id="emojiGrid"></div>

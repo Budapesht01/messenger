@@ -1,0 +1,8 @@
+[{
+      "relation": ["delegate_permission/common.handle_all_urls"],
+      "target": {
+        "namespace": "android_app",
+        "package_name": "org.budapesht.twa",
+        "sha256_cert_fingerprints": ["12:F4:E6:88:F3:AB:59:38:74:1C:55:FA:EA:20:C2:A3:7F:EF:3E:98:A6:3C:E3:1A:67:43:93:91:48:AE:FE:01"]
+      }
+    }]

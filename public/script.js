@@ -169,11 +169,15 @@ function initSocket(token) {
     socket.on('connect', () => console.log('connected'));
     socket.on('history', () => {});
 
-    socket.on('private_message', (msg) => {
-        if (currentChat === msg.from || currentChat === msg.to) {
+   socket.on('private_message', (msg) => {
+        const isOwn = msg.from === currentUser?.username;
+        const chatPartner = isOwn ? msg.to : msg.from;
+        if (currentChat === chatPartner) {
+            // Не добавлять дубликат если сообщение уже есть в DOM
+            if (msg._id && document.querySelector(`.message[data-id="${msg._id}"]`)) return;
             addMessageToChat(msg);
-            markRead(msg.from);
-        } else {
+            if (!isOwn) markRead(msg.from);
+        } else if (!isOwn) {
             unreadCounts[msg.from] = (unreadCounts[msg.from] || 0) + 1;
             updateUnreadBadge(msg.from);
             showNotification(`💬 ${msg.from}: ${msg.text || '📷 Фото'}`);
@@ -231,14 +235,14 @@ function initSocket(token) {
     });
 
     socket.on('messages_read', (data) => {
-        // data.by = кто прочитал, data.chatWith = с кем чат (это username отправителя)
-        const reader = data.by;
-        if (currentChat === reader) {
-            document.querySelectorAll('.message.own .read-status').forEach(el => {
-                el.innerHTML = '✓✓'; el.classList.add('read');
-            });
-        }
-    });
+            const reader = data.by;
+            // Обновить галочки если читает наш собеседник
+            if (currentChat === reader || data.chatWith === currentUser?.username) {
+                document.querySelectorAll('.message.own .read-status').forEach(el => {
+                    el.innerHTML = '✓✓'; el.classList.add('read');
+                });
+            }
+        });
 
     socket.on('private_message_sent', (data) => {
         // Сервер подтвердил — сообщение доставлено, галочка одна
@@ -358,7 +362,30 @@ function clearReply() {
     replyingTo = null;
     document.getElementById('replyBar').style.display = 'none';
 }
+document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && (currentChat || currentGroupId)) {
+        currentChat = null;
+        currentGroupId = null;
+        document.getElementById('noChatSelected').style.display = 'flex';
+        document.getElementById('inputArea').style.display = 'none';
+        document.querySelector('.chat-title').innerText = 'Выберите чат';
+        document.getElementById('chatMenuWrap').style.display = 'none';
+        document.getElementById('groupMenuWrap').style.display = 'none';
+        document.getElementById('messages').innerHTML = '';
+        document.getElementById('noChatSelected').style.display = 'flex';
+        document.getElementById('inputArea').style.display = 'none';
+        if (window.innerWidth <= 425) {
+            sidebar.classList.add('open');
+        }
+    }
+});
 
+document.addEventListener('visibilitychange', () => {
+    if (!document.hidden && currentChat) markRead(currentChat);
+});
+window.addEventListener('focus', () => {
+    if (currentChat) markRead(currentChat);
+});
 async function markRead(fromUser) {
     const token = localStorage.getItem('token');
     await fetch('/api/messages/read', {
@@ -531,33 +558,15 @@ function openMsgMenu(msg, msgDiv, isOwn, e) {
 
     // Реакция — всегда
     if (!msg.deleted) {
-        items.push({ icon: '😊', label: 'Реакция', action: () => {
-            closeMsgMenu();
-            openReactionPicker(msg._id, msgDiv.querySelector('.message-bubble'));
-        }});
-    }
-
-    // Ответить — всегда
-    items.push({ icon: '↩', label: 'Ответить', action: () => {
-        closeMsgMenu();
-        setReply(msg._id, msg.from, msg.text);
-    }});
-
-    // Редактировать — только своё и не удалённое
-    if (isOwn && !msg.deleted && msg.text) {
-        items.push({ icon: '✎', label: 'Редактировать', action: () => {
-            closeMsgMenu();
-            openEditModal(msg);
-        }});
-    }
-
-    // Удалить — только своё и не удалённое
-    if (isOwn && !msg.deleted) {
-        items.push({ icon: '🗑', label: 'Удалить', danger: true, action: () => {
-            closeMsgMenu();
-            openDeleteModal(msg._id);
-        }});
-    }
+    items.push({ icon: '↩️', label: 'Ответить', action: () => { closeMsgMenu(); setReply(msg._id, msg.from, msg.text); }});
+    items.push({ icon: '😊', label: 'Реакция', action: () => { closeMsgMenu(); openReactionPicker(msg._id, msgDiv.querySelector('.message-bubble')); }});
+    items.push({ icon: '📌', label: msg.pinned ? 'Открепить' : 'Закрепить', action: () => { closeMsgMenu(); togglePin(msg._id); }});
+    items.push({ icon: '📤', label: 'Переслать', action: () => { closeMsgMenu(); openForwardModal(msg._id); }});
+    if (msg.text) items.push({ icon: '📋', label: 'Копировать текст', action: () => { closeMsgMenu(); navigator.clipboard.writeText(msg.text); }});
+    items.push({ icon: '☑️', label: 'Выделить', action: () => { closeMsgMenu(); toggleSelectMode(msg._id); }});
+    if (isOwn && msg.text) items.push({ icon: '✎', label: 'Редактировать', action: () => { closeMsgMenu(); openEditModal(msg); }});
+    if (isOwn) items.push({ icon: '🗑', label: 'Удалить', danger: true, action: () => { closeMsgMenu(); openDeleteModal(msg._id); }});
+}
 
     items.forEach(item => {
         const btn = document.createElement('button');
@@ -598,6 +607,122 @@ function closeMsgMenuOnOutside(e) {
 
 function closeMsgMenu() {
     document.getElementById('msgContextMenu')?.remove();
+}
+
+// Закрепление
+async function togglePin(msgId) {
+    const token = localStorage.getItem('token');
+    const res = await fetch(`/api/messages/${msgId}/pin`, { method: 'POST', headers: { Authorization: 'Bearer ' + token } });
+    if (res.ok) {
+        const data = await res.json();
+        const bubble = document.querySelector(`.message[data-id="${msgId}"] .message-bubble`);
+        if (bubble) {
+            bubble.classList.toggle('pinned-msg', data.pinned);
+            let pin = bubble.querySelector('.pin-badge');
+            if (data.pinned && !pin) {
+                pin = document.createElement('span');
+                pin.className = 'pin-badge';
+                pin.innerText = '📌';
+                bubble.appendChild(pin);
+            } else if (!data.pinned && pin) pin.remove();
+        }
+    }
+}
+
+// Пересылка
+let forwardMsgId = null;
+function openForwardModal(msgId) {
+    forwardMsgId = msgId;
+    const modal = document.getElementById('forwardModal');
+    if (!modal) return buildForwardModal(msgId);
+    document.getElementById('forwardList').innerHTML = '';
+    buildForwardList();
+    modal.classList.add('open');
+}
+
+function buildForwardModal(msgId) {
+    const modal = document.createElement('div');
+    modal.className = 'modal-overlay';
+    modal.id = 'forwardModal';
+    modal.innerHTML = `
+        <div class="modal-card narrow">
+            <div class="modal-header">
+                <h3>Переслать</h3>
+                <button class="modal-close" onclick="document.getElementById('forwardModal').classList.remove('open')">✕</button>
+            </div>
+            <div class="modal-body">
+                <div id="forwardList" style="max-height:300px; overflow-y:auto;"></div>
+            </div>
+        </div>`;
+    document.body.appendChild(modal);
+    buildForwardList();
+    modal.classList.add('open');
+}
+
+async function buildForwardList() {
+    const token = localStorage.getItem('token');
+    const res = await fetch('/api/friends', { headers: { Authorization: 'Bearer ' + token } });
+    if (!res.ok) return;
+    const friends = await res.json();
+    const list = document.getElementById('forwardList');
+    list.innerHTML = '';
+    friends.forEach(f => {
+        const btn = document.createElement('button');
+        btn.className = 'forward-friend-btn';
+        btn.innerHTML = `<span style="margin-right:8px">${f.avatar || '😀'}</span>${f.username}`;
+        btn.onclick = async () => {
+            const t = localStorage.getItem('token');
+            await fetch('/api/messages/forward', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + t }, body: JSON.stringify({ messageId: forwardMsgId, to: f.username }) });
+            document.getElementById('forwardModal').classList.remove('open');
+        };
+        list.appendChild(btn);
+    });
+}
+
+// Выделение
+let selectedMessages = new Set();
+let selectMode = false;
+
+function toggleSelectMode(msgId) {
+    selectMode = true;
+    selectedMessages.add(msgId);
+    const el = document.querySelector(`.message[data-id="${msgId}"]`);
+    if (el) el.classList.add('selected-msg');
+    showSelectBar();
+}
+
+function showSelectBar() {
+    let bar = document.getElementById('selectBar');
+    if (!bar) {
+        bar = document.createElement('div');
+        bar.id = 'selectBar';
+        bar.className = 'select-bar';
+        bar.innerHTML = `<span id="selectCount">1 сообщение</span><div style="display:flex;gap:8px"><button onclick="forwardSelected()">📤 Переслать</button><button onclick="deleteSelected()" style="color:var(--danger,#f36a6a)">🗑 Удалить</button><button onclick="cancelSelect()">✕</button></div>`;
+        document.querySelector('.main').appendChild(bar);
+    }
+    document.getElementById('selectCount').innerText = `${selectedMessages.size} сообщ.`;
+}
+
+function cancelSelect() {
+    selectMode = false;
+    selectedMessages.clear();
+    document.querySelectorAll('.selected-msg').forEach(el => el.classList.remove('selected-msg'));
+    document.getElementById('selectBar')?.remove();
+}
+
+async function deleteSelected() {
+    const token = localStorage.getItem('token');
+    for (const id of selectedMessages) {
+        await fetch(`/api/messages/${id}`, { method: 'DELETE', headers: { Authorization: 'Bearer ' + token } });
+        document.querySelector(`.message[data-id="${id}"]`)?.remove();
+    }
+    cancelSelect();
+}
+
+function forwardSelected() {
+    const ids = [...selectedMessages];
+    cancelSelect();
+    if (ids.length > 0) openForwardModal(ids[0]);
 }
 
 // Редактирование inline
@@ -710,6 +835,8 @@ function restoreDraft(key) {
 function switchChat(username) {
     saveDraft();
     currentChat = username; currentGroupId = null;
+    document.getElementById('noChatSelected').style.display = 'none';
+    document.getElementById('inputArea').style.display = 'flex';
     document.querySelector('.chat-title').innerText = username;
     document.getElementById('groupInfoBtn').style.display = 'none';
     document.getElementById('chatMenuWrap').style.display = 'flex';
@@ -725,6 +852,8 @@ function switchChat(username) {
 async function switchGroupChat(groupId, groupName) {
     saveDraft();
     currentGroupId = groupId; currentChat = null;
+    document.getElementById('noChatSelected').style.display = 'none';
+    document.getElementById('inputArea').style.display = 'flex';
     document.querySelector('.chat-title').innerText = groupName;
     document.getElementById('groupInfoBtn').style.display = 'none';
     document.getElementById('groupMenuWrap').style.display = 'flex';
@@ -1259,9 +1388,13 @@ const themes = [
     { id: 'green', name: 'Зелёная',  sidebar: 'rgba(6,13,15,0.9)',  main: '#091412',  own: 'rgba(0,168,100,0.35)', other: 'rgba(255,255,255,0.08)' },
 ];
 
+const themeColors = { dark: '#0a0f1e', light: '#f0f4fb', gray: '#151618', green: '#091412' };
+
 function applyTheme(themeId) {
     document.documentElement.setAttribute('data-theme', themeId);
     localStorage.setItem('theme', themeId);
+    const meta = document.getElementById('themeColorMeta');
+    if (meta) meta.setAttribute('content', themeColors[themeId] || '#0a0f1e');
     document.querySelectorAll('.theme-card').forEach(card => {
         card.classList.toggle('active', card.dataset.theme === themeId);
     });
@@ -1292,6 +1425,25 @@ function initThemePanel() {
 }
 
 window.onload = () => {
+    // Убираем splash screen
+const splash = document.getElementById('splashScreen');
+if (splash) {
+    // Запускаем анимацию входа
+    requestAnimationFrame(() => {
+        document.getElementById('splashLogo').style.opacity = '1';
+        document.getElementById('splashLogo').style.transform = 'scale(1) translateY(0)';
+        document.getElementById('splashTitle').style.opacity = '1';
+        document.getElementById('splashTitle').style.transform = 'translateY(0)';
+        document.getElementById('splashSub').style.opacity = '1';
+        document.getElementById('splashSub').style.transform = 'translateY(0)';
+        document.getElementById('splashDots').style.opacity = '1';
+    });
+    // Убираем через 1.8 сек
+    setTimeout(() => {
+        splash.style.opacity = '0';
+        setTimeout(() => splash.remove(), 500);
+    }, 1800);
+}
     // Применяем сохранённую тему
     const savedTheme = localStorage.getItem('theme') || 'dark';
     document.documentElement.setAttribute('data-theme', savedTheme);
@@ -1504,7 +1656,7 @@ async function openAdminPanel() {
         <div style="display:flex; align-items:center; gap:10px; padding:8px 10px; border-radius:8px; background:rgba(255,255,255,0.03); margin-bottom:4px;">
             <span style="font-size:20px;">${u.avatar || '😀'}</span>
             <span style="flex:1; font-size:13px; color:var(--text-primary);">${escapeHtml(u.username)}</span>
-            <span style="font-size:11px; color:${u.online ? '#22c55e' : 'var(--text-secondary)'};">${u.online ? '● онлайн' : 'офлайн'}</span>
+            <span style="font-size:11px; color:${u.online ? '#22c55e' : 'var(--text-secondary)'};">${u.online ? '● online' : 'ofline'}</span>
             ${u.username !== 'Budapesht' ? `<button onclick="adminDeleteUser('${escapeHtml(u.username)}')" style="background:rgba(239,68,68,0.1); border:none; color:#ef4444; border-radius:6px; padding:3px 8px; cursor:pointer; font-size:12px;">🗑</button>` : '<span style="font-size:11px; color:gold;">👑</span>'}
         </div>
     `).join('');
@@ -1701,3 +1853,13 @@ document.addEventListener('DOMContentLoaded', () => {
     const btn = document.getElementById('langToggleBtn');
     if (btn) btn.innerText = currentLang === 'ru' ? 'EN' : 'RU';
 });
+
+
+// ========== PWA Service Worker ==========
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/sw.js')
+      .then(reg => console.log('SW registered:', reg.scope))
+      .catch(err => console.log('SW error:', err));
+  });
+}

@@ -11,6 +11,7 @@ const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
 const rateLimit = require('express-rate-limit');
+const helmet = require('helmet');
 
 // Rate limiters
 const authLimiter = rateLimit({
@@ -34,12 +35,28 @@ const apiLimiter = rateLimit({
 });
 const app = express();
 app.set('trust proxy', 1);
+app.use(helmet({
+  contentSecurityPolicy: false, // включи и настрой отдельно если нужно
+  crossOriginEmbedderPolicy: false
+}));
 const server = http.createServer(app);
-const io = new Server(server, { cors: { origin: process.env.SITE_URL || '*', methods: ["GET", "POST"] } });
-
-app.use(cors({ origin: process.env.SITE_URL || '*' }));
+const allowedOrigins = process.env.SITE_URL ? [process.env.SITE_URL] : [];
+const io = new Server(server, { cors: { origin: allowedOrigins, methods: ["GET", "POST"] } });
+app.use(cors({ origin: allowedOrigins }));
 app.use(express.json());
 app.use(express.static('public'));
+app.get('/.well-known/assetlinks.json', (req, res) => {
+  res.json([       
+    {
+      "relation": ["delegate_permission/common.handle_all_urls"],
+      "target": {
+        "namespace": "android_app",
+        "package_name": "org.budapesht.twa",
+        "sha256_cert_fingerprints": ["12:F4:E6:88:F3:AB:59:38:74:1C:55:FA:EA:20:C2:A3:7F:EF:3E:98:A6:3C:E3:1A:67:43:93:91:48:AE:FE:01"]
+      }
+    }
+  ]);
+});
 app.use('/api/', apiLimiter);
 app.use('/api/login', authLimiter);
 app.use('/api/register/verify', authLimiter);
@@ -61,10 +78,15 @@ const upload = multer({
   storage,
   limits: { fileSize: 10 * 1024 * 1024 }, // 10mb
   fileFilter: (req, file, cb) => {
-    const allowed = ['.jpg', '.jpeg', '.png', '.gif', '.webp'];
-    const ext = path.extname(file.originalname).toLowerCase();
-    cb(null, allowed.includes(ext));
+  const allowedExts = ['.jpg', '.jpeg', '.png', '.gif', '.webp'];
+  const allowedMimes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+  const ext = path.extname(file.originalname).toLowerCase();
+  if (allowedExts.includes(ext) && allowedMimes.includes(file.mimetype)) {
+    cb(null, true);
+  } else {
+    cb(new Error('Only image files allowed'), false);
   }
+}
 });
 
 if (!process.env.MONGODB_URI || !process.env.JWT_SECRET) {
@@ -116,6 +138,8 @@ const MessageSchema = new mongoose.Schema({
   timestamp: { type: Date, default: Date.now },
   edited: { type: Boolean, default: false },
   deleted: { type: Boolean, default: false },
+  pinned: { type: Boolean, default: false },
+  forwardedFrom: { type: String, default: null },
   color: { type: String, default: '#6ab0f3' },
   avatar: { type: String, default: '😀' }
 });
@@ -157,7 +181,8 @@ const authenticateJWT = (req, res, next) => {
   });
 };
 
-const ADMIN_USERNAME = 'Budapesht';
+const ADMIN_USERNAME = process.env.ADMIN_USERNAME
+
 const RESEND_API_KEY = process.env.RESEND_API_KEY;
 
 function sendMail(to, subject, html) {
@@ -682,6 +707,42 @@ app.delete('/api/admin/users/:username/messages', authenticateJWT, requireAdmin,
   res.json({ message: `Удалено ${result.deletedCount} сообщений` });
 });
 
+// Закрепить/открепить сообщение
+app.post('/api/messages/:id/pin', authenticateJWT, async (req, res) => {
+    const msg = await Message.findById(req.params.id);
+    if (!msg) return res.status(404).json({ error: 'Not found' });
+    msg.pinned = !msg.pinned;
+    await msg.save();
+    res.json({ pinned: msg.pinned });
+});
+
+// Переслать сообщение
+app.post('/api/messages/forward', authenticateJWT, async (req, res) => {
+    const { messageId, to, groupId } = req.body;
+    const orig = await Message.findById(messageId);
+    if (!orig) return res.status(404).json({ error: 'Not found' });
+    const user = await User.findOne({ username: req.user.username });
+    const newMsg = new Message({
+        from: req.user.username,
+        to: to || null,
+        groupId: groupId || null,
+        text: orig.text,
+        imageUrl: orig.imageUrl || null,
+        forwardedFrom: orig.from,
+        color: user.color,
+        avatar: user.avatar
+    });
+    await newMsg.save();
+    const populated = newMsg.toObject();
+    if (to) {
+        const recipient = await User.findOne({ username: to });
+        if (recipient?.socketId) io.to(recipient.socketId).emit('new_message', populated);
+    } else if (groupId) {
+        io.to(`group:${groupId}`).emit('new_group_message', populated);
+    }
+    res.json(populated);
+});
+
 // ========== Socket.IO ==========
 io.use(async (socket, next) => {
   const token = socket.handshake.auth.token;
@@ -701,6 +762,20 @@ io.use(async (socket, next) => {
 });
 
 io.on('connection', async (socket) => {
+
+socket.on('mark_read', async ({ chatWith }) => {
+    const user = await User.findOne({ socketId: socket.id });
+    if (!user) return;
+    await Message.updateMany(
+        { from: chatWith, to: user.username, deleted: false, readBy: { $ne: user.username } },
+        { $addToSet: { readBy: user.username } }
+    );
+    const chatUser = await User.findOne({ username: chatWith });
+    if (chatUser?.socketId) {
+        io.to(chatUser.socketId).emit('messages_read', { by: user.username, chatWith: chatWith });
+    }
+});
+  
   const user = socket.user;
   await User.updateOne({ username: user.username }, { online: true, socketId: socket.id, lastSeen: new Date() });
   const userDoc = await User.findOne({ username: user.username });
