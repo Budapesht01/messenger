@@ -138,6 +138,8 @@ const MessageSchema = new mongoose.Schema({
   timestamp: { type: Date, default: Date.now },
   edited: { type: Boolean, default: false },
   deleted: { type: Boolean, default: false },
+  pinned: { type: Boolean, default: false },
+  forwardedFrom: { type: String, default: null },
   color: { type: String, default: '#6ab0f3' },
   avatar: { type: String, default: '😀' }
 });
@@ -703,6 +705,42 @@ app.delete('/api/admin/messages/cleanup/deleted', authenticateJWT, requireAdmin,
 app.delete('/api/admin/users/:username/messages', authenticateJWT, requireAdmin, async (req, res) => {
   const result = await Message.deleteMany({ from: req.params.username });
   res.json({ message: `Удалено ${result.deletedCount} сообщений` });
+});
+
+// Закрепить/открепить сообщение
+app.post('/api/messages/:id/pin', authenticateJWT, async (req, res) => {
+    const msg = await Message.findById(req.params.id);
+    if (!msg) return res.status(404).json({ error: 'Not found' });
+    msg.pinned = !msg.pinned;
+    await msg.save();
+    res.json({ pinned: msg.pinned });
+});
+
+// Переслать сообщение
+app.post('/api/messages/forward', authenticateJWT, async (req, res) => {
+    const { messageId, to, groupId } = req.body;
+    const orig = await Message.findById(messageId);
+    if (!orig) return res.status(404).json({ error: 'Not found' });
+    const user = await User.findOne({ username: req.user.username });
+    const newMsg = new Message({
+        from: req.user.username,
+        to: to || null,
+        groupId: groupId || null,
+        text: orig.text,
+        imageUrl: orig.imageUrl || null,
+        forwardedFrom: orig.from,
+        color: user.color,
+        avatar: user.avatar
+    });
+    await newMsg.save();
+    const populated = newMsg.toObject();
+    if (to) {
+        const recipient = await User.findOne({ username: to });
+        if (recipient?.socketId) io.to(recipient.socketId).emit('new_message', populated);
+    } else if (groupId) {
+        io.to(`group:${groupId}`).emit('new_group_message', populated);
+    }
+    res.json(populated);
 });
 
 // ========== Socket.IO ==========
