@@ -239,6 +239,13 @@
                     </div>
                 </div>
             </div>
+            <div class="no-chat-selected" id="noChatSelected">
+                <div class="no-chat-inner">
+                    <div class="no-chat-logo">М</div>
+                    <div class="no-chat-title">Mesht</div>
+                    <div class="no-chat-sub">Выберите чат чтобы начать общение</div>
+                </div>
+            </div>
             <div class="messages" id="messages"></div>
             <div class="typing-indicator" id="typingIndicator"></div>
             <div id="replyBar" class="reply-bar" style="display:none;">
@@ -248,7 +255,7 @@
                 </div>
                 <button class="reply-bar-close" onclick="editingMsgId ? cancelInlineEdit() : clearReply()">✕</button>
             </div>
-            <div class="input-area" style="position:relative;">
+            <div class="input-area" id="inputArea" style="position:relative; display:none;">
                 <div class="emoji-picker-panel" id="emojiPickerPanel">
                     <div class="emoji-categories" id="emojiCategories"></div>
                     <div class="emoji-grid" id="emojiGrid"></div>
