@@ -695,7 +695,6 @@ if (fwdRes.ok) {
     if (currentChat === f.username) addMessageToChat(fwdMsg);
 }
 closeForwardPanel();
-closeForwardPanel();
         };
         list.appendChild(btn);
     });
