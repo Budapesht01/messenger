@@ -44,14 +44,19 @@
     --dropdown-bg: #2b2b2b;
 }
 
+html, body {
+    height: 100%;
+    margin: 0;
+}
 body {
     font-family: var(--font);
     background: var(--bg-gradient);
     min-height: 100vh;
-    height: 100dvh;
     overflow: hidden;
     color: var(--text-primary);
     position: relative;
+    display: flex;
+    flex-direction: column;
 }
 
  to { transform: translate(-60px, -80px) scale(1.15); } }
