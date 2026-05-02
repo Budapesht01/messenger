@@ -736,9 +736,11 @@ app.post('/api/messages/forward', authenticateJWT, async (req, res) => {
     const populated = newMsg.toObject();
     if (to) {
         const recipient = await User.findOne({ username: to });
-        if (recipient?.socketId) io.to(recipient.socketId).emit('new_message', populated);
+        if (recipient?.socketId) io.to(recipient.socketId).emit('private_message', populated);
+        const sender = await User.findOne({ username: req.user.username });
+        if (sender?.socketId) io.to(sender.socketId).emit('private_message', populated);
     } else if (groupId) {
-        io.to(`group:${groupId}`).emit('new_group_message', populated);
+        io.to(`group:${groupId}`).emit('group_message', populated);
     }
     res.json(populated);
 });
