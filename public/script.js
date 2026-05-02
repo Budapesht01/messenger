@@ -492,7 +492,9 @@ function addMessageToChat(msg) {
 
     // Image
     let imageHtml = '';
-    if (msg.imageUrl) {
+    if (msg.audioUrl) {
+        imageHtml = `<audio controls src="${escapeHtml(msg.audioUrl)}" style="max-width:220px;width:100%;margin-top:4px;border-radius:8px;"></audio>`;
+    } else if (msg.imageUrl) {
         imageHtml = `<img src="${escapeHtml(msg.imageUrl)}" class="msg-image" onclick="openImageModal('${escapeHtml(msg.imageUrl)}')" loading="lazy">`;
     }
 
@@ -1889,4 +1891,46 @@ if ('serviceWorker' in navigator) {
       .then(reg => console.log('SW registered:', reg.scope))
       .catch(err => console.log('SW error:', err));
   });
+}
+
+// ========== Голосовые сообщения ==========
+let voiceRecorder = null;
+let voiceChunks = [];
+
+async function startVoiceRecord() {
+    try {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        voiceChunks = [];
+        voiceRecorder = new MediaRecorder(stream);
+        voiceRecorder.ondataavailable = e => voiceChunks.push(e.data);
+        voiceRecorder.onstop = async () => {
+            stream.getTracks().forEach(t => t.stop());
+            const blob = new Blob(voiceChunks, { type: 'audio/webm' });
+            if (blob.size < 1000) return;
+            const formData = new FormData();
+            formData.append('image', blob, 'voice.webm');
+            const token = localStorage.getItem('token');
+            const res = await fetch('/api/upload', { method: 'POST', headers: { Authorization: 'Bearer ' + token }, body: formData });
+            const data = await res.json();
+            if (!data.imageUrl) return;
+            const replyData = currentReplyId ? { messageId: currentReplyId, from: currentReplyFrom, text: currentReplyText } : null;
+            if (currentGroupId) {
+                socket.emit('send_group_message', { groupId: currentGroupId, text: '', audioUrl: data.imageUrl, replyTo: replyData });
+            } else if (currentChat) {
+                socket.emit('send_message', { to: currentChat, text: '', audioUrl: data.imageUrl, replyTo: replyData });
+            }
+            clearReply();
+        };
+        voiceRecorder.start();
+        document.getElementById('voiceBtn').style.background = 'var(--accent)';
+    } catch (e) {
+        alert('Нет доступа к микрофону');
+    }
+}
+
+function stopVoiceRecord() {
+    if (voiceRecorder && voiceRecorder.state === 'recording') {
+        voiceRecorder.stop();
+        document.getElementById('voiceBtn').style.background = 'var(--glass-card)';
+    }
 }
