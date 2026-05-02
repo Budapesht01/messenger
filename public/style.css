@@ -8,40 +8,40 @@
 :root {
     --font: 'DM Sans', -apple-system, sans-serif;
 
-    /* Glass palette */
-    --bg-gradient: linear-gradient(135deg, #0d0e1a 0%, #0a0f1e 40%, #0d1117 100%);
-    --glass-sidebar: rgba(255, 255, 255, 0.04);
-    --glass-header:  rgba(255, 255, 255, 0.03);
-    --glass-input:   rgba(255, 255, 255, 0.06);
-    --glass-message-own:   rgba(99, 160, 255, 0.22);
-    --glass-message-other: rgba(255, 255, 255, 0.07);
-    --glass-card: rgba(255, 255, 255, 0.05);
-    --glass-hover: rgba(255, 255, 255, 0.08);
+    --bg-gradient: #212121;
+    --glass-sidebar: #2b2b2b;
+    --glass-header:  #2b2b2b;
+    --glass-input:   #3a3a3a;
+    --glass-message-own:   #2b5278;
+    --glass-message-other: #2b2b2b;
+    --glass-card: #2b2b2b;
+    --glass-hover: rgba(255,255,255,0.07);
 
-    --border: rgba(255, 255, 255, 0.08);
-    --border-strong: rgba(255, 255, 255, 0.14);
+    --border: rgba(255,255,255,0.06);
+    --border-strong: rgba(255,255,255,0.10);
 
-    --accent: #63a0ff;
-    --accent-glow: rgba(99, 160, 255, 0.35);
-    --accent-dim: rgba(99, 160, 255, 0.15);
+    --accent: #5588cc;
+    --accent-glow: rgba(85,136,204,0.2);
+    --accent-dim: rgba(85,136,204,0.15);
 
-    --text-primary:   #f0f2f8;
-    --text-secondary: rgba(240, 242, 248, 0.45);
-    --text-muted:     rgba(240, 242, 248, 0.25);
+    --text-primary:   #e8e8e8;
+    --text-secondary: rgba(232,232,232,0.45);
+    --text-muted:     rgba(232,232,232,0.28);
 
-    --blur-sm: blur(12px);
-    --blur-md: blur(20px);
-    --blur-lg: blur(32px);
+    --blur-sm: blur(0px);
+    --blur-md: blur(0px);
+    --blur-lg: blur(0px);
 
-    --radius-sm:  10px;
-    --radius-md:  16px;
-    --radius-lg:  22px;
-    --radius-xl:  28px;
-    --radius-msg: 20px;
+    --radius-sm:  8px;
+    --radius-md:  12px;
+    --radius-lg:  16px;
+    --radius-xl:  20px;
+    --radius-msg: 18px;
 
-    --shadow-sm: 0 2px 12px rgba(0,0,0,0.3);
-    --shadow-md: 0 8px 32px rgba(0,0,0,0.4);
-    --shadow-lg: 0 20px 60px rgba(0,0,0,0.5);
+    --shadow-sm: 0 1px 4px rgba(0,0,0,0.3);
+    --shadow-md: 0 4px 16px rgba(0,0,0,0.4);
+    --shadow-lg: 0 8px 32px rgba(0,0,0,0.5);
+    --dropdown-bg: #2b2b2b;
 }
 
 body {
@@ -54,29 +54,7 @@ body {
     position: relative;
 }
 
-/* Animated background orbs */
-body::before, body::after {
-    content: '';
-    position: fixed;
-    border-radius: 50%;
-    filter: blur(80px);
-    pointer-events: none;
-    z-index: 0;
-}
-body::before {
-    width: 600px; height: 600px;
-    background: radial-gradient(circle, rgba(99,160,255,0.07) 0%, transparent 70%);
-    top: -200px; left: -100px;
-    animation: orb1 18s ease-in-out infinite alternate;
-}
-body::after {
-    width: 500px; height: 500px;
-    background: radial-gradient(circle, rgba(120,80,255,0.06) 0%, transparent 70%);
-    bottom: -150px; right: -100px;
-    animation: orb2 22s ease-in-out infinite alternate;
-}
-@keyframes orb1 { from { transform: translate(0,0) scale(1); } to { transform: translate(80px, 60px) scale(1.2); } }
-@keyframes orb2 { from { transform: translate(0,0) scale(1); } to { transform: translate(-60px, -80px) scale(1.15); } }
+ to { transform: translate(-60px, -80px) scale(1.15); } }
 
 /* ============================================================
    AUTH
@@ -92,23 +70,12 @@ body::after {
 
 .auth-card {
     background: var(--glass-card);
-    backdrop-filter: var(--blur-lg);
-    -webkit-backdrop-filter: var(--blur-lg);
     border: 1px solid var(--border-strong);
     padding: 2.5rem 2rem;
     border-radius: var(--radius-xl);
     width: 340px;
     text-align: center;
-    box-shadow: var(--shadow-lg), inset 0 1px 0 rgba(255,255,255,0.08);
-    position: relative;
-    overflow: hidden;
-}
-.auth-card::before {
-    content: '';
-    position: absolute;
-    top: 0; left: 0; right: 0;
-    height: 1px;
-    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+    box-shadow: var(--shadow-md);
 }
 
 .auth-card h2 {
@@ -136,7 +103,6 @@ body::after {
     font-size: 14px;
     outline: none;
     transition: border-color 0.2s, background 0.2s;
-    backdrop-filter: var(--blur-sm);
 }
 .auth-card input:focus {
     border-color: var(--accent);
@@ -176,9 +142,8 @@ body::after {
 .auth-buttons button:last-child {
     background: var(--accent);
     color: #fff;
-    box-shadow: 0 0 20px var(--accent-glow);
 }
-.auth-buttons button:last-child:hover { opacity: 0.88; transform: translateY(-1px); }
+.auth-buttons button:last-child:hover { opacity: 0.88; }
 
 .error {
     color: #ff7b7b;
@@ -204,8 +169,6 @@ body::after {
 .sidebar {
     width: 300px;
     background: var(--glass-sidebar);
-    backdrop-filter: var(--blur-md);
-    -webkit-backdrop-filter: var(--blur-md);
     border-right: 1px solid var(--border);
     display: flex;
     flex-direction: column;
@@ -310,7 +273,6 @@ body::after {
     border-radius: 50%;
     background: #4ade80;
     flex-shrink: 0;
-    box-shadow: 0 0 6px rgba(74,222,128,0.6);
 }
 
 .unread-badge {
@@ -324,7 +286,6 @@ body::after {
     min-width: 18px;
     text-align: center;
     flex-shrink: 0;
-    box-shadow: 0 0 10px var(--accent-glow);
 }
 
 .empty-hint {
@@ -342,7 +303,6 @@ body::after {
     border: 1px solid var(--border);
     border-radius: var(--radius-md);
     background: var(--glass-input);
-    backdrop-filter: var(--blur-sm);
     color: var(--text-primary);
     font-family: var(--font);
     font-size: 13px;
@@ -495,7 +455,6 @@ body::after {
 .avatar-emoji-panel {
     display: none;
     background: var(--glass-card);
-    backdrop-filter: var(--blur-lg);
     border: 1px solid var(--border);
     border-radius: var(--radius-md);
     padding: 10px;
@@ -568,10 +527,9 @@ body::after {
     cursor: pointer;
     transition: all 0.2s;
     margin-bottom: 0;
-    box-shadow: 0 0 20px var(--accent-glow);
     box-sizing: border-box;
 }
-.primary-btn:hover { opacity: 0.85; transform: translateY(-1px); }
+.primary-btn:hover { opacity: 0.85; }
 .primary-btn.small-btn { width: auto; padding: 8px 16px; font-size: 13px; margin-bottom: 0; }
 
 .settings-divider {
@@ -657,8 +615,6 @@ body::after {
 .chat-header {
     padding: 12px 18px;
     background: var(--glass-header);
-    backdrop-filter: var(--blur-md);
-    -webkit-backdrop-filter: var(--blur-md);
     border-bottom: 1px solid var(--border);
     display: flex;
     align-items: center;
@@ -747,11 +703,12 @@ body::after {
 }
 .message.own .message-bubble {
     background: var(--glass-message-own);
-    border-color: rgba(99,160,255,0.2);
-    border-bottom-right-radius: 6px;
+    border: none;
+    border-bottom-right-radius: 4px;
 }
 .message.other .message-bubble {
-    border-bottom-left-radius: 6px;
+    border: none;
+    border-bottom-left-radius: 4px;
 }
 
 .msg-sender {
@@ -825,8 +782,6 @@ body::after {
     position: absolute;
     top: 50%;
     background: rgba(15,17,30,0.9);
-    backdrop-filter: var(--blur-md);
-    -webkit-backdrop-filter: var(--blur-md);
     border: 1px solid var(--border-strong);
     border-radius: 10px;
     padding: 3px;
@@ -873,7 +828,6 @@ body::after {
     display: flex;
     align-items: center;
     gap: 3px;
-    backdrop-filter: var(--blur-sm);
 }
 .reaction-btn span { font-size: 11px; color: var(--text-secondary); }
 .reaction-btn:hover { background: var(--glass-hover); border-color: var(--border-strong); }
@@ -882,9 +836,7 @@ body::after {
 
 .reaction-picker {
     position: fixed;
-    background: rgba(12,14,26,0.95);
-    backdrop-filter: var(--blur-lg);
-    -webkit-backdrop-filter: var(--blur-lg);
+    background: var(--glass-card);
     border: 1px solid var(--border-strong);
     border-radius: 14px;
     padding: 6px;
@@ -975,8 +927,6 @@ body::after {
     align-items: center;
     padding: 10px 14px;
     background: var(--glass-header);
-    backdrop-filter: var(--blur-md);
-    -webkit-backdrop-filter: var(--blur-md);
     border-top: 1px solid var(--border);
     gap: 8px;
     flex-shrink: 0;
@@ -990,7 +940,6 @@ body::after {
     border: 1px solid var(--border);
     border-radius: 20px;
     background: var(--glass-input);
-    backdrop-filter: var(--blur-sm);
     color: var(--text-primary);
     font-family: var(--font);
     font-size: 14px;
@@ -1011,7 +960,6 @@ body::after {
     cursor: pointer;
     flex-shrink: 0;
     transition: all 0.2s;
-    box-shadow: 0 0 16px var(--accent-glow);
 }
 .send-btn:hover { opacity: 0.85; transform: scale(1.05); }
 
@@ -1047,9 +995,7 @@ body::after {
     position: absolute;
     bottom: 70px;
     left: 14px;
-    background: rgba(10,12,22,0.96);
-    backdrop-filter: var(--blur-lg);
-    -webkit-backdrop-filter: var(--blur-lg);
+    background: var(--glass-card);
     border: 1px solid var(--border-strong);
     border-radius: var(--radius-lg);
     padding: 10px;
@@ -1107,7 +1053,6 @@ body::after {
     position: fixed;
     inset: 0;
     background: rgba(0,0,0,0.6);
-    backdrop-filter: blur(6px);
     z-index: 2000;
     align-items: center;
     justify-content: center;
@@ -1117,9 +1062,7 @@ body::after {
 .modal-overlay.open { display: flex; }
 
 .modal-card {
-    background: rgba(12,14,26,0.96);
-    backdrop-filter: var(--blur-lg);
-    -webkit-backdrop-filter: var(--blur-lg);
+    background: var(--glass-card);
     border: 1px solid var(--border-strong);
     border-radius: var(--radius-xl);
     width: 100%;
@@ -1172,7 +1115,6 @@ body::after {
     border: 1px solid var(--border);
     border-radius: var(--radius-md);
     background: var(--glass-input);
-    backdrop-filter: var(--blur-sm);
     color: var(--text-primary);
     font-family: var(--font);
     font-size: 14px;
@@ -1247,7 +1189,6 @@ body::after {
     text-align: center;
     border: 1px dashed var(--accent);
     font-family: 'Courier New', monospace;
-    box-shadow: 0 0 20px var(--accent-glow);
 }
 .invite-code-small {
     font-size: 15px;
@@ -1322,58 +1263,58 @@ body::after {
    THEMES
    ============================================================ */
 [data-theme="dark"] {
-    --bg-gradient: linear-gradient(135deg, #0d0e1a 0%, #0a0f1e 40%, #0d1117 100%);
-    --glass-sidebar: rgba(255,255,255,0.04);
-    --glass-header: rgba(255,255,255,0.03);
-    --glass-input: rgba(255,255,255,0.06);
-    --glass-message-own: rgba(99,160,255,0.22);
-    --glass-message-other: rgba(255,255,255,0.07);
-    --glass-card: rgba(255,255,255,0.05);
-    --glass-hover: rgba(255,255,255,0.08);
-    --border: rgba(255,255,255,0.08);
-    --border-strong: rgba(255,255,255,0.14);
-    --accent: #63a0ff;
-    --accent-glow: rgba(99,160,255,0.35);
-    --accent-dim: rgba(99,160,255,0.15);
-    --text-primary: #f0f2f8;
-    --text-secondary: rgba(240,242,248,0.45);
-    --text-muted: rgba(240,242,248,0.25);
-    --dropdown-bg: #1a1d2e;
+    --bg-gradient: #212121;
+    --glass-sidebar: #2b2b2b;
+    --glass-header: #2b2b2b;
+    --glass-input: #3a3a3a;
+    --glass-message-own: #2b5278;
+    --glass-message-other: #333333;
+    --glass-card: #2b2b2b;
+    --glass-hover: rgba(255,255,255,0.07);
+    --border: rgba(255,255,255,0.06);
+    --border-strong: rgba(255,255,255,0.10);
+    --accent: #5588cc;
+    --accent-glow: rgba(85,136,204,0.2);
+    --accent-dim: rgba(85,136,204,0.15);
+    --text-primary: #e8e8e8;
+    --text-secondary: rgba(232,232,232,0.45);
+    --text-muted: rgba(232,232,232,0.28);
+    --dropdown-bg: #2b2b2b;
 }
 
 [data-theme="light"] {
-    --bg-gradient: linear-gradient(135deg, #e8edf5 0%, #f0f4fb 50%, #eaeff7 100%);
-    --glass-sidebar: rgba(255,255,255,0.7);
-    --glass-header: rgba(255,255,255,0.6);
-    --glass-input: rgba(255,255,255,0.8);
-    --glass-message-own: rgba(99,140,255,0.18);
-    --glass-message-other: rgba(255,255,255,0.75);
-    --glass-card: rgba(255,255,255,0.65);
+    --bg-gradient: #f0f4f8;
+    --glass-sidebar: #ffffff;
+    --glass-header: #ffffff;
+    --glass-input: #f0f2f5;
+    --glass-message-own: #d1e8ff;
+    --glass-message-other: #ffffff;
+    --glass-card: #ffffff;
     --glass-hover: rgba(0,0,0,0.05);
     --border: rgba(0,0,0,0.08);
     --border-strong: rgba(0,0,0,0.14);
-    --accent: #4070e8;
-    --accent-glow: rgba(64,112,232,0.3);
-    --accent-dim: rgba(64,112,232,0.1);
-    --text-primary: #1a1d2e;
-    --text-secondary: rgba(26,29,46,0.5);
-    --text-muted: rgba(26,29,46,0.3);
+    --accent: #3d7ab5;
+    --accent-glow: rgba(61,122,181,0.2);
+    --accent-dim: rgba(61,122,181,0.12);
+    --text-primary: #222222;
+    --text-secondary: rgba(34,34,34,0.5);
+    --text-muted: rgba(34,34,34,0.32);
     --dropdown-bg: #ffffff;
 }
 
 [data-theme="gray"] {
-    --bg-gradient: linear-gradient(135deg, #151618 0%, #1a1c1f 50%, #141517 100%);
-    --glass-sidebar: rgba(255,255,255,0.035);
-    --glass-header: rgba(255,255,255,0.025);
-    --glass-input: rgba(255,255,255,0.055);
-    --glass-message-own: rgba(80,100,160,0.3);
-    --glass-message-other: rgba(255,255,255,0.06);
-    --glass-card: rgba(255,255,255,0.04);
-    --glass-hover: rgba(255,255,255,0.07);
+    --bg-gradient: #17181a;
+    --glass-sidebar: #1e2025;
+    --glass-header: #1e2025;
+    --glass-input: #2a2c31;
+    --glass-message-own: #3a4a6b;
+    --glass-message-other: #252729;
+    --glass-card: #1e2025;
+    --glass-hover: rgba(255,255,255,0.06);
     --border: rgba(255,255,255,0.07);
     --border-strong: rgba(255,255,255,0.12);
     --accent: #7b93ff;
-    --accent-glow: rgba(123,147,255,0.3);
+    --accent-glow: rgba(123,147,255,0.2);
     --accent-dim: rgba(123,147,255,0.12);
     --text-primary: #e8eaf0;
     --text-secondary: rgba(232,234,240,0.45);
@@ -1382,23 +1323,23 @@ body::after {
 }
 
 [data-theme="green"] {
-    --bg-gradient: linear-gradient(135deg, #060d0f 0%, #091412 50%, #060e0c 100%);
-    --glass-sidebar: rgba(255,255,255,0.03);
-    --glass-header: rgba(255,255,255,0.025);
-    --glass-input: rgba(255,255,255,0.05);
-    --glass-message-own: rgba(0,168,100,0.28);
-    --glass-message-other: rgba(255,255,255,0.06);
-    --glass-card: rgba(255,255,255,0.04);
-    --glass-hover: rgba(255,255,255,0.07);
+    --bg-gradient: #0e1912;
+    --glass-sidebar: #162218;
+    --glass-header: #162218;
+    --glass-input: #1e2e22;
+    --glass-message-own: #1a4a2e;
+    --glass-message-other: #1a261e;
+    --glass-card: #162218;
+    --glass-hover: rgba(255,255,255,0.06);
     --border: rgba(255,255,255,0.07);
     --border-strong: rgba(255,255,255,0.12);
     --accent: #00c87a;
-    --accent-glow: rgba(0,200,122,0.3);
+    --accent-glow: rgba(0,200,122,0.2);
     --accent-dim: rgba(0,200,122,0.12);
     --text-primary: #e8f0ec;
     --text-secondary: rgba(232,240,236,0.45);
     --text-muted: rgba(232,240,236,0.25);
-    --dropdown-bg: #0d1a16;
+    --dropdown-bg: #162218;
 }
 
 body { background: var(--bg-gradient); }
@@ -1452,7 +1393,7 @@ body { background: var(--bg-gradient); }
     border-radius: 50%;
     background: #4ade80;
     border: 2px solid var(--bg-sidebar, #1f1f1f);
-    box-shadow: 0 0 5px rgba(74,222,128,0.6);
+    
 }
 .friend-info {
     flex: 1;
@@ -1494,8 +1435,6 @@ body { background: var(--bg-gradient); }
 .msg-context-menu {
     position: fixed;
     background: var(--glass-sidebar);
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
     border: 1px solid var(--border);
     border-radius: 14px;
     padding: 6px;
@@ -1561,8 +1500,8 @@ body { background: var(--bg-gradient); }
     position: fixed;
     inset: 0;
     background: rgba(0,0,0,0.7);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
+    
+    -webkit-
     z-index: 10000;
     align-items: center;
     justify-content: center;
@@ -1843,7 +1782,7 @@ body { background: var(--bg-gradient); }
     justify-content: center;
     z-index: 1;
     pointer-events: none;
-    background: var(--bg-primary);
+    background: var(--bg-gradient);
 }
 .no-chat-inner {
     display: flex;
@@ -1900,3 +1839,335 @@ body { background: var(--bg-gradient); }
     cursor: pointer; font-size: 14px; padding: 4px 8px; border-radius: 6px;
 }
 .select-bar button:hover { background: var(--hover-bg, rgba(255,255,255,0.06)); }
+
+/* ============================================================
+   REDESIGN OVERRIDES - Telegram-style minimal
+   ============================================================ */
+
+body {
+    background: var(--bg-gradient) !important;
+}
+
+/* Sidebar border */
+.sidebar {
+    border-right: 1px solid var(--border) !important;
+}
+
+/* Messages - no border, solid bg */
+.message-bubble {
+    border: none !important;
+    box-shadow: none !important;
+}
+
+/* Input area */
+.input-area {
+    background: var(--glass-header) !important;
+    border-top: 1px solid var(--border) !important;
+    box-shadow: none !important;
+}
+
+#messageInput {
+    background: var(--glass-input) !important;
+    border: 1px solid var(--border) !important;
+    border-radius: 20px !important;
+}
+
+/* Send btn - no glow */
+.send-btn {
+    box-shadow: none !important;
+    border-radius: 50% !important;
+    width: 40px !important;
+    height: 40px !important;
+    padding: 0 !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+}
+
+/* Auth card */
+.auth-card {
+    background: var(--glass-sidebar) !important;
+    border: 1px solid var(--border) !important;
+    box-shadow: var(--shadow-md) !important;
+}
+
+/* Settings tab button SVG align */
+.tab-btn svg {
+    display: inline-block;
+    vertical-align: middle;
+}
+
+/* Emoji/attach buttons - SVG color */
+.emoji-toggle-btn svg,
+.image-upload-btn svg {
+    stroke: var(--text-secondary);
+}
+.emoji-toggle-btn:hover svg,
+.image-upload-btn:hover svg {
+    stroke: var(--accent);
+}
+
+/* Menu toggle SVG */
+.menu-toggle svg {
+    stroke: var(--text-secondary);
+}
+
+/* User info header */
+.user-info {
+    background: var(--glass-header) !important;
+}
+
+/* Chat header */
+.chat-header {
+    background: var(--glass-header) !important;
+    border-bottom: 1px solid var(--border) !important;
+    box-shadow: none !important;
+}
+
+/* Unread badge - no glow */
+.unread-badge {
+    box-shadow: none !important;
+}
+
+/* Primary btn - no glow */
+.primary-btn {
+    box-shadow: none !important;
+}
+.primary-btn:hover {
+    transform: none !important;
+    opacity: 0.9 !important;
+}
+
+/* Auth btn */
+.auth-buttons button:last-child {
+    box-shadow: none !important;
+}
+.auth-buttons button:last-child:hover {
+    transform: none !important;
+}
+
+/* Modal */
+.modal-card {
+    background: var(--glass-sidebar) !important;
+    box-shadow: var(--shadow-lg) !important;
+}
+
+/* Settings sections */
+.settings-section-title {
+    font-size: 11px;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    font-weight: 600;
+    margin-bottom: 8px;
+    margin-top: 16px;
+    padding: 0 2px;
+}
+
+/* Tg support btn */
+.settings-tg-btn {
+    background: #2b5278 !important;
+    color: #fff !important;
+    border: none !important;
+}
+.settings-tg-btn:hover {
+    background: #3a6a9a !important;
+}
+
+/* No chat selected bg */
+.no-chat-selected {
+    background: var(--bg-gradient) !important;
+}
+
+/* Light theme overrides */
+[data-theme="light"] .message-bubble {
+    border: none !important;
+}
+[data-theme="light"] .chat-header {
+    border-bottom: 1px solid rgba(0,0,0,0.08) !important;
+}
+[data-theme="light"] .sidebar {
+    border-right: 1px solid rgba(0,0,0,0.08) !important;
+}
+[data-theme="light"] .emoji-toggle-btn svg,
+[data-theme="light"] .image-upload-btn svg {
+    stroke: rgba(34,34,34,0.5);
+}
+[data-theme="light"] .menu-toggle svg {
+    stroke: rgba(34,34,34,0.5);
+}
+[data-theme="light"] .modal-card {
+    background: #ffffff !important;
+}
+[data-theme="light"] .auth-card {
+    background: #ffffff !important;
+}
+[data-theme="light"] .settings-tg-btn {
+    background: #2b5278 !important;
+}
+
+/* ============================================================
+   TELEGRAM-STYLE REDESIGN
+   ============================================================ */
+
+/* Убираем все остаточные glows и shadows */
+* { text-shadow: none !important; }
+.unread-badge { box-shadow: none !important; }
+.primary-btn { box-shadow: none !important; }
+.auth-card { box-shadow: 0 4px 20px rgba(0,0,0,0.3) !important; }
+.send-btn { box-shadow: none !important; }
+
+/* Body — чистый фон без градиентного шума */
+body { background: var(--bg-gradient) !important; }
+body::before, body::after { display: none !important; }
+
+/* Sidebar — чистый без размытия */
+.sidebar {
+    background: var(--glass-sidebar) !important;
+    border-right: 1px solid var(--border) !important;
+}
+
+/* Header */
+.chat-header {
+    background: var(--glass-header) !important;
+    border-bottom: 1px solid var(--border) !important;
+}
+
+/* Auth card — без лишних украшений */
+.auth-card {
+    background: var(--glass-sidebar) !important;
+    border: 1px solid var(--border) !important;
+    border-radius: 12px !important;
+}
+.auth-card::before { display: none !important; }
+
+/* Сообщения */
+.message-bubble {
+    border: none !important;
+    box-shadow: none !important;
+}
+
+/* Input area */
+.input-area {
+    background: var(--glass-header) !important;
+    border-top: 1px solid var(--border) !important;
+}
+#messageInput {
+    background: var(--glass-input) !important;
+    border: 1px solid transparent !important;
+    border-radius: 20px !important;
+}
+#messageInput:focus { border-color: var(--accent) !important; }
+
+/* Send btn — круглый */
+.send-btn {
+    border-radius: 50% !important;
+    width: 40px !important;
+    height: 40px !important;
+    padding: 0 !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+}
+
+/* Emoji и attach кнопки — SVG стиль */
+.emoji-toggle-btn {
+    font-size: 0 !important;
+    color: var(--text-secondary);
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+}
+.emoji-toggle-btn:hover { color: var(--accent); }
+.image-upload-btn {
+    font-size: 0 !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+}
+
+/* Settings tab btn — SVG вместо ⚙️ */
+.settings-tab-btn {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    padding: 10px 8px !important;
+}
+.settings-tab-btn svg { display: block; }
+
+/* Context menu — без излишеств */
+.msg-context-menu {
+    background: var(--dropdown-bg) !important;
+    border: 1px solid var(--border) !important;
+    border-radius: 10px !important;
+    padding: 4px !important;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.35) !important;
+}
+.msg-menu-btn {
+    padding: 8px 12px !important;
+    border-radius: 7px !important;
+    font-size: 13px !important;
+}
+.msg-menu-icon { font-size: 0 !important; display: flex !important; align-items: center !important; }
+
+/* Убираем separator между menu items */
+.msg-menu-separator {
+    height: 1px;
+    background: var(--border);
+    margin: 3px 8px;
+}
+
+/* Модалки — без лишних теней */
+.modal-card {
+    background: var(--glass-sidebar) !important;
+    border: 1px solid var(--border) !important;
+    border-radius: 12px !important;
+    box-shadow: 0 8px 40px rgba(0,0,0,0.4) !important;
+}
+
+/* Кнопки — чистые */
+.primary-btn:hover { opacity: 0.88 !important; transform: none !important; }
+.secondary-btn:hover { transform: none !important; }
+
+/* Settings section title — без эмодзи, чистый uppercase */
+.settings-section-title {
+    font-size: 11px !important;
+    font-weight: 600 !important;
+    letter-spacing: 0.08em !important;
+    color: var(--text-secondary) !important;
+    text-transform: uppercase !important;
+    margin-bottom: 8px !important;
+}
+
+/* Telegram btn */
+.settings-tg-btn {
+    background: #2ca5e0 !important;
+    border: none !important;
+}
+.settings-tg-btn:hover { background: #1a8fc7 !important; }
+
+/* Online dot — без glow */
+.online-dot { box-shadow: none !important; }
+
+/* User item active */
+.active-chat {
+    background: var(--accent-dim) !important;
+    border-left: 2px solid var(--accent) !important;
+    border-radius: 0 8px 8px 0 !important;
+}
+
+/* Reaction picker */
+.reaction-picker {
+    background: var(--dropdown-bg) !important;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.3) !important;
+}
+
+/* No chat selected */
+.no-chat-selected { background: var(--bg-gradient) !important; }
+
+/* Chat dropdown */
+.chat-dropdown {
+    background: var(--dropdown-bg) !important;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.35) !important;
+    border: 1px solid var(--border) !important;
+}
