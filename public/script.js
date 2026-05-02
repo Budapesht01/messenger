@@ -558,14 +558,14 @@ function openMsgMenu(msg, msgDiv, isOwn, e) {
 
     // Реакция — всегда
     if (!msg.deleted) {
-    items.push({ icon: '↩️', label: 'Ответить', action: () => { closeMsgMenu(); setReply(msg._id, msg.from, msg.text); }});
-    items.push({ icon: '😊', label: 'Реакция', action: () => { closeMsgMenu(); openReactionPicker(msg._id, msgDiv.querySelector('.message-bubble')); }});
-    items.push({ icon: '📌', label: msg.pinned ? 'Открепить' : 'Закрепить', action: () => { closeMsgMenu(); togglePin(msg._id); }});
-    items.push({ icon: '📤', label: 'Переслать', action: () => { closeMsgMenu(); openForwardModal(msg._id); }});
-    if (msg.text) items.push({ icon: '📋', label: 'Копировать текст', action: () => { closeMsgMenu(); navigator.clipboard.writeText(msg.text); }});
-    items.push({ icon: '☑️', label: 'Выделить', action: () => { closeMsgMenu(); toggleSelectMode(msg._id); }});
-    if (isOwn && msg.text) items.push({ icon: '✎', label: 'Редактировать', action: () => { closeMsgMenu(); openEditModal(msg); }});
-    if (isOwn) items.push({ icon: '🗑', label: 'Удалить', danger: true, action: () => { closeMsgMenu(); openDeleteModal(msg._id); }});
+    items.push({ icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><polyline points="9,14 4,9 9,4"/><path d="M20 20v-7a4 4 0 00-4-4H4"/></svg>`, label: 'Ответить', action: () => { closeMsgMenu(); setReply(msg._id, msg.from, msg.text); }});
+    items.push({ icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><circle cx="12" cy="12" r="10"/><path d="M8 13s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg>`, label: 'Реакция', action: () => { closeMsgMenu(); openReactionPicker(msg._id, msgDiv.querySelector('.message-bubble')); }});
+    items.push({ icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><line x1="12" y1="17" x2="12" y2="22"/><path d="M5 17h14v-1.76a2 2 0 00-1.11-1.79l-1.78-.9A2 2 0 0115 10.76V6h1a2 2 0 000-4H8a2 2 0 000 4h1v4.76a2 2 0 01-1.11 1.79l-1.78.9A2 2 0 005 15.24V17z"/></svg>`, label: msg.pinned ? 'Открепить' : 'Закрепить', action: () => { closeMsgMenu(); togglePin(msg._id); }});
+    items.push({ icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><polyline points="15,10 20,15 15,20"/><path d="M4 4v7a4 4 0 004 4h12"/></svg>`, label: 'Переслать', action: () => { closeMsgMenu(); openForwardModal(msg._id); }});
+    if (msg.text) items.push({ icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><rect x="9" y="2" width="6" height="4" rx="1"/><path d="M16 4h2a2 2 0 012 2v14a2 2 0 01-2 2H6a2 2 0 01-2-2V6a2 2 0 012-2h2"/></svg>`, label: 'Копировать текст', action: () => { closeMsgMenu(); navigator.clipboard.writeText(msg.text); }});
+    items.push({ icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><polyline points="20,6 9,17 4,12"/></svg>`, label: 'Выделить', action: () => { closeMsgMenu(); toggleSelectMode(msg._id); }});
+    if (isOwn && msg.text) items.push({ icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>`, label: 'Редактировать', action: () => { closeMsgMenu(); openEditModal(msg); }});
+    if (isOwn) items.push({ icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><polyline points="3,6 5,6 21,6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 011-1h4a1 1 0 011 1v2"/></svg>`, label: 'Удалить', danger: true, action: () => { closeMsgMenu(); openDeleteModal(msg._id); }});
 }
 
     items.forEach(item => {
