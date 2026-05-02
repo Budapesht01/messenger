@@ -693,9 +693,8 @@ async function buildForwardList() {
 if (fwdRes.ok) {
     const fwdMsg = await fwdRes.json();
     if (currentChat === f.username) addMessageToChat(fwdMsg);
-    unreadCounts[f.username] = (unreadCounts[f.username] || 0) + 1;
-    updateUnreadBadge(f.username);
 }
+closeForwardPanel();
 closeForwardPanel();
         };
         list.appendChild(btn);
