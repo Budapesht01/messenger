@@ -689,8 +689,14 @@ async function buildForwardList() {
         btn.innerHTML = `<span class="forward-friend-avatar">${f.avatar || '😀'}</span><span style="color:${f.color||'inherit'}">${escapeHtml(f.username)}</span>`;
         btn.onclick = async () => {
             const t = localStorage.getItem('token');
-            await fetch('/api/messages/forward', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + t }, body: JSON.stringify({ messageId: forwardMsgId, to: f.username }) });
-            closeForwardPanel();
+            const fwdRes = await fetch('/api/messages/forward', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + t }, body: JSON.stringify({ messageId: forwardMsgId, to: f.username }) });
+if (fwdRes.ok) {
+    const fwdMsg = await fwdRes.json();
+    if (currentChat === f.username) addMessageToChat(fwdMsg);
+    unreadCounts[f.username] = (unreadCounts[f.username] || 0) + 1;
+    updateUnreadBadge(f.username);
+}
+closeForwardPanel();
         };
         list.appendChild(btn);
     });
