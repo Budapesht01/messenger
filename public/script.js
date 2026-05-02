@@ -472,6 +472,15 @@ function addMessageToChat(msg) {
     const color = msg.color || '#6ab0f3';
     const time = new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
+    // Forwarded block
+    let forwardedHtml = '';
+    if (msg.forwardedFrom) {
+        forwardedHtml = `<div class="forwarded-header">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13"><polyline points="15,10 20,15 15,20"/><path d="M4 4v7a4 4 0 004 4h12"/></svg>
+            <span>Переслано от <b>${escapeHtml(msg.forwardedFrom)}</b></span>
+        </div>`;
+    }
+
     // Reply block
     let replyHtml = '';
     if (msg.replyTo && msg.replyTo.messageId) {
@@ -508,6 +517,7 @@ function addMessageToChat(msg) {
         </div>
         <div class="msg-body">
             <div class="message-bubble">
+                ${forwardedHtml}
                 ${replyHtml}
                 <div class="msg-sender" style="color:${color}">${isOwn ? '' : escapeHtml(msg.from)}</div>
                 ${imageHtml}
@@ -631,32 +641,39 @@ async function togglePin(msgId) {
 
 // Пересылка
 let forwardMsgId = null;
+
 function openForwardModal(msgId) {
     forwardMsgId = msgId;
-    const modal = document.getElementById('forwardModal');
-    if (!modal) return buildForwardModal(msgId);
-    document.getElementById('forwardList').innerHTML = '';
+    let panel = document.getElementById('forwardPanel');
+    if (!panel) {
+        panel = document.createElement('div');
+        panel.id = 'forwardPanel';
+        panel.className = 'forward-panel';
+        panel.innerHTML = `
+            <div class="forward-panel-header">
+                <button class="forward-panel-close" onclick="closeForwardPanel()">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                </button>
+                <span>Переслать кому</span>
+            </div>
+            <div id="forwardFriendList" class="forward-panel-list"></div>`;
+        document.querySelector('.main').appendChild(panel);
+    } else {
+        document.getElementById('forwardFriendList').innerHTML = '';
+    }
     buildForwardList();
-    modal.classList.add('open');
+    panel.classList.add('open');
+    document.getElementById('forwardOverlay')?.remove();
+    const overlay = document.createElement('div');
+    overlay.id = 'forwardOverlay';
+    overlay.className = 'forward-overlay';
+    overlay.onclick = closeForwardPanel;
+    document.querySelector('.main').appendChild(overlay);
 }
 
-function buildForwardModal(msgId) {
-    const modal = document.createElement('div');
-    modal.className = 'modal-overlay';
-    modal.id = 'forwardModal';
-    modal.innerHTML = `
-        <div class="modal-card narrow">
-            <div class="modal-header">
-                <h3>Переслать</h3>
-                <button class="modal-close" onclick="document.getElementById('forwardModal').classList.remove('open')">✕</button>
-            </div>
-            <div class="modal-body">
-                <div id="forwardList" style="max-height:300px; overflow-y:auto;"></div>
-            </div>
-        </div>`;
-    document.body.appendChild(modal);
-    buildForwardList();
-    modal.classList.add('open');
+function closeForwardPanel() {
+    document.getElementById('forwardPanel')?.classList.remove('open');
+    document.getElementById('forwardOverlay')?.remove();
 }
 
 async function buildForwardList() {
@@ -664,22 +681,20 @@ async function buildForwardList() {
     const res = await fetch('/api/friends', { headers: { Authorization: 'Bearer ' + token } });
     if (!res.ok) return;
     const friends = await res.json();
-    const list = document.getElementById('forwardList');
+    const list = document.getElementById('forwardFriendList');
     list.innerHTML = '';
     friends.forEach(f => {
         const btn = document.createElement('button');
         btn.className = 'forward-friend-btn';
-        btn.innerHTML = `<span style="margin-right:8px">${f.avatar || '😀'}</span>${f.username}`;
+        btn.innerHTML = `<span class="forward-friend-avatar">${f.avatar || '😀'}</span><span style="color:${f.color||'inherit'}">${escapeHtml(f.username)}</span>`;
         btn.onclick = async () => {
             const t = localStorage.getItem('token');
             await fetch('/api/messages/forward', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + t }, body: JSON.stringify({ messageId: forwardMsgId, to: f.username }) });
-            document.getElementById('forwardModal').classList.remove('open');
+            closeForwardPanel();
         };
         list.appendChild(btn);
     });
 }
-
-// Выделение
 let selectedMessages = new Set();
 let selectMode = false;
 
