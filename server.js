@@ -828,8 +828,6 @@ socket.on('mark_read', async ({ chatWith }) => {
 
   // ===== Групповые сообщения =====
   socket.on('send_group_message', async (data) => {
-    const { groupId, text, imageUrl, replyTo } = data;
-    if (!text?.trim() && !imageUrl) return;
     const { groupId, text, imageUrl, audioUrl, replyTo } = data;
     if (!text?.trim() && !imageUrl && !audioUrl) return;
     const freshUser = await User.findOne({ username: user.username });
