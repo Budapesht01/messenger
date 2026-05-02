@@ -78,13 +78,14 @@ const upload = multer({
   storage,
   limits: { fileSize: 10 * 1024 * 1024 }, // 10mb
   fileFilter: (req, file, cb) => {
-  const allowedExts = ['.jpg', '.jpeg', '.png', '.gif', '.webp'];
-  const allowedMimes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+  const allowedExts = ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.webm', '.ogg', '.mp3', '.wav'];
+  const allowedMimes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'audio/webm', 'audio/ogg', 'audio/mpeg', 'audio/wav', 'video/webm'];
   const ext = path.extname(file.originalname).toLowerCase();
-  if (allowedExts.includes(ext) && allowedMimes.includes(file.mimetype)) {
+  const mime = file.mimetype;
+  if (allowedMimes.includes(mime) || allowedExts.includes(ext)) {
     cb(null, true);
   } else {
-    cb(new Error('Only image files allowed'), false);
+    cb(new Error('File type not allowed'), false);
   }
 }
 });
@@ -128,6 +129,7 @@ const MessageSchema = new mongoose.Schema({
   groupId: { type: mongoose.Schema.Types.ObjectId, default: null },
   text: { type: String, default: '' },
   imageUrl: { type: String, default: null },
+  audioUrl: { type: String, default: null },
   replyTo: {
     messageId: { type: mongoose.Schema.Types.ObjectId, default: null },
     from: { type: String, default: null },
@@ -798,13 +800,14 @@ socket.on('mark_read', async ({ chatWith }) => {
 
   // ===== Личные сообщения =====
   socket.on('send_message', async (data) => {
-    const { to, text, imageUrl, replyTo } = data;
-    if (!text?.trim() && !imageUrl) return;
+    const { to, text, imageUrl, audioUrl, replyTo } = data;
+    if (!text?.trim() && !imageUrl && !audioUrl) return;
     const freshUser = await User.findOne({ username: user.username });
     const message = new Message({
       from: user.username, to: to || null, groupId: null,
       text: text?.trim() || '',
-      imageUrl: imageUrl || null,
+      imageUrl: orig.imageUrl || null,
+      audioUrl: orig.audioUrl || null,
       replyTo: replyTo || {},
       timestamp: new Date(),
       color: freshUser.color, avatar: freshUser.avatar,
@@ -827,12 +830,13 @@ socket.on('mark_read', async ({ chatWith }) => {
   socket.on('send_group_message', async (data) => {
     const { groupId, text, imageUrl, replyTo } = data;
     if (!text?.trim() && !imageUrl) return;
-    const group = await Group.findById(groupId);
-    if (!group || !group.members.includes(user.username)) return;
+    const { groupId, text, imageUrl, audioUrl, replyTo } = data;
+    if (!text?.trim() && !imageUrl && !audioUrl) return;
     const freshUser = await User.findOne({ username: user.username });
     const message = new Message({
       from: user.username, to: null, groupId: group._id,
       text: text?.trim() || '', imageUrl: imageUrl || null,
+      audioUrl: audioUrl || null,
       replyTo: replyTo || {},
       timestamp: new Date(), color: freshUser.color, avatar: freshUser.avatar,
       readBy: [user.username]
