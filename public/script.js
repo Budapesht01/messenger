@@ -542,6 +542,9 @@ function addMessageToChat(msg) {
         e.preventDefault();
         openMsgMenu(msg, div, isOwn, e);
     });
+    bubble.addEventListener('click', (e) => {
+        if (selectMode) { e.stopPropagation(); toggleSelectMode(msg._id); }
+    });
     container.appendChild(div);
     container.scrollTop = container.scrollHeight;
 }
@@ -704,9 +707,15 @@ let selectMode = false;
 
 function toggleSelectMode(msgId) {
     selectMode = true;
-    selectedMessages.add(msgId);
     const el = document.querySelector(`.message[data-id="${msgId}"]`);
-    if (el) el.classList.add('selected-msg');
+    if (selectedMessages.has(msgId)) {
+        selectedMessages.delete(msgId);
+        if (el) el.classList.remove('selected-msg');
+        if (selectedMessages.size === 0) { cancelSelect(); return; }
+    } else {
+        selectedMessages.add(msgId);
+        if (el) el.classList.add('selected-msg');
+    }
     showSelectBar();
 }
 
@@ -716,8 +725,7 @@ function showSelectBar() {
         bar = document.createElement('div');
         bar.id = 'selectBar';
         bar.className = 'select-bar';
-        bar.innerHTML = `<span id="selectCount">1 сообщение</span><div style="display:flex;gap:8px"><button onclick="forwardSelected()">📤 Переслать</button><button onclick="deleteSelected()" style="color:var(--danger,#f36a6a)">🗑 Удалить</button><button onclick="cancelSelect()">✕</button></div>`;
-        document.querySelector('.main').appendChild(bar);
+bar.innerHTML = `<span id="selectCount">1 сообщ.</span><div style="display:flex;gap:8px"><button onclick="forwardSelected()">Переслать</button><button onclick="deleteSelected()" style="color:var(--danger,#f36a6a)">Удалить</button><button onclick="cancelSelect()">✕</button></div>`;        document.querySelector('.main').appendChild(bar);
     }
     document.getElementById('selectCount').innerText = `${selectedMessages.size} сообщ.`;
 }
