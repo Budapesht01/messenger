@@ -806,8 +806,8 @@ socket.on('mark_read', async ({ chatWith }) => {
     const message = new Message({
       from: user.username, to: to || null, groupId: null,
       text: text?.trim() || '',
-      imageUrl: orig.imageUrl || null,
-      audioUrl: orig.audioUrl || null,
+      imageUrl: imageUrl || null,
+      audioUrl: audioUrl || null,
       replyTo: replyTo || {},
       timestamp: new Date(),
       color: freshUser.color, avatar: freshUser.avatar,
@@ -841,8 +841,8 @@ socket.on('mark_read', async ({ chatWith }) => {
     });
     await message.save();
     const msgData = {
-      _id: message._id, from: user.username, groupId: group._id,
-      text: message.text, imageUrl: message.imageUrl, replyTo: message.replyTo,
+      _id: message._id, from: user.username, to: message.to, groupId: null,
+      text: message.text, imageUrl: message.imageUrl, audioUrl: message.audioUrl, replyTo: message.replyTo,
       reactions: [], readBy: message.readBy,
       timestamp: message.timestamp, color: freshUser.color, avatar: freshUser.avatar,
       edited: false, deleted: false
