@@ -2267,3 +2267,29 @@ body::before, body::after { display: none !important; }
 }
 .forwarded-header svg { flex-shrink: 0; }
 .forwarded-header b { font-weight: 600; }
+
+/* ===== Voice recording ===== */
+.vwave {
+    display: inline-block;
+    width: 3px;
+    background: var(--danger, #f36a6a);
+    border-radius: 2px;
+    animation: vwave-idle 1s ease-in-out infinite;
+}
+.vwave:nth-child(1) { animation-delay: 0s;    height: 8px; }
+.vwave:nth-child(2) { animation-delay: 0.15s; height: 14px; }
+.vwave:nth-child(3) { animation-delay: 0.3s;  height: 20px; }
+.vwave:nth-child(4) { animation-delay: 0.15s; height: 14px; }
+.vwave:nth-child(5) { animation-delay: 0s;    height: 8px; }
+@keyframes vwave-idle {
+    0%, 100% { transform: scaleY(0.4); opacity: 0.5; }
+    50%       { transform: scaleY(1);   opacity: 1; }
+}
+#voiceBtn.recording {
+    background: var(--danger, #f36a6a) !important;
+    animation: pulse-mic 1s ease-in-out infinite;
+}
+@keyframes pulse-mic {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(243,106,106,0.4); }
+    50%       { box-shadow: 0 0 0 8px rgba(243,106,106,0); }
+}
