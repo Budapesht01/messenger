@@ -832,7 +832,7 @@ socket.on('mark_read', async ({ chatWith }) => {
     if (!text?.trim() && !imageUrl && !audioUrl) return;
     const freshUser = await User.findOne({ username: user.username });
     const message = new Message({
-      from: user.username, to: null, groupId: group._id,
+      from: user.username, to: null, groupId: groupId,
       text: text?.trim() || '', imageUrl: imageUrl || null,
       audioUrl: audioUrl || null,
       replyTo: replyTo || {},
@@ -847,7 +847,7 @@ socket.on('mark_read', async ({ chatWith }) => {
       timestamp: message.timestamp, color: freshUser.color, avatar: freshUser.avatar,
       edited: false, deleted: false
     };
-    io.to(`group:${group._id}`).emit('group_message', msgData);
+    io.to(`group:${groupId}`).emit('group_message', msgData);
   });
 
   // ===== Редактирование =====
