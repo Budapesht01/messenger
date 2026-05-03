@@ -816,7 +816,7 @@ socket.on('mark_read', async ({ chatWith }) => {
     await message.save();
     const msgData = {
       _id: message._id, from: user.username, to: message.to, groupId: null,
-      text: message.text, imageUrl: message.imageUrl, replyTo: message.replyTo,
+      text: message.text, imageUrl: message.imageUrl, audioUrl: message.audioUrl, replyTo: message.replyTo,
       reactions: [], readBy: message.readBy,
       timestamp: message.timestamp, color: freshUser.color, avatar: freshUser.avatar,
       edited: false, deleted: false
