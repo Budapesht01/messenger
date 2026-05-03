@@ -1957,7 +1957,8 @@ async function startVoiceRecord() {
             stream.getTracks().forEach(t => t.stop());
             audioCtx.close();
             const blob = new Blob(voiceChunks, { type: 'audio/webm' });
-            if (blob.size < 1000) return;
+            console.log('[VOICE] blob size:', blob.size);
+            if (blob.size < 100) return;
             const formData = new FormData();
             formData.append('image', blob, 'voice.webm');
             const token = localStorage.getItem('token');
@@ -1972,7 +1973,7 @@ async function startVoiceRecord() {
             }
             clearReply();
         };
-        voiceRecorder.start();
+        voiceRecorder.start(100);
     } catch (e) {
         alert('Нет доступа к микрофону');
         resetVoiceUI();
