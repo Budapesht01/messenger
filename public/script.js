@@ -1964,7 +1964,10 @@ async function startVoiceRecord() {
             const token = localStorage.getItem('token');
             const res = await fetch('/api/upload', { method: 'POST', headers: { Authorization: 'Bearer ' + token }, body: formData });
             const data = await res.json();
-            if (!data.imageUrl) return;
+            console.log('[VOICE] upload response:', JSON.stringify(data));
+            console.log('[VOICE] currentChat:', currentChat, 'currentGroupId:', currentGroupId);
+            if (!data.imageUrl) { console.error('[VOICE] no imageUrl!'); return; }
+            console.log('[VOICE] emitting with audioUrl:', data.imageUrl);
             const replyData = currentReplyId ? { messageId: currentReplyId, from: currentReplyFrom, text: currentReplyText } : null;
             if (currentGroupId) {
                 socket.emit('send_group_message', { groupId: currentGroupId, text: '', audioUrl: data.imageUrl, replyTo: replyData });
