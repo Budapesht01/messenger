@@ -1968,7 +1968,7 @@ async function startVoiceRecord() {
             console.log('[VOICE] currentChat:', currentChat, 'currentGroupId:', currentGroupId);
             if (!data.imageUrl) { console.error('[VOICE] no imageUrl!'); return; }
             console.log('[VOICE] emitting with audioUrl:', data.imageUrl);
-            const replyData = currentReplyId ? { messageId: currentReplyId, from: currentReplyFrom, text: currentReplyText } : null;
+            const replyData = (typeof currentReplyId !== 'undefined' && currentReplyId) ? { messageId: currentReplyId, from: currentReplyFrom, text: currentReplyText } : null;
             if (currentGroupId) {
                 socket.emit('send_group_message', { groupId: currentGroupId, text: '', audioUrl: data.imageUrl, replyTo: replyData });
             } else if (currentChat) {
