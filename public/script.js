@@ -1894,17 +1894,68 @@ if ('serviceWorker' in navigator) {
 }
 
 // ========== Голосовые сообщения ==========
+
 let voiceRecorder = null;
 let voiceChunks = [];
+let voiceTimerInterval = null;
+let voiceSeconds = 0;
+let voiceIsRecording = false;
+
+function toggleVoiceRecord() {
+    if (voiceIsRecording) {
+        stopVoiceRecord();
+    } else {
+        startVoiceRecord();
+    }
+}
 
 async function startVoiceRecord() {
     try {
         const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
         voiceChunks = [];
+        voiceIsRecording = true;
+
+        // Показываем панель записи
+        document.getElementById('voiceRecordingBar').style.display = 'flex';
+        document.getElementById('messageInput').style.display = 'none';
+        document.getElementById('voiceBtn').classList.add('recording');
+
+        // Таймер
+        voiceSeconds = 0;
+        document.getElementById('voiceTimer').textContent = '0:00';
+        voiceTimerInterval = setInterval(() => {
+            voiceSeconds++;
+            const m = Math.floor(voiceSeconds / 60);
+            const s = voiceSeconds % 60;
+            document.getElementById('voiceTimer').textContent = `${m}:${s.toString().padStart(2,'0')}`;
+        }, 1000);
+
+        // Анимация волн по уровню звука
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        const analyser = audioCtx.createAnalyser();
+        const source = audioCtx.createMediaStreamSource(stream);
+        source.connect(analyser);
+        analyser.fftSize = 32;
+        const dataArr = new Uint8Array(analyser.frequencyBinCount);
+        const waves = document.querySelectorAll('.vwave');
+        function animateWaves() {
+            if (!voiceIsRecording) return;
+            analyser.getByteFrequencyData(dataArr);
+            const avg = dataArr.reduce((a,b) => a+b,0) / dataArr.length;
+            waves.forEach((w, i) => {
+                const scale = 0.3 + (avg / 255) * 1.5 * (i === 2 ? 1 : 0.6 + Math.random() * 0.4);
+                w.style.transform = `scaleY(${Math.min(scale, 2)})`;
+                w.style.opacity = 0.6 + (avg / 255) * 0.4;
+            });
+            requestAnimationFrame(animateWaves);
+        }
+        animateWaves();
+
         voiceRecorder = new MediaRecorder(stream);
         voiceRecorder.ondataavailable = e => voiceChunks.push(e.data);
         voiceRecorder.onstop = async () => {
             stream.getTracks().forEach(t => t.stop());
+            audioCtx.close();
             const blob = new Blob(voiceChunks, { type: 'audio/webm' });
             if (blob.size < 1000) return;
             const formData = new FormData();
@@ -1922,15 +1973,34 @@ async function startVoiceRecord() {
             clearReply();
         };
         voiceRecorder.start();
-        document.getElementById('voiceBtn').style.background = 'var(--accent)';
     } catch (e) {
         alert('Нет доступа к микрофону');
+        resetVoiceUI();
     }
 }
 
 function stopVoiceRecord() {
     if (voiceRecorder && voiceRecorder.state === 'recording') {
         voiceRecorder.stop();
-        document.getElementById('voiceBtn').style.background = 'var(--glass-card)';
     }
+    resetVoiceUI();
+}
+
+function cancelVoiceRecord() {
+    if (voiceRecorder && voiceRecorder.state === 'recording') {
+        voiceRecorder.ondataavailable = null;
+        voiceRecorder.onstop = null;
+        voiceRecorder.stop();
+    }
+    voiceChunks = [];
+    resetVoiceUI();
+}
+
+function resetVoiceUI() {
+    voiceIsRecording = false;
+    clearInterval(voiceTimerInterval);
+    document.getElementById('voiceRecordingBar').style.display = 'none';
+    document.getElementById('messageInput').style.display = '';
+    document.getElementById('voiceBtn').classList.remove('recording');
+    document.getElementById('voiceTimer').textContent = '0:00';
 }
