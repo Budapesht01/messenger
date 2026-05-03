@@ -493,7 +493,18 @@ function addMessageToChat(msg) {
     // Image
     let imageHtml = '';
     if (msg.audioUrl) {
-        imageHtml = `<audio controls src="${escapeHtml(msg.audioUrl)}" style="max-width:220px;width:100%;margin-top:4px;border-radius:8px;"></audio>`;
+        const aid = 'va_' + Math.random().toString(36).substr(2,8);
+        imageHtml = `
+        <div class="voice-player" id="${aid}">
+            <button class="vp-play" onclick="vpToggle('${aid}')">
+                <svg viewBox="0 0 24 24" fill="currentColor" width="20" height="20"><path d="M8 5v14l11-7z"/></svg>
+            </button>
+            <div class="vp-body">
+                <div class="vp-bar" onclick="vpSeek('${aid}',event)"><div class="vp-progress"></div></div>
+                <span class="vp-time">0:00</span>
+            </div>
+            <audio src="${escapeHtml(msg.audioUrl)}" preload="metadata" onloadedmetadata="vpMeta('${aid}',this)" ontimeupdate="vpUpdate('${aid}',this)" onended="vpEnded('${aid}')"></audio>
+        </div>`;
     } else if (msg.imageUrl) {
         imageHtml = `<img src="${escapeHtml(msg.imageUrl)}" class="msg-image" onclick="openImageModal('${escapeHtml(msg.imageUrl)}')" loading="lazy">`;
     }
@@ -2007,4 +2018,52 @@ function resetVoiceUI() {
     document.getElementById('messageInput').style.display = '';
     document.getElementById('voiceBtn').classList.remove('recording');
     document.getElementById('voiceTimer').textContent = '0:00';
+}
+
+// ===== Voice Player =====
+function vpToggle(id) {
+    const el = document.getElementById(id);
+    const audio = el.querySelector('audio');
+    const btn = el.querySelector('.vp-play');
+    if (audio.paused) {
+        // Остановить все другие
+        document.querySelectorAll('.voice-player audio').forEach(a => { if (a !== audio) { a.pause(); const b = a.closest('.voice-player')?.querySelector('.vp-play'); if(b) b.innerHTML = '<svg viewBox="0 0 24 24" fill="currentColor" width="20" height="20"><path d="M8 5v14l11-7z"/></svg>'; }});
+        audio.play();
+        btn.innerHTML = '<svg viewBox="0 0 24 24" fill="currentColor" width="20" height="20"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>';
+    } else {
+        audio.pause();
+        btn.innerHTML = '<svg viewBox="0 0 24 24" fill="currentColor" width="20" height="20"><path d="M8 5v14l11-7z"/></svg>';
+    }
+}
+function vpUpdate(id, audio) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    const pct = audio.duration ? (audio.currentTime / audio.duration * 100) : 0;
+    el.querySelector('.vp-progress').style.width = pct + '%';
+    el.querySelector('.vp-time').textContent = vpFmt(audio.currentTime);
+}
+function vpMeta(id, audio) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.querySelector('.vp-time').textContent = vpFmt(audio.duration);
+}
+function vpEnded(id) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.querySelector('.vp-play').innerHTML = '<svg viewBox="0 0 24 24" fill="currentColor" width="20" height="20"><path d="M8 5v14l11-7z"/></svg>';
+    el.querySelector('.vp-progress').style.width = '0%';
+    const audio = el.querySelector('audio');
+    if (audio) { audio.currentTime = 0; el.querySelector('.vp-time').textContent = vpFmt(audio.duration); }
+}
+function vpSeek(id, e) {
+    const el = document.getElementById(id);
+    const audio = el.querySelector('audio');
+    const bar = el.querySelector('.vp-bar');
+    const rect = bar.getBoundingClientRect();
+    audio.currentTime = ((e.clientX - rect.left) / rect.width) * audio.duration;
+}
+function vpFmt(s) {
+    if (!s || isNaN(s)) return '0:00';
+    const m = Math.floor(s/60), sec = Math.floor(s%60);
+    return `${m}:${sec.toString().padStart(2,'0')}`;
 }
