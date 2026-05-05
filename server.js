@@ -388,7 +388,7 @@ app.get('/api/friends', authenticateJWT, async (req, res) => {
         { from: req.user.username, to: friend.username },
         { from: friend.username, to: req.user.username }
       ]
-    }).sort({ timestamp: -1 }).select('text imageUrl timestamp from');
+    }).sort({ timestamp: -1 }).select('text imageUrl audioUrl readBy timestamp from');
 
     return {
       username: friend.username,
@@ -397,7 +397,10 @@ app.get('/api/friends', authenticateJWT, async (req, res) => {
       online: friend.online,
       lastSeen: friend.lastSeen,
       lastMessage: lastMsg ? {
-        text: lastMsg.text || (lastMsg.imageUrl ? '📷 Фото' : ''),
+        text: lastMsg.text || '',
+        imageUrl: lastMsg.imageUrl || null,
+        audioUrl: lastMsg.audioUrl || null,
+        readBy: lastMsg.readBy || [],
         timestamp: lastMsg.timestamp,
         fromMe: lastMsg.from === req.user.username
       } : null
@@ -830,7 +833,7 @@ socket.on('mark_read', async ({ chatWith }) => {
 
   // ===== Групповые сообщения =====
   socket.on('send_group_message', async (data) => {
-    const { to, text, imageUrl, audioUrl, audioDuration, replyTo } = data;
+    const { groupId, text, imageUrl, audioUrl, audioDuration, replyTo } = data;
     if (!text?.trim() && !imageUrl && !audioUrl) return;
     const freshUser = await User.findOne({ username: user.username });
     const message = new Message({
