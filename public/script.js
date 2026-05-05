@@ -1453,6 +1453,7 @@ function applyTheme(themeId) {
 }
 
 function initThemePanel() {
+    if (window.innerWidth <= 768) sidebar.classList.add('open');
     const grid = document.getElementById('themeGrid');
     if (!grid) return;
     grid.innerHTML = ''; // guard против дублирования
