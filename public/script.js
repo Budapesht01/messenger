@@ -2038,9 +2038,11 @@ function vpToggle(id) {
 function vpUpdate(id, audio) {
     const el = document.getElementById(id);
     if (!el) return;
-    const pct = audio.duration ? (audio.currentTime / audio.duration * 100) : 0;
+    const dur = isFinite(audio.duration) ? audio.duration : 0;
+    const pct = dur ? (audio.currentTime / dur * 100) : 0;
     el.querySelector('.vp-progress').style.width = pct + '%';
-    el.querySelector('.vp-time').textContent = vpFmt(audio.currentTime);
+    // Пока играет — показываем текущее время, иначе длительность
+    el.querySelector('.vp-time').textContent = audio.paused ? vpFmt(dur) : vpFmt(audio.currentTime);
 }
 function vpMeta(id, audio) {
     const el = document.getElementById(id);
