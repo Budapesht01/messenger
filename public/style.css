@@ -2444,3 +2444,78 @@ body::before, body::after { display: none !important; }
 }
 .burger-item:hover { background: var(--glass-card); }
 .burger-item.danger { color: var(--danger, #f36a6a); }
+
+
+/* ===== Settings overlay (TG-стиль) ===== */
+.settings-overlay {
+    position: fixed;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    z-index: 500;
+    pointer-events: none;
+}
+.settings-overlay-inner {
+    position: absolute;
+    top: 0; left: 0;
+    width: 320px;
+    height: 100%;
+    background: var(--bg-sidebar, var(--glass-sidebar));
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    transform: translateX(-100%);
+    transition: transform 0.25s ease;
+    pointer-events: all;
+    overflow-y: auto;
+}
+.settings-overlay.open { pointer-events: all; }
+.settings-overlay.open .settings-overlay-inner {
+    transform: translateX(0);
+}
+.settings-overlay-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 16px 16px 12px;
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--text-primary);
+    border-bottom: 1px solid var(--border);
+}
+.settings-back-btn {
+    background: none;
+    border: none;
+    color: var(--accent);
+    cursor: pointer;
+    padding: 4px;
+    display: flex;
+    align-items: center;
+}
+.settings-profile-block {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 20px 16px 16px;
+    border-bottom: 1px solid var(--border);
+}
+.settings-profile-avatar {
+    width: 64px;
+    height: 64px;
+    border-radius: 50%;
+    background: var(--glass-card);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 36px;
+    flex-shrink: 0;
+}
+.settings-profile-name {
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--text-primary);
+}
+.settings-overlay-content {
+    padding: 16px;
+    flex: 1;
+    overflow-y: auto;
+}
