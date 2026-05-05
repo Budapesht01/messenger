@@ -2065,7 +2065,7 @@ function vpSeek(id, e) {
     audio.currentTime = ((e.clientX - rect.left) / rect.width) * audio.duration;
 }
 function vpFmt(s) {
-    if (!s || isNaN(s)) return '0:00';
+    if (!s || !isFinite(s) || isNaN(s)) return '0:00';
     const m = Math.floor(s/60), sec = Math.floor(s%60);
     return `${m}:${sec.toString().padStart(2,'0')}`;
 }
