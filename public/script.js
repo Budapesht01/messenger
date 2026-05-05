@@ -966,7 +966,7 @@ async function loadFriends() {
                 : t.toLocaleDateString([], { day: '2-digit', month: '2-digit' });
             const isRead = lm.fromMe && lm.readBy && lm.readBy.includes(friend.username);
             const checkHtml = lm.fromMe ? `<span style="font-size:10px;color:${isRead ? 'var(--accent)' : 'var(--text-secondary)'};margin-right:2px;">${isRead ? '✓✓' : '✓'}</span>` : '';
-            lastMsgHtml = `<div class="friend-last-msg"><span class="last-msg-text">${checkHtml}${prefix}${txt}</span><span class="last-msg-time">${timeStr}</span></div>`;
+            lastMsgHtml = `<div class="friend-last-msg"><span class="last-msg-text">${prefix}${txt}</span><span class="last-msg-time-wrap">${checkHtml}<span class="last-msg-time">${timeStr}</span></span></div>`;
         }
 
         div.innerHTML = `
@@ -2094,5 +2094,7 @@ function updateFriendPreview(username, msg) {
         el.className = 'friend-last-msg';
         item.querySelector('.user-info-text')?.appendChild(el);
     }
-    el.innerHTML = `<span class="last-msg-text">${prefix}${escapeHtml(txt)}</span><span class="last-msg-time">${timeStr}</span>`;
+    const isReadLive = msg.fromMe && msg.readBy && msg.readBy.includes(username);
+    const checkLive = isOwn ? `<span style="font-size:10px;color:${isReadLive ? 'var(--accent)' : 'var(--text-secondary)'};">${isReadLive ? '✓✓' : '✓'}</span>` : '';
+    el.innerHTML = `<span class="last-msg-text">${prefix}${escapeHtml(txt)}</span><span class="last-msg-time-wrap">${checkLive}<span class="last-msg-time">${timeStr}</span></span>`;
 }
