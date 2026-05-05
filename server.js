@@ -835,7 +835,7 @@ io.on('connection', async (socket) => {
     });
     await message.save();
     const msgData = {
-      _id: message._id, from: user.username, to: message.to, groupId: null,
+      _id: message._id, from: user.username, to: message.to, groupId: groupId,
       text: message.text, imageUrl: message.imageUrl, audioUrl: message.audioUrl, audioDuration: message.audioDuration || 0, replyTo: message.replyTo,
       reactions: [], readBy: message.readBy,
       timestamp: message.timestamp, color: freshUser.color, avatar: freshUser.avatar,
