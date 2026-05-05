@@ -2112,8 +2112,11 @@ function toggleBurgerMenu() {
     const d = document.getElementById('burgerDropdown');
     d.style.display = d.style.display === 'none' ? 'block' : 'none';
     if (d.style.display === 'block') {
-        const bui = document.getElementById('burgerUserInfo');
-        if (bui && currentUser) bui.textContent = (currentUser.avatar || '😀') + ' ' + currentUser.username;
+        if (currentUser) {
+            document.getElementById('burgerAvatar').textContent = currentUser.avatar || '😀';
+            document.getElementById('burgerUsername').textContent = currentUser.username;
+            document.getElementById('burgerStatus').textContent = 'онлайн';
+        }
         document.addEventListener('click', closeBurgerOnOutside);
     }
 }
@@ -2135,4 +2138,11 @@ function onSidebarSearch(val) {
     document.querySelectorAll('#groupsList .user-item').forEach(el => {
         el.style.display = el.innerText.toLowerCase().includes(v) ? '' : 'none';
     });
+}
+
+// ===== Избранное (сообщения самому себе) =====
+function openFavorites() {
+    if (!currentUser) return;
+    switchChat(currentUser.username);
+    document.querySelector('.chat-title').innerText = '⭐ Избранное';
 }
