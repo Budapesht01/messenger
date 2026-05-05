@@ -183,6 +183,7 @@ function initSocket(token) {
             showNotification(`💬 ${msg.from}: ${msg.audioUrl ? 'Голосовое сообщение' : msg.text || '📷 Фото'}`);
         }
         notify();
+        updateFriendPreview(chatPartner, msg);
     });
 
     socket.on('group_message', (msg) => {
@@ -248,6 +249,7 @@ function initSocket(token) {
         // Сервер подтвердил — сообщение доставлено, галочка одна
         const el = document.querySelector(`.message[data-id="${data._id}"] .read-status`);
         if (el) { el.innerHTML = '✓'; }
+        updateFriendPreview(data.to || currentChat, data);
     });
 
     socket.on('friend_status', (data) => updateFriendStatus(data.username, data.online));
@@ -503,7 +505,7 @@ function addMessageToChat(msg) {
                 <div class="vp-bar" onclick="vpSeek('${aid}',event)"><div class="vp-progress"></div></div>
                 <span class="vp-time">0:00</span>
             </div>
-            <audio src="${escapeHtml(msg.audioUrl)}" preload="metadata" onloadedmetadata="vpMeta('${aid}',this)" ontimeupdate="vpUpdate('${aid}',this)" onended="vpEnded('${aid}')"></audio>
+            <audio src="${escapeHtml(msg.audioUrl)}" preload="auto" onloadedmetadata="vpMeta('${aid}',this)" ontimeupdate="vpUpdate('${aid}',this)" onended="vpEnded('${aid}')"></audio>
         </div>`;
     } else if (msg.imageUrl) {
         imageHtml = `<img src="${escapeHtml(msg.imageUrl)}" class="msg-image" onclick="openImageModal('${escapeHtml(msg.imageUrl)}')" loading="lazy">`;
@@ -2075,4 +2077,24 @@ function vpFmt(s) {
     if (!s || !isFinite(s) || isNaN(s)) return '0:00';
     const m = Math.floor(s/60), sec = Math.floor(s%60);
     return `${m}:${sec.toString().padStart(2,'0')}`;
+}
+
+function updateFriendPreview(username, msg) {
+    const item = document.querySelector(`.user-item[data-chat-key="dm_${username}"]`);
+    if (!item) return;
+    const isOwn = msg.from === currentUser?.username;
+    const prefix = isOwn ? 'Вы: ' : '';
+    const txt = msg.audioUrl ? 'Голосовое сообщение' : msg.imageUrl ? 'Фото' : (msg.text || '').slice(0, 35);
+    const t = new Date(msg.timestamp || Date.now());
+    const now = new Date();
+    const timeStr = t.toDateString() === now.toDateString()
+        ? t.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+        : t.toLocaleDateString([], { day: '2-digit', month: '2-digit' });
+    let el = item.querySelector('.friend-last-msg');
+    if (!el) {
+        el = document.createElement('div');
+        el.className = 'friend-last-msg';
+        item.querySelector('.user-info-text')?.appendChild(el);
+    }
+    el.innerHTML = `<span class="last-msg-text">${prefix}${escapeHtml(txt)}</span><span class="last-msg-time">${timeStr}</span>`;
 }
