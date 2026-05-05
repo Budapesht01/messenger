@@ -771,8 +771,6 @@ io.use(async (socket, next) => {
 
 io.on('connection', async (socket) => {
   const user = socket.user;
-  
-  const user = socket.user;
   await User.updateOne({ username: user.username }, { online: true, socketId: socket.id, lastSeen: new Date() });
   const userDoc = await User.findOne({ username: user.username });
 
