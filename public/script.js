@@ -1984,9 +1984,9 @@ async function startVoiceRecord() {
             console.log('[VOICE] emitting with audioUrl:', data.imageUrl);
             const replyData = (typeof currentReplyId !== 'undefined' && currentReplyId) ? { messageId: currentReplyId, from: currentReplyFrom, text: currentReplyText } : null;
             if (currentGroupId) {
-                socket.emit('send_group_message', { groupId: currentGroupId, text: '', audioUrl: data.imageUrl, replyTo: replyData });
+                socket.emit('send_group_message', { groupId: currentGroupId, text: '', audioUrl: data.imageUrl, audioDuration: voiceSeconds, replyTo: replyData });
             } else if (currentChat) {
-                socket.emit('send_message', { to: currentChat, text: '', audioUrl: data.imageUrl, replyTo: replyData });
+                socket.emit('send_message', { to: currentChat, text: '', audioUrl: data.imageUrl, audioDuration: voiceSeconds, replyTo: replyData });
             }
             clearReply();
         };
@@ -2050,13 +2050,9 @@ function vpUpdate(id, audio) {
 function vpMeta(id, audio) {
     const el = document.getElementById(id);
     if (!el) return;
-    const dur = isFinite(audio.duration) && audio.duration > 0 ? audio.duration : null;
-    if (dur) { el.querySelector('.vp-time').textContent = vpFmt(dur); return; }
-    setTimeout(() => {
-        if (!el) return;
-        const d2 = isFinite(audio.duration) && audio.duration > 0 ? audio.duration : 0;
-        el.querySelector('.vp-time').textContent = vpFmt(d2);
-    }, 800);
+    const fallback = parseInt(audio.dataset.duration || '0');
+    const dur = isFinite(audio.duration) && audio.duration > 0 ? audio.duration : fallback;
+    if (dur) el.querySelector('.vp-time').textContent = vpFmt(dur);
 }
 function vpEnded(id) {
     const el = document.getElementById(id);
