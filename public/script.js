@@ -893,7 +893,8 @@ function switchChat(username) {
     restoreDraft('dm_' + username);
     fetchHistoryForUser(username); // галочки рендерятся из реального readBy внутри
     markRead(username);
-    if (window.innerWidth <= 768) sidebar.classList.remove('open');
+    sidebar.classList.remove('open');
+    document.getElementById('menuToggleBtn').style.display = 'flex';
     setActiveChatItem('dm_' + username);
 }
 
@@ -908,7 +909,8 @@ async function switchGroupChat(groupId, groupName) {
     document.getElementById('chatMenuWrap').style.display = 'none';
     document.getElementById('messageInput').placeholder = 'Сообщение в группу...';
     restoreDraft('group_' + groupId);
-    if (window.innerWidth <= 768) sidebar.classList.remove('open');
+    sidebar.classList.remove('open');
+    document.getElementById('menuToggleBtn').style.display = 'flex';
     setActiveChatItem('group_' + groupId);
     const token = localStorage.getItem('token');
     const res = await fetch(`/api/groups/${groupId}/messages`, { headers: { 'Authorization': `Bearer ${token}` } });
@@ -2103,4 +2105,34 @@ function updateFriendPreview(username, msg) {
     const isReadLive = isOwn && msg.readBy && msg.readBy.includes(username);
     const checkLive = isOwn ? `<span style="font-size:10px;color:${isReadLive ? 'var(--accent)' : 'var(--text-secondary)'};">${isReadLive ? '✓✓' : '✓'}</span>` : '';
     el.innerHTML = `<span class="last-msg-text">${prefix}${escapeHtml(txt)}</span><span class="last-msg-time-wrap">${checkLive}<span class="last-msg-time">${timeStr}</span></span>`;
+}
+
+// ===== Бургер меню =====
+function toggleBurgerMenu() {
+    const d = document.getElementById('burgerDropdown');
+    d.style.display = d.style.display === 'none' ? 'block' : 'none';
+    if (d.style.display === 'block') {
+        const bui = document.getElementById('burgerUserInfo');
+        if (bui && currentUser) bui.textContent = (currentUser.avatar || '😀') + ' ' + currentUser.username;
+        document.addEventListener('click', closeBurgerOnOutside);
+    }
+}
+function closeBurgerMenu() {
+    document.getElementById('burgerDropdown').style.display = 'none';
+    document.removeEventListener('click', closeBurgerOnOutside);
+}
+function closeBurgerOnOutside(e) {
+    const d = document.getElementById('burgerDropdown');
+    const b = document.getElementById('burgerBtn');
+    if (!d.contains(e.target) && !b.contains(e.target)) closeBurgerMenu();
+}
+function onSidebarSearch(val) {
+    // Фильтрует по друзьям и группам
+    const v = val.toLowerCase();
+    document.querySelectorAll('#friendsList .user-item').forEach(el => {
+        el.style.display = el.dataset.chatKey?.toLowerCase().includes(v) || el.innerText.toLowerCase().includes(v) ? '' : 'none';
+    });
+    document.querySelectorAll('#groupsList .user-item').forEach(el => {
+        el.style.display = el.innerText.toLowerCase().includes(v) ? '' : 'none';
+    });
 }
