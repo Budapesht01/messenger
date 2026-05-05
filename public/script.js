@@ -176,6 +176,7 @@ function initSocket(token) {
             // Не добавлять дубликат если сообщение уже есть в DOM
             if (msg._id && document.querySelector(`.message[data-id="${msg._id}"]`)) return;
             addMessageToChat(msg);
+            if (isOwn) updateFriendPreview(chatPartner, msg);
             if (!isOwn) markRead(msg.from);
         } else if (!isOwn) {
             unreadCounts[msg.from] = (unreadCounts[msg.from] || 0) + 1;
