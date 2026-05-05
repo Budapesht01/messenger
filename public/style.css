@@ -2299,10 +2299,9 @@ body::before, body::after { display: none !important; }
     display: flex;
     align-items: center;
     gap: 10px;
-    width: 240px;
-    padding: 8px 10px;
-    border-radius: 12px;
-    background: rgba(255,255,255,0.06);
+    width: 220px;
+    padding: 0;
+    background: none;
 }
 .vp-play {
     flex-shrink: 0;
