@@ -151,7 +151,6 @@ function loginSuccess(token, user) {
     loadGroups();
     loadProfile();
     loadUnread();
-    document.getElementById('userInfo').innerHTML = `👤 ${user.username}`;
     document.querySelector('.chat-title').innerText = 'Выберите чат';
     document.getElementById('messageInput').placeholder = 'Выберите чат...';
 }
@@ -896,6 +895,7 @@ function switchChat(username) {
     sidebar.classList.remove('open');
     document.getElementById('menuToggleBtn').style.display = 'flex';
     setActiveChatItem('dm_' + username);
+    document.getElementById('backBtn').style.display = 'flex';
 }
 
 async function switchGroupChat(groupId, groupName) {
@@ -915,6 +915,7 @@ async function switchGroupChat(groupId, groupName) {
     const token = localStorage.getItem('token');
     const res = await fetch(`/api/groups/${groupId}/messages`, { headers: { 'Authorization': `Bearer ${token}` } });
     if (res.ok) renderMessages(await res.json());
+    document.getElementById('backBtn').style.display = 'flex';
 }
 
 function setActiveChatItem(key) {
@@ -2145,4 +2146,29 @@ function openFavorites() {
     if (!currentUser) return;
     switchChat(currentUser.username);
     document.querySelector('.chat-title').innerText = '⭐ Избранное';
+}
+
+function closeChat() {
+    currentChat = null;
+    currentGroupId = null;
+    document.getElementById('noChatSelected').style.display = 'flex';
+    document.getElementById('inputArea').style.display = 'none';
+    document.getElementById('backBtn').style.display = 'none';
+    document.getElementById('chatMenuWrap').style.display = 'none';
+    document.getElementById('groupMenuWrap').style.display = 'none';
+    document.querySelector('.chat-title').innerText = 'Выберите чат';
+    document.getElementById('messagesList').innerHTML = '';
+    document.querySelectorAll('.user-item').forEach(el => el.classList.remove('active-chat'));
+    if (window.innerWidth <= 768) sidebar.classList.add('open');
+}
+
+function switchToTab(tabId) {
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+    const tab = document.getElementById(`${tabId}-tab`);
+    if (tab) tab.classList.add('active');
+    const btn = document.querySelector(`.tab-btn[data-tab="${tabId}"]`);
+    if (btn) btn.classList.add('active');
+    if (tabId === 'settings') initThemePanel();
+    if (tabId === 'friends') loadFriends();
 }
