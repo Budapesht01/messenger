@@ -2170,3 +2170,19 @@ function switchToTab(tabId) {
     if (tabId === 'settings') initThemePanel();
     if (tabId === 'friends') loadFriends();
 }
+
+function openSettingsPanel() {
+    const panel = document.getElementById('settingsPanel');
+    panel.style.display = 'block';
+    setTimeout(() => panel.classList.add('open'), 10);
+    if (currentUser) {
+        document.getElementById('settingsAvatar').textContent = currentUser.avatar || '😀';
+        document.getElementById('settingsUsername').textContent = currentUser.username;
+    }
+    initThemePanel();
+}
+function closeSettingsPanel() {
+    const panel = document.getElementById('settingsPanel');
+    panel.classList.remove('open');
+    setTimeout(() => panel.style.display = 'none', 250);
+}
