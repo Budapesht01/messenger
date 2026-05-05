@@ -1408,8 +1408,6 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
         if (tabId === 'settings') initThemePanel();
     });
 });
-
-document.getElementById('menuToggleBtn').addEventListener('click', () => sidebar.classList.toggle('open'));
 // ===== TOAST =====
 function showToast(text, isError = false) {
     const existing = document.getElementById('toastMsg');
