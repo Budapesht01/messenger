@@ -130,6 +130,7 @@ const MessageSchema = new mongoose.Schema({
   text: { type: String, default: '' },
   imageUrl: { type: String, default: null },
   audioUrl: { type: String, default: null },
+  audioDuration: { type: Number, default: 0 },
   replyTo: {
     messageId: { type: mongoose.Schema.Types.ObjectId, default: null },
     from: { type: String, default: null },
@@ -800,7 +801,7 @@ socket.on('mark_read', async ({ chatWith }) => {
 
   // ===== Личные сообщения =====
   socket.on('send_message', async (data) => {
-    const { to, text, imageUrl, audioUrl, replyTo } = data;
+    const { to, text, imageUrl, audioUrl, audioDuration, replyTo } = data;
     if (!text?.trim() && !imageUrl && !audioUrl) return;
     const freshUser = await User.findOne({ username: user.username });
     const message = new Message({
@@ -808,6 +809,7 @@ socket.on('mark_read', async ({ chatWith }) => {
       text: text?.trim() || '',
       imageUrl: imageUrl || null,
       audioUrl: audioUrl || null,
+      audioDuration: audioUrl ? (audioDuration || 0) : 0,
       replyTo: replyTo || {},
       timestamp: new Date(),
       color: freshUser.color, avatar: freshUser.avatar,
@@ -816,7 +818,7 @@ socket.on('mark_read', async ({ chatWith }) => {
     await message.save();
     const msgData = {
       _id: message._id, from: user.username, to: message.to, groupId: null,
-      text: message.text, imageUrl: message.imageUrl, audioUrl: message.audioUrl, replyTo: message.replyTo,
+      text: message.text, imageUrl: message.imageUrl, audioUrl: message.audioUrl, audioDuration: message.audioDuration || 0, replyTo: message.replyTo,
       reactions: [], readBy: message.readBy,
       timestamp: message.timestamp, color: freshUser.color, avatar: freshUser.avatar,
       edited: false, deleted: false
@@ -828,13 +830,14 @@ socket.on('mark_read', async ({ chatWith }) => {
 
   // ===== Групповые сообщения =====
   socket.on('send_group_message', async (data) => {
-    const { groupId, text, imageUrl, audioUrl, replyTo } = data;
+    const { to, text, imageUrl, audioUrl, audioDuration, replyTo } = data;
     if (!text?.trim() && !imageUrl && !audioUrl) return;
     const freshUser = await User.findOne({ username: user.username });
     const message = new Message({
       from: user.username, to: null, groupId: groupId,
       text: text?.trim() || '', imageUrl: imageUrl || null,
       audioUrl: audioUrl || null,
+      audioDuration: audioUrl ? (audioDuration || 0) : 0,
       replyTo: replyTo || {},
       timestamp: new Date(), color: freshUser.color, avatar: freshUser.avatar,
       readBy: [user.username]
@@ -842,7 +845,7 @@ socket.on('mark_read', async ({ chatWith }) => {
     await message.save();
     const msgData = {
       _id: message._id, from: user.username, to: message.to, groupId: null,
-      text: message.text, imageUrl: message.imageUrl, audioUrl: message.audioUrl, replyTo: message.replyTo,
+      text: message.text, imageUrl: message.imageUrl, audioUrl: message.audioUrl, audioDuration: message.audioDuration || 0, replyTo: message.replyTo,
       reactions: [], readBy: message.readBy,
       timestamp: message.timestamp, color: freshUser.color, avatar: freshUser.avatar,
       edited: false, deleted: false
