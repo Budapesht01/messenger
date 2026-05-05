@@ -237,14 +237,19 @@ function initSocket(token) {
     });
 
     socket.on('messages_read', (data) => {
-            const reader = data.by;
-            // Обновить галочки если читает наш собеседник
-            if (currentChat === reader || data.chatWith === currentUser?.username) {
-                document.querySelectorAll('.message.own .read-status').forEach(el => {
-                    el.innerHTML = '✓✓'; el.classList.add('read');
-                });
-            }
-        });
+        const reader = data.by;
+        if (currentChat === reader || data.chatWith === currentUser?.username) {
+            document.querySelectorAll('.message.own .read-status').forEach(el => {
+                el.innerHTML = '✓✓'; el.classList.add('read');
+            });
+        }
+        // Обновить галочку в превью списка друзей
+        const item = document.querySelector(`.user-item[data-chat-key="dm_${reader}"]`);
+        if (item) {
+            const check = item.querySelector('.last-msg-time-wrap span:first-child');
+            if (check) { check.innerHTML = '✓✓'; check.style.color = 'var(--accent)'; }
+        }
+    });
 
     socket.on('private_message_sent', (data) => {
         // Сервер подтвердил — сообщение доставлено, галочка одна
@@ -2095,7 +2100,7 @@ function updateFriendPreview(username, msg) {
         el.className = 'friend-last-msg';
         item.querySelector('.user-info-text')?.appendChild(el);
     }
-    const isReadLive = msg.fromMe && msg.readBy && msg.readBy.includes(username);
+    const isReadLive = isOwn && msg.readBy && msg.readBy.includes(username);
     const checkLive = isOwn ? `<span style="font-size:10px;color:${isReadLive ? 'var(--accent)' : 'var(--text-secondary)'};">${isReadLive ? '✓✓' : '✓'}</span>` : '';
     el.innerHTML = `<span class="last-msg-text">${prefix}${escapeHtml(txt)}</span><span class="last-msg-time-wrap">${checkLive}<span class="last-msg-time">${timeStr}</span></span>`;
 }
