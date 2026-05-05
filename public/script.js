@@ -180,7 +180,7 @@ function initSocket(token) {
         } else if (!isOwn) {
             unreadCounts[msg.from] = (unreadCounts[msg.from] || 0) + 1;
             updateUnreadBadge(msg.from);
-            showNotification(`💬 ${msg.from}: ${msg.text || '📷 Фото'}`);
+            showNotification(`💬 ${msg.from}: ${msg.audioUrl ? 'Голосовое сообщение' : msg.text || '📷 Фото'}`);
         }
         notify();
     });
@@ -954,7 +954,8 @@ async function loadFriends() {
         let lastMsgHtml = '';
         if (friend.lastMessage) {
             const prefix = friend.lastMessage.fromMe ? 'Вы: ' : '';
-            const txt = escapeHtml((friend.lastMessage.text || '').slice(0, 35));
+            const lm = friend.lastMessage;
+            const txt = escapeHtml((lm.audioUrl ? 'Голосовое сообщение' : lm.imageUrl ? '📷 Фото' : lm.text || '').slice(0, 35));
             const t = new Date(friend.lastMessage.timestamp);
             const now = new Date();
             const isToday = t.toDateString() === now.toDateString();
@@ -2047,7 +2048,13 @@ function vpUpdate(id, audio) {
 function vpMeta(id, audio) {
     const el = document.getElementById(id);
     if (!el) return;
-    el.querySelector('.vp-time').textContent = vpFmt(audio.duration);
+    const dur = isFinite(audio.duration) && audio.duration > 0 ? audio.duration : null;
+    if (dur) { el.querySelector('.vp-time').textContent = vpFmt(dur); return; }
+    setTimeout(() => {
+        if (!el) return;
+        const d2 = isFinite(audio.duration) && audio.duration > 0 ? audio.duration : 0;
+        el.querySelector('.vp-time').textContent = vpFmt(d2);
+    }, 800);
 }
 function vpEnded(id) {
     const el = document.getElementById(id);
