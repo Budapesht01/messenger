@@ -1434,10 +1434,15 @@ body { background: var(--bg-gradient); }
     flex: 1;
     min-width: 0;
 }
+.last-msg-time-wrap {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    flex-shrink: 0;
+}
 .last-msg-time {
     font-size: 11px;
     color: var(--text-muted, rgba(240,242,248,0.25));
-    flex-shrink: 0;
 }
 
 /* ===== КОНТЕКСТНОЕ МЕНЮ СООБЩЕНИЯ (TG-стиль) ===== */
