@@ -503,9 +503,9 @@ function addMessageToChat(msg) {
             </button>
             <div class="vp-body">
                 <div class="vp-bar" onclick="vpSeek('${aid}',event)"><div class="vp-progress"></div></div>
-                <span class="vp-time">0:00</span>
+                <span class="vp-time">${msg.audioDuration ? vpFmt(msg.audioDuration) : '0:00'}</span>
             </div>
-            <audio src="${escapeHtml(msg.audioUrl)}" preload="auto" onloadedmetadata="vpMeta('${aid}',this)" ontimeupdate="vpUpdate('${aid}',this)" onended="vpEnded('${aid}')"></audio>
+            <audio src="${escapeHtml(msg.audioUrl)}" preload="auto" data-duration="${msg.audioDuration || 0}" onloadedmetadata="vpMeta('${aid}',this)" ontimeupdate="vpUpdate('${aid}',this)" onended="vpEnded('${aid}')"></audio>
         </div>`;
     } else if (msg.imageUrl) {
         imageHtml = `<img src="${escapeHtml(msg.imageUrl)}" class="msg-image" onclick="openImageModal('${escapeHtml(msg.imageUrl)}')" loading="lazy">`;
@@ -964,7 +964,9 @@ async function loadFriends() {
             const timeStr = isToday
                 ? t.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
                 : t.toLocaleDateString([], { day: '2-digit', month: '2-digit' });
-            lastMsgHtml = `<div class="friend-last-msg"><span class="last-msg-text">${prefix}${txt}</span><span class="last-msg-time">${timeStr}</span></div>`;
+            const isRead = lm.fromMe && lm.readBy && lm.readBy.includes(friend.username);
+            const checkHtml = lm.fromMe ? `<span style="font-size:10px;color:${isRead ? 'var(--accent)' : 'var(--text-secondary)'};margin-right:2px;">${isRead ? '✓✓' : '✓'}</span>` : '';
+            lastMsgHtml = `<div class="friend-last-msg"><span class="last-msg-text">${checkHtml}${prefix}${txt}</span><span class="last-msg-time">${timeStr}</span></div>`;
         }
 
         div.innerHTML = `
