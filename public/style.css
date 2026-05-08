@@ -1267,7 +1267,7 @@ body {
 }
 
 @media (max-width: 480px) {
-    .sidebar { width: 260px; }
+    .sidebar { width: 280px; }
     .message { max-width: 90%; }
     .message-bubble { padding: 7px 10px 5px; }
     .message-text { font-size: 13px; }
