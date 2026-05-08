@@ -2522,3 +2522,9 @@ body::before, body::after { display: none !important; }
     flex: 1;
     overflow-y: auto;
 }
+
+/* backBtn только на мобильном */
+.mobile-only { display: none !important; }
+@media (max-width: 768px) {
+    .mobile-only { display: flex !important; }
+}
