@@ -2158,7 +2158,7 @@ function closeChat() {
     document.getElementById('chatMenuWrap').style.display = 'none';
     document.getElementById('groupMenuWrap').style.display = 'none';
     document.querySelector('.chat-title').innerText = 'Выберите чат';
-    document.getElementById('messagesList').innerHTML = '';
+    document.getElementById('messages').innerHTML = '';
     document.querySelectorAll('.user-item').forEach(el => el.classList.remove('active-chat'));
     if (window.innerWidth <= 768) sidebar.classList.add('open');
 }
