@@ -893,7 +893,6 @@ function switchChat(username) {
     fetchHistoryForUser(username); // галочки рендерятся из реального readBy внутри
     markRead(username);
     sidebar.classList.remove('open');
-    document.getElementById('menuToggleBtn').style.display = 'flex';
     setActiveChatItem('dm_' + username);
     document.getElementById('backBtn').style.display = 'flex';
 }
@@ -910,7 +909,6 @@ async function switchGroupChat(groupId, groupName) {
     document.getElementById('messageInput').placeholder = 'Сообщение в группу...';
     restoreDraft('group_' + groupId);
     sidebar.classList.remove('open');
-    document.getElementById('menuToggleBtn').style.display = 'flex';
     setActiveChatItem('group_' + groupId);
     const token = localStorage.getItem('token');
     const res = await fetch(`/api/groups/${groupId}/messages`, { headers: { 'Authorization': `Bearer ${token}` } });
@@ -1508,11 +1506,15 @@ if (splash) {
         authDiv.style.display = 'none'; chatDiv.style.display = 'flex';
         initSocket(token); loadFriends(); loadFriendRequests(); loadGroups(); loadProfile(); loadUnread();
         const isAdmin = currentUser.username === 'Budapesht';
-        document.getElementById('userInfo').innerHTML = `👤 ${currentUser.username}${isAdmin ? ' <button onclick="openAdminPanel()" style="background:none;border:none;cursor:pointer;font-size:13px;color:var(--accent);padding:0 4px;" title="Админ панель">⚙️</button>' : ''}`;
-        document.querySelector('.chat-title').innerText = 'Выберите чат';
+const userInfoEl = document.getElementById('userInfo');
+if (userInfoEl) userInfoEl.innerHTML = `👤 ${currentUser.username}`;
+if (isAdmin) {
+    document.getElementById('burgerUsername').textContent = currentUser.username + ' ⚙️';
+}        document.querySelector('.chat-title').innerText = 'Выберите чат';
         document.getElementById('messageInput').placeholder = 'Выберите чат...';
         initAvatarPicker();
         initThemePanel();
+        if (window.innerWidth <= 768) sidebar.classList.add('open');
     }
     if (Notification.permission !== 'granted') Notification.requestPermission();
     initEmojiPicker();
