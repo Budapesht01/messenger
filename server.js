@@ -952,3 +952,99 @@ io.on('connection', async (socket) => {
 
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
+
+// ========== CHANNELS ==========
+const ChannelSchema = new mongoose.Schema({
+  name: { type: String, required: true },
+  description: { type: String, default: '' },
+  avatar: { type: String, default: '📢' },
+  owner: { type: String, required: true },
+  subscribers: [{ type: String }],
+  createdAt: { type: Date, default: Date.now }
+});
+const PostSchema = new mongoose.Schema({
+  channelId: { type: mongoose.Schema.Types.ObjectId, required: true },
+  text: { type: String, default: '' },
+  imageUrl: { type: String, default: null },
+  likes: [{ type: String }],
+  createdAt: { type: Date, default: Date.now }
+});
+const CommentSchema = new mongoose.Schema({
+  postId: { type: mongoose.Schema.Types.ObjectId, required: true },
+  from: { type: String, required: true },
+  avatar: { type: String, default: '😀' },
+  color: { type: String, default: '#6ab0f3' },
+  text: { type: String, required: true },
+  createdAt: { type: Date, default: Date.now }
+});
+const Channel = mongoose.model('Channel', ChannelSchema);
+const Post = mongoose.model('Post', PostSchema);
+const Comment = mongoose.model('Comment', CommentSchema);
+
+app.get('/api/channels', authenticateJWT, async (req, res) => {
+  const channels = await Channel.find().sort({ createdAt: -1 });
+  res.json(channels);
+});
+app.post('/api/channels', authenticateJWT, async (req, res) => {
+  const { name, description, avatar } = req.body;
+  if (!name) return res.status(400).json({ error: 'Name required' });
+  const ch = new Channel({ name, description: description||'', avatar: avatar||'📢', owner: req.user.username, subscribers: [req.user.username] });
+  await ch.save();
+  res.json(ch);
+});
+app.post('/api/channels/:id/subscribe', authenticateJWT, async (req, res) => {
+  const ch = await Channel.findById(req.params.id);
+  if (!ch) return res.status(404).json({ error: 'Not found' });
+  const idx = ch.subscribers.indexOf(req.user.username);
+  if (idx === -1) ch.subscribers.push(req.user.username);
+  else ch.subscribers.splice(idx, 1);
+  await ch.save();
+  res.json({ subscribed: idx === -1, count: ch.subscribers.length });
+});
+app.get('/api/channels/:id/posts', authenticateJWT, async (req, res) => {
+  const posts = await Post.find({ channelId: req.params.id }).sort({ createdAt: -1 }).limit(50);
+  res.json(posts);
+});
+app.post('/api/channels/:id/posts', authenticateJWT, async (req, res) => {
+  const ch = await Channel.findById(req.params.id);
+  if (!ch) return res.status(404).json({ error: 'Not found' });
+  if (ch.owner !== req.user.username) return res.status(403).json({ error: 'Only owner can post' });
+  const { text, imageUrl } = req.body;
+  const post = new Post({ channelId: ch._id, text: text||'', imageUrl: imageUrl||null });
+  await post.save();
+  for (const sub of ch.subscribers) {
+    const u = await User.findOne({ username: sub });
+    if (u && u.socketId) io.to(u.socketId).emit('new_channel_post', { channelId: String(ch._id), channelName: ch.name, post });
+  }
+  res.json(post);
+});
+app.post('/api/posts/:id/like', authenticateJWT, async (req, res) => {
+  const post = await Post.findById(req.params.id);
+  if (!post) return res.status(404).json({ error: 'Not found' });
+  const idx = post.likes.indexOf(req.user.username);
+  if (idx === -1) post.likes.push(req.user.username);
+  else post.likes.splice(idx, 1);
+  await post.save();
+  res.json({ liked: idx === -1, count: post.likes.length });
+});
+app.get('/api/posts/:id/comments', authenticateJWT, async (req, res) => {
+  const comments = await Comment.find({ postId: req.params.id }).sort({ createdAt: 1 });
+  res.json(comments);
+});
+app.post('/api/posts/:id/comments', authenticateJWT, async (req, res) => {
+  const { text } = req.body;
+  if (!text) return res.status(400).json({ error: 'Text required' });
+  const user = await User.findOne({ username: req.user.username });
+  const comment = new Comment({ postId: req.params.id, from: req.user.username, avatar: user.avatar||'😀', color: user.color||'#6ab0f3', text });
+  await comment.save();
+  res.json(comment);
+});
+app.delete('/api/channels/:id', authenticateJWT, async (req, res) => {
+  const ch = await Channel.findById(req.params.id);
+  if (!ch) return res.status(404).json({ error: 'Not found' });
+  if (ch.owner !== req.user.username) return res.status(403).json({ error: 'Only owner' });
+  await Post.deleteMany({ channelId: ch._id });
+  await Comment.deleteMany({ postId: { $in: (await Post.find({ channelId: ch._id })).map(p => p._id) } });
+  await Channel.findByIdAndDelete(ch._id);
+  res.json({ ok: true });
+});
