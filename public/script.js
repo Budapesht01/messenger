@@ -2158,7 +2158,7 @@ function closeChat() {
     document.getElementById('chatMenuWrap').style.display = 'none';
     document.getElementById('groupMenuWrap').style.display = 'none';
     document.querySelector('.chat-title').innerText = 'Выберите чат';
-    document.getElementById('messages').innerHTML = '';
+    document.getElementById('messagesList').innerHTML = '';
     document.querySelectorAll('.user-item').forEach(el => el.classList.remove('active-chat'));
     if (window.innerWidth <= 768) sidebar.classList.add('open');
 }
@@ -2189,3 +2189,218 @@ function closeSettingsPanel() {
     panel.classList.remove('open');
     setTimeout(() => panel.style.display = 'none', 250);
 }
+
+// ========== CHANNELS ==========
+let currentChannelId = null;
+let currentChannelOwner = null;
+let currentPostId = null;
+
+async function loadChannels() {
+    const token = localStorage.getItem('token');
+    const res = await fetch('/api/channels', { headers: { Authorization: 'Bearer ' + token } });
+    if (!res.ok) return;
+    const channels = await res.json();
+    const list = document.getElementById('channelsList');
+    if (!list) return;
+    list.innerHTML = '';
+    if (channels.length === 0) {
+        list.innerHTML = '<div style="padding:20px; text-align:center; color:var(--text-secondary); font-size:13px;">Каналов пока нет</div>';
+        return;
+    }
+    channels.forEach(ch => {
+        const div = document.createElement('div');
+        div.className = 'channel-item';
+        div.innerHTML = `
+            <span class="channel-avatar">${ch.avatar || '📢'}</span>
+            <div class="channel-info">
+                <div class="channel-name">${escapeHtml(ch.name)}</div>
+                <div class="channel-desc">${escapeHtml(ch.description || '')}</div>
+            </div>
+            <div class="channel-meta">
+                <span class="channel-subs">${ch.subscribers.length} подп.</span>
+            </div>`;
+        div.onclick = () => openChannel(ch);
+        list.appendChild(div);
+    });
+}
+
+function openCreateChannelModal() {
+    document.getElementById('channelNameInput').value = '';
+    document.getElementById('channelDescInput').value = '';
+    document.getElementById('channelAvatarInput').value = '';
+    document.getElementById('createChannelModal').classList.add('open');
+}
+
+async function createChannel() {
+    const token = localStorage.getItem('token');
+    const name = document.getElementById('channelNameInput').value.trim();
+    const description = document.getElementById('channelDescInput').value.trim();
+    const avatar = document.getElementById('channelAvatarInput').value.trim() || '📢';
+    if (!name) return;
+    const res = await fetch('/api/channels', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token },
+        body: JSON.stringify({ name, description, avatar })
+    });
+    if (res.ok) {
+        closeModal('createChannelModal');
+        loadChannels();
+    }
+}
+
+async function openChannel(ch) {
+    currentChannelId = ch._id;
+    currentChannelOwner = ch.owner;
+    document.getElementById('channelViewAvatar').textContent = ch.avatar || '📢';
+    document.getElementById('channelViewName').textContent = ch.name;
+    document.getElementById('channelViewSubs').textContent = ch.subscribers.length + ' подписчиков';
+
+    const isOwner = currentUser && ch.owner === currentUser.username;
+    const isSubbed = currentUser && ch.subscribers.includes(currentUser.username);
+    const subBtn = document.getElementById('channelSubBtn');
+    subBtn.textContent = isSubbed ? 'Отписаться' : 'Подписаться';
+    subBtn.className = isSubbed ? 'secondary-btn' : 'primary-btn';
+    document.getElementById('channelPostBtn').style.display = isOwner ? 'block' : 'none';
+    document.getElementById('postEditor').style.display = 'none';
+
+    document.getElementById('channelViewModal').classList.add('open');
+    await loadChannelPosts();
+}
+
+async function loadChannelPosts() {
+    const token = localStorage.getItem('token');
+    const res = await fetch(`/api/channels/${currentChannelId}/posts`, { headers: { Authorization: 'Bearer ' + token } });
+    if (!res.ok) return;
+    const posts = await res.json();
+    const list = document.getElementById('channelPostsList');
+    list.innerHTML = '';
+    if (posts.length === 0) {
+        list.innerHTML = '<div style="padding:30px; text-align:center; color:var(--text-secondary); font-size:13px;">Постов пока нет</div>';
+        return;
+    }
+    posts.forEach(post => renderPost(post, list));
+}
+
+function renderPost(post, container) {
+    const isLiked = currentUser && post.likes.includes(currentUser.username);
+    const time = new Date(post.createdAt).toLocaleString('ru', { day:'numeric', month:'short', hour:'2-digit', minute:'2-digit' });
+    const div = document.createElement('div');
+    div.className = 'channel-post';
+    div.dataset.id = post._id;
+    div.innerHTML = `
+        ${post.imageUrl ? `<img src="${post.imageUrl}" class="post-image" alt="">` : ''}
+        ${post.text ? `<div class="post-text">${escapeHtml(post.text)}</div>` : ''}
+        <div class="post-footer">
+            <span class="post-time">${time}</span>
+            <div class="post-actions">
+                <button class="post-like-btn ${isLiked ? 'liked' : ''}" onclick="toggleLike('${post._id}', this)">
+                    <svg viewBox="0 0 24 24" fill="${isLiked ? 'currentColor' : 'none'}" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/></svg>
+                    <span>${post.likes.length}</span>
+                </button>
+                <button class="post-comment-btn" onclick="openComments('${post._id}')">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
+                    Комментарии
+                </button>
+            </div>
+        </div>`;
+    container.appendChild(div);
+}
+
+async function toggleLike(postId, btn) {
+    const token = localStorage.getItem('token');
+    const res = await fetch(`/api/posts/${postId}/like`, { method: 'POST', headers: { Authorization: 'Bearer ' + token } });
+    if (!res.ok) return;
+    const data = await res.json();
+    btn.classList.toggle('liked', data.liked);
+    btn.querySelector('svg').setAttribute('fill', data.liked ? 'currentColor' : 'none');
+    btn.querySelector('span').textContent = data.count;
+}
+
+async function toggleSubscribe() {
+    const token = localStorage.getItem('token');
+    const res = await fetch(`/api/channels/${currentChannelId}/subscribe`, { method: 'POST', headers: { Authorization: 'Bearer ' + token } });
+    if (!res.ok) return;
+    const data = await res.json();
+    const btn = document.getElementById('channelSubBtn');
+    btn.textContent = data.subscribed ? 'Отписаться' : 'Подписаться';
+    btn.className = data.subscribed ? 'secondary-btn' : 'primary-btn';
+    document.getElementById('channelViewSubs').textContent = data.count + ' подписчиков';
+    loadChannels();
+}
+
+function openPostEditor() {
+    const ed = document.getElementById('postEditor');
+    ed.style.display = ed.style.display === 'none' ? 'block' : 'none';
+}
+
+async function submitPost() {
+    const token = localStorage.getItem('token');
+    const text = document.getElementById('postTextInput').value.trim();
+    if (!text) return;
+    const res = await fetch(`/api/channels/${currentChannelId}/posts`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token },
+        body: JSON.stringify({ text })
+    });
+    if (res.ok) {
+        document.getElementById('postTextInput').value = '';
+        document.getElementById('postEditor').style.display = 'none';
+        await loadChannelPosts();
+    }
+}
+
+async function openComments(postId) {
+    currentPostId = postId;
+    document.getElementById('commentInput').value = '';
+    document.getElementById('commentsModal').classList.add('open');
+    await loadComments();
+}
+
+async function loadComments() {
+    const token = localStorage.getItem('token');
+    const res = await fetch(`/api/posts/${currentPostId}/comments`, { headers: { Authorization: 'Bearer ' + token } });
+    if (!res.ok) return;
+    const comments = await res.json();
+    const list = document.getElementById('commentsList');
+    list.innerHTML = '';
+    if (comments.length === 0) {
+        list.innerHTML = '<div style="text-align:center; color:var(--text-secondary); font-size:13px; padding:16px;">Комментариев пока нет</div>';
+        return;
+    }
+    comments.forEach(c => {
+        const div = document.createElement('div');
+        div.className = 'comment-item';
+        div.innerHTML = `
+            <span class="comment-avatar">${c.avatar || '😀'}</span>
+            <div class="comment-body">
+                <span class="comment-author" style="color:${c.color}">${escapeHtml(c.from)}</span>
+                <span class="comment-text">${escapeHtml(c.text)}</span>
+            </div>`;
+        list.appendChild(div);
+    });
+    list.scrollTop = list.scrollHeight;
+}
+
+async function submitComment() {
+    const token = localStorage.getItem('token');
+    const text = document.getElementById('commentInput').value.trim();
+    if (!text) return;
+    const res = await fetch(`/api/posts/${currentPostId}/comments`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token },
+        body: JSON.stringify({ text })
+    });
+    if (res.ok) {
+        document.getElementById('commentInput').value = '';
+        await loadComments();
+    }
+}
+
+// Подгружаем каналы при переключении на таб
+document.addEventListener('DOMContentLoaded', () => {
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            if (btn.dataset.tab === 'channels') loadChannels();
+        });
+    });
+});
