@@ -134,6 +134,7 @@
                 <button class="tab-btn active" data-tab="friends" data-i18n="Друзья">Друзья</button>
                 <button class="tab-btn" data-tab="groups" data-i18n="Группы">Группы</button>
                 <button class="tab-btn" data-tab="search" data-i18n="Поиск">Поиск</button>
+                <button class="tab-btn" data-tab="channels">Каналы</button>
                 <button class="tab-btn" data-tab="requests">Запросы <span id="requestsBadge" style="display:none; background:#ef4444; color:#fff; font-size:10px; font-weight:700; padding:1px 5px; border-radius:10px; vertical-align:middle; margin-left:2px;"></span></button>
             </div>
 
@@ -164,6 +165,14 @@
             <div class="tab-content" id="search-tab">
                 <input type="text" id="searchUserInput" placeholder="Поиск пользователей...">
                 <div id="searchResults"></div>
+            </div>
+
+            <!-- Каналы -->
+            <div class="tab-content" id="channels-tab">
+                <div class="channel-list-header">
+                    <button class="primary-btn channel-create-btn" onclick="openCreateChannelModal()">+ Создать канал</button>
+                </div>
+                <div id="channelsList"></div>
             </div>
 
             <!-- Запросы -->
@@ -637,5 +646,69 @@
     // patch after load
     document.addEventListener('DOMContentLoaded', () => {});
     </script>
+
+<!-- Создать канал -->
+<div class="modal-overlay" id="createChannelModal">
+    <div class="modal-card narrow">
+        <div class="modal-header">
+            <h3>Новый канал</h3>
+            <button class="modal-close" onclick="closeModal('createChannelModal')">✕</button>
+        </div>
+        <div class="modal-body">
+            <input type="text" id="channelNameInput" class="modal-input" placeholder="Название канала" maxlength="50">
+            <input type="text" id="channelDescInput" class="modal-input" placeholder="Описание (необязательно)" maxlength="120" style="margin-top:8px;">
+            <input type="text" id="channelAvatarInput" class="modal-input" placeholder="Эмодзи аватар (напр. 📢)" maxlength="4" style="margin-top:8px;">
+        </div>
+        <div class="modal-footer">
+            <button class="primary-btn" onclick="createChannel()">Создать</button>
+        </div>
+    </div>
+</div>
+
+<!-- Просмотр канала -->
+<div class="modal-overlay" id="channelViewModal">
+    <div class="modal-card channel-modal">
+        <div class="modal-header">
+            <div style="display:flex; align-items:center; gap:10px;">
+                <span id="channelViewAvatar" style="font-size:24px;">📢</span>
+                <div>
+                    <div id="channelViewName" style="font-weight:700; font-size:16px;"></div>
+                    <div id="channelViewSubs" style="font-size:12px; color:var(--text-secondary);"></div>
+                </div>
+            </div>
+            <div style="display:flex; gap:8px; align-items:center;">
+                <button id="channelSubBtn" class="secondary-btn" onclick="toggleSubscribe()">Подписаться</button>
+                <button id="channelPostBtn" class="primary-btn" style="display:none;" onclick="openPostEditor()">+ Пост</button>
+                <button class="modal-close" onclick="closeModal('channelViewModal')">✕</button>
+            </div>
+        </div>
+        <div class="channel-view-body">
+            <!-- Редактор поста (только owner) -->
+            <div id="postEditor" style="display:none;" class="post-editor">
+                <textarea id="postTextInput" placeholder="Текст поста..." rows="3"></textarea>
+                <div style="display:flex; justify-content:flex-end; margin-top:8px;">
+                    <button class="primary-btn" onclick="submitPost()">Опубликовать</button>
+                </div>
+            </div>
+            <div id="channelPostsList" class="channel-posts-list"></div>
+        </div>
+    </div>
+</div>
+
+<!-- Комментарии к посту -->
+<div class="modal-overlay" id="commentsModal">
+    <div class="modal-card narrow">
+        <div class="modal-header">
+            <h3>Комментарии</h3>
+            <button class="modal-close" onclick="closeModal('commentsModal')">✕</button>
+        </div>
+        <div class="modal-body" style="max-height:400px; overflow-y:auto;" id="commentsList"></div>
+        <div class="modal-footer" style="display:flex; gap:8px;">
+            <input type="text" id="commentInput" class="modal-input" placeholder="Комментарий..." style="flex:1;" onkeydown="if(event.key==='Enter') submitComment()">
+            <button class="primary-btn" onclick="submitComment()">→</button>
+        </div>
+    </div>
+</div>
+
 </body>
 </html>
