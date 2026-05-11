@@ -890,6 +890,8 @@ function switchChat(username) {
     currentChat = username; currentGroupId = null;
     document.getElementById('noChatSelected').style.display = 'none';
     document.getElementById('inputArea').style.display = 'flex';
+    const ch1 = document.getElementById('chatHeader'); if (ch1) ch1.style.display = '';
+    const cvp1 = document.getElementById('channelViewPanel'); if (cvp1) cvp1.style.display = 'none';
     document.querySelector('.chat-title').innerText = username;
     document.getElementById('groupInfoBtn').style.display = 'none';
     document.getElementById('chatMenuWrap').style.display = 'flex';
@@ -908,6 +910,8 @@ async function switchGroupChat(groupId, groupName) {
     currentGroupId = groupId; currentChat = null;
     document.getElementById('noChatSelected').style.display = 'none';
     document.getElementById('inputArea').style.display = 'flex';
+    const ch2 = document.getElementById('chatHeader'); if (ch2) ch2.style.display = '';
+    const cvp2 = document.getElementById('channelViewPanel'); if (cvp2) cvp2.style.display = 'none';
     document.querySelector('.chat-title').innerText = groupName;
     document.getElementById('groupInfoBtn').style.display = 'none';
     document.getElementById('groupMenuWrap').style.display = 'flex';
@@ -2210,6 +2214,8 @@ function switchToTab(tabId) {
         const panel = document.getElementById('channelViewPanel');
         if (panel) panel.style.display = 'none';
         currentChannelId = null;
+        const ch3 = document.getElementById('chatHeader');
+        if (ch3) ch3.style.display = '';
         if (!currentChat && !currentGroupId) {
             document.getElementById('noChatSelected').style.display = 'flex';
         }
@@ -2328,6 +2334,8 @@ async function openChannel(ch) {
     // Show channel in .main area
     document.getElementById('noChatSelected').style.display = 'none';
     document.getElementById('inputArea').style.display = 'none';
+    const chatHeader = document.getElementById('chatHeader');
+    if (chatHeader) chatHeader.style.display = 'none';
     document.getElementById('channelViewPanel').style.display = 'flex';
     document.getElementById('channelView').style.display = 'flex';
     await loadChannelPosts();
