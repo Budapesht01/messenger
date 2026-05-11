@@ -2205,6 +2205,15 @@ function closeChat() {
 function switchToTab(tabId) {
     document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
     document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+    // Hide channel view when switching away
+    if (tabId !== 'channels') {
+        const panel = document.getElementById('channelViewPanel');
+        if (panel) panel.style.display = 'none';
+        currentChannelId = null;
+        if (!currentChat && !currentGroupId) {
+            document.getElementById('noChatSelected').style.display = 'flex';
+        }
+    }
     const tab = document.getElementById(`${tabId}-tab`);
     if (tab) tab.classList.add('active');
     const btn = document.querySelector(`.tab-btn[data-tab="${tabId}"]`);
@@ -2242,6 +2251,11 @@ async function loadChannels() {
     const list = document.getElementById('channelsList');
     if (!list) return;
     list.innerHTML = '';
+    // If no channel open, make sure panel is hidden
+    if (!currentChannelId) {
+        const panel = document.getElementById('channelViewPanel');
+        if (panel) panel.style.display = 'none';
+    }
     if (channels.length === 0) {
         list.innerHTML = '<div style="padding:20px; text-align:center; color:var(--text-secondary); font-size:13px;">Каналов пока нет</div>';
         return;
@@ -2311,7 +2325,10 @@ async function openChannel(ch) {
     document.getElementById('channelDeleteBtn').style.display = isOwner ? 'flex' : 'none';
     document.getElementById('postEditor').style.display = 'none';
 
-    document.getElementById('channelEmptyState').style.display = 'none';
+    // Show channel in .main area
+    document.getElementById('noChatSelected').style.display = 'none';
+    document.getElementById('inputArea').style.display = 'none';
+    document.getElementById('channelViewPanel').style.display = 'flex';
     document.getElementById('channelView').style.display = 'flex';
     await loadChannelPosts();
 }
@@ -2430,8 +2447,8 @@ async function deleteChannel() {
     const token = localStorage.getItem('token');
     const res = await fetch(`/api/channels/${currentChannelId}`, { method: 'DELETE', headers: { Authorization: 'Bearer ' + token } });
     if (res.ok) {
-        document.getElementById('channelView').style.display = 'none';
-        document.getElementById('channelEmptyState').style.display = 'flex';
+        document.getElementById('channelViewPanel').style.display = 'none';
+        document.getElementById('noChatSelected').style.display = 'flex';
         currentChannelId = null;
         loadChannels();
     }
