@@ -1054,20 +1054,51 @@ function updateFriendStatus(username, online) {
 
 // ========== Поиск ==========
 document.getElementById('searchUserInput').addEventListener('input', async (e) => {
-    const q = e.target.value;
-    if (q.length < 2) { document.getElementById('searchResults').innerHTML = ''; return; }
+    const q = e.target.value.trim();
+    const results = document.getElementById('searchResults');
+    if (!q) { results.innerHTML = ''; return; }
     const token = localStorage.getItem('token');
-    const users = await (await fetch(`/api/users/search?q=${encodeURIComponent(q)}`, { headers: { 'Authorization': `Bearer ${token}` } })).json();
-    const container = document.getElementById('searchResults');
-    container.innerHTML = '';
-    users.forEach(user => {
-        const div = document.createElement('div');
-        div.className = 'user-item';
-        div.innerHTML = `<span class="user-avatar">${escapeHtml(user.avatar || '😀')}</span>
-            <span class="user-name">${escapeHtml(user.username)}</span>
-            <button class="friend-request-btn" data-username="${user.username}">Добавить</button>`;
-        container.appendChild(div);
-    });
+    const filter = document.querySelector('.search-filter-btn.active')?.dataset.filter || 'all';
+    const res = await fetch(`/api/search?q=${encodeURIComponent(q)}`, { headers: { Authorization: 'Bearer ' + token } });
+    if (!res.ok) return;
+    const data = await res.json();
+    results.innerHTML = '';
+
+    const showUsers = filter === 'all' || filter === 'users';
+    const showGroups = filter === 'all' || filter === 'groups';
+    const showChannels = filter === 'all' || filter === 'channels';
+
+    if (showUsers && data.users.length > 0) {
+        results.innerHTML += `<div class="search-section-title">Люди</div>`;
+        data.users.forEach(u => {
+            const div = document.createElement('div');
+            div.className = 'user-item search-result-item';
+            div.innerHTML = `<span style="font-size:22px;">${u.avatar||'😀'}</span><div class="user-item-info"><span class="user-item-name" style="color:${u.color}">${escapeHtml(u.username)}</span><span class="user-item-status">${u.online ? 'онлайн' : 'оффлайн'}</span></div>`;
+            div.onclick = () => sendFriendRequest(u.username);
+            results.appendChild(div);
+        });
+    }
+    if (showGroups && data.groups.length > 0) {
+        const h = document.createElement('div'); h.className = 'search-section-title'; h.textContent = 'Группы'; results.appendChild(h);
+        data.groups.forEach(g => {
+            const div = document.createElement('div');
+            div.className = 'user-item search-result-item';
+            div.innerHTML = `<span style="font-size:22px;">${g.avatar||'👥'}</span><div class="user-item-info"><span class="user-item-name">${escapeHtml(g.name)}</span><span class="user-item-status">${g.members?.length||0} участников</span></div>`;
+            results.appendChild(div);
+        });
+    }
+    if (showChannels && data.channels.length > 0) {
+        const h = document.createElement('div'); h.className = 'search-section-title'; h.textContent = 'Каналы'; results.appendChild(h);
+        data.channels.forEach(ch => {
+            const div = document.createElement('div');
+            div.className = 'user-item search-result-item';
+            div.innerHTML = `<span style="font-size:22px;">${ch.avatar||'📢'}</span><div class="user-item-info"><span class="user-item-name">${escapeHtml(ch.name)}</span><span class="user-item-status">${ch.subscribers?.length||0} подписчиков</span></div>`;
+            div.onclick = () => { document.querySelector('[data-tab="channels"]').click(); setTimeout(() => openChannel(ch), 100); };
+            results.appendChild(div);
+        });
+    }
+    if (results.innerHTML === '') results.innerHTML = '<div style="padding:20px; text-align:center; color:var(--text-secondary); font-size:13px;">Ничего не найдено</div>';
+});
     document.querySelectorAll('.friend-request-btn').forEach(btn => {
         btn.addEventListener('click', async (e) => {
             e.stopPropagation();
@@ -2225,6 +2256,7 @@ async function loadChannels() {
             <div class="channel-meta">
                 <span class="channel-subs">${ch.subscribers.length} подп.</span>
             </div>`;
+        div.dataset.id = ch._id;
         div.onclick = () => openChannel(ch);
         list.appendChild(div);
     });
@@ -2257,6 +2289,12 @@ async function createChannel() {
 async function openChannel(ch) {
     currentChannelId = ch._id;
     currentChannelOwner = ch.owner;
+
+    // Mark active
+    document.querySelectorAll('.channel-item').forEach(el => el.classList.remove('active-channel'));
+    const activeEl = document.querySelector(`.channel-item[data-id="${ch._id}"]`);
+    if (activeEl) activeEl.classList.add('active-channel');
+
     document.getElementById('channelViewAvatar').textContent = ch.avatar || '📢';
     document.getElementById('channelViewName').textContent = ch.name;
     document.getElementById('channelViewSubs').textContent = ch.subscribers.length + ' подписчиков';
@@ -2266,10 +2304,13 @@ async function openChannel(ch) {
     const subBtn = document.getElementById('channelSubBtn');
     subBtn.textContent = isSubbed ? 'Отписаться' : 'Подписаться';
     subBtn.className = isSubbed ? 'secondary-btn' : 'primary-btn';
-    document.getElementById('channelPostBtn').style.display = isOwner ? 'block' : 'none';
+    document.getElementById('channelPostBtn').style.display = isOwner ? 'flex' : 'none';
+    document.getElementById('channelStatsBtn').style.display = isOwner ? 'flex' : 'none';
+    document.getElementById('channelDeleteBtn').style.display = isOwner ? 'flex' : 'none';
     document.getElementById('postEditor').style.display = 'none';
 
-    document.getElementById('channelViewModal').classList.add('open');
+    document.getElementById('channelEmptyState').style.display = 'none';
+    document.getElementById('channelView').style.display = 'flex';
     await loadChannelPosts();
 }
 
@@ -2287,29 +2328,126 @@ async function loadChannelPosts() {
     posts.forEach(post => renderPost(post, list));
 }
 
+const REACTION_EMOJIS = ['❤️','🔥','👍','😂','😮','😢','👏','🎉'];
+
 function renderPost(post, container) {
+    const isOwner = currentUser && currentChannelOwner === currentUser.username;
     const isLiked = currentUser && post.likes.includes(currentUser.username);
     const time = new Date(post.createdAt).toLocaleString('ru', { day:'numeric', month:'short', hour:'2-digit', minute:'2-digit' });
+    const reactions = post.reactions || [];
+    const reactionsHtml = reactions.filter(r => r.users.length > 0).map(r => {
+        const mine = currentUser && r.users.includes(currentUser.username);
+        return `<button class="post-reaction-pill ${mine ? 'mine' : ''}" onclick="toggleReaction('${post._id}', '${r.emoji}', this)">${r.emoji} <span>${r.users.length}</span></button>`;
+    }).join('');
+
     const div = document.createElement('div');
     div.className = 'channel-post';
     div.dataset.id = post._id;
     div.innerHTML = `
-        ${post.imageUrl ? `<img src="${post.imageUrl}" class="post-image" alt="">` : ''}
+        ${post.imageUrl ? `<img src="${post.imageUrl}" class="post-image" alt="" onclick="openImageModal('${post.imageUrl}')">` : ''}
         ${post.text ? `<div class="post-text">${escapeHtml(post.text)}</div>` : ''}
+        ${reactionsHtml ? `<div class="post-reactions">${reactionsHtml}</div>` : ''}
         <div class="post-footer">
-            <span class="post-time">${time}</span>
+            <div class="post-footer-left">
+                <span class="post-views-count">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                    ${post.views || 0}
+                </span>
+                <span class="post-time">${time}</span>
+            </div>
             <div class="post-actions">
+                <button class="post-react-trigger" onclick="toggleReactionPicker('${post._id}', this)">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><circle cx="12" cy="12" r="10"/><path d="M8 13s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg>
+                </button>
                 <button class="post-like-btn ${isLiked ? 'liked' : ''}" onclick="toggleLike('${post._id}', this)">
                     <svg viewBox="0 0 24 24" fill="${isLiked ? 'currentColor' : 'none'}" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/></svg>
                     <span>${post.likes.length}</span>
                 </button>
                 <button class="post-comment-btn" onclick="openComments('${post._id}')">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
-                    Комментарии
+                    <span id="commentCount_${post._id}">0</span>
                 </button>
+                ${isOwner ? `<button class="post-delete-btn" onclick="deletePost('${post._id}', this)" title="Удалить пост"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polyline points="3,6 5,6 21,6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/></svg></button>` : ''}
             </div>
         </div>`;
     container.appendChild(div);
+    // Count comments async
+    fetch(`/api/posts/${post._id}/comments`, { headers: { Authorization: 'Bearer ' + localStorage.getItem('token') } })
+        .then(r => r.json()).then(comments => {
+            const el = document.getElementById(`commentCount_${post._id}`);
+            if (el) el.textContent = comments.length;
+        }).catch(() => {});
+    // Track view
+    fetch(`/api/posts/${post._id}/view`, { method: 'POST', headers: { Authorization: 'Bearer ' + localStorage.getItem('token') } }).catch(() => {});
+}
+
+function toggleReactionPicker(postId, btn) {
+    document.querySelectorAll('.post-reaction-picker').forEach(p => p.remove());
+    const picker = document.createElement('div');
+    picker.className = 'post-reaction-picker';
+    picker.innerHTML = REACTION_EMOJIS.map(e => `<button onclick="toggleReaction('${postId}', '${e}', this.closest('.channel-post').querySelector('.post-reactions') || null); this.closest('.post-reaction-picker').remove();">${e}</button>`).join('');
+    btn.parentNode.insertBefore(picker, btn.nextSibling);
+    setTimeout(() => document.addEventListener('click', function h(e) {
+        if (!picker.contains(e.target) && e.target !== btn) { picker.remove(); document.removeEventListener('click', h); }
+    }), 10);
+}
+
+async function toggleReaction(postId, emoji, refEl) {
+    const token = localStorage.getItem('token');
+    const res = await fetch(`/api/posts/${postId}/react`, { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token }, body: JSON.stringify({ emoji }) });
+    if (!res.ok) return;
+    const data = await res.json();
+    // Re-render reactions on post
+    const postEl = document.querySelector(`.channel-post[data-id="${postId}"]`);
+    if (!postEl) return;
+    let reactDiv = postEl.querySelector('.post-reactions');
+    const newReactions = data.reactions.filter(r => r.users.length > 0);
+    if (newReactions.length === 0) { if (reactDiv) reactDiv.remove(); return; }
+    if (!reactDiv) {
+        reactDiv = document.createElement('div');
+        reactDiv.className = 'post-reactions';
+        postEl.querySelector('.post-text, .post-image')?.after(reactDiv) || postEl.querySelector('.post-footer').before(reactDiv);
+    }
+    reactDiv.innerHTML = newReactions.map(r => {
+        const mine = currentUser && r.users.includes(currentUser.username);
+        return `<button class="post-reaction-pill ${mine ? 'mine' : ''}" onclick="toggleReaction('${postId}', '${r.emoji}', this)">${r.emoji} <span>${r.users.length}</span></button>`;
+    }).join('');
+}
+
+async function deletePost(postId, btn) {
+    if (!confirm('Удалить этот пост?')) return;
+    const token = localStorage.getItem('token');
+    const res = await fetch(`/api/posts/${postId}`, { method: 'DELETE', headers: { Authorization: 'Bearer ' + token } });
+    if (res.ok) {
+        btn.closest('.channel-post')?.remove();
+    }
+}
+
+async function deleteChannel() {
+    if (!confirm('Удалить канал? Это действие нельзя отменить.')) return;
+    const token = localStorage.getItem('token');
+    const res = await fetch(`/api/channels/${currentChannelId}`, { method: 'DELETE', headers: { Authorization: 'Bearer ' + token } });
+    if (res.ok) {
+        document.getElementById('channelView').style.display = 'none';
+        document.getElementById('channelEmptyState').style.display = 'flex';
+        currentChannelId = null;
+        loadChannels();
+    }
+}
+
+async function openChannelStats() {
+    const token = localStorage.getItem('token');
+    const res = await fetch(`/api/channels/${currentChannelId}/stats`, { headers: { Authorization: 'Bearer ' + token } });
+    if (!res.ok) return;
+    const s = await res.json();
+    const body = document.getElementById('channelStatsBody');
+    body.innerHTML = `
+        <div class="stats-row"><span>Подписчиков</span><strong>${s.subscribers}</strong></div>
+        <div class="stats-row"><span>Постов</span><strong>${s.posts}</strong></div>
+        <div class="stats-row"><span>Просмотров</span><strong>${s.totalViews}</strong></div>
+        <div class="stats-row"><span>Лайков</span><strong>${s.totalLikes}</strong></div>
+        <div class="stats-row"><span>Комментариев</span><strong>${s.totalComments}</strong></div>`;
+    document.getElementById('channelStatsModal').classList.add('open');
 }
 
 async function toggleLike(postId, btn) {
@@ -2439,3 +2577,15 @@ function previewPostImage(input) {
     };
     reader.readAsDataURL(file);
 }
+
+// Search filter buttons
+document.addEventListener('DOMContentLoaded', () => {
+    document.querySelectorAll('.search-filter-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            document.querySelectorAll('.search-filter-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            const input = document.getElementById('searchUserInput');
+            if (input.value.trim()) input.dispatchEvent(new Event('input'));
+        });
+    });
+});
