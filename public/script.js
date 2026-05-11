@@ -1,4 +1,10 @@
 let socket;
+
+function closeModal(id) {
+    const el = document.getElementById(id);
+    if (el) el.classList.remove('open');
+}
+
 let currentUser = null;
 let currentChat = null;
 let currentGroupId = null;
@@ -2336,14 +2342,30 @@ function openPostEditor() {
 async function submitPost() {
     const token = localStorage.getItem('token');
     const text = document.getElementById('postTextInput').value.trim();
-    if (!text) return;
+    const fileInput = document.getElementById('postImageInput');
+    let imageUrl = null;
+
+    if (fileInput.files[0]) {
+        const formData = new FormData();
+        formData.append('image', fileInput.files[0]);
+        const uploadRes = await fetch('/api/upload', { method: 'POST', headers: { Authorization: 'Bearer ' + token }, body: formData });
+        if (uploadRes.ok) {
+            const uploadData = await uploadRes.json();
+            imageUrl = uploadData.imageUrl;
+        }
+    }
+
+    if (!text && !imageUrl) return;
     const res = await fetch(`/api/channels/${currentChannelId}/posts`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token },
-        body: JSON.stringify({ text })
+        body: JSON.stringify({ text, imageUrl })
     });
     if (res.ok) {
         document.getElementById('postTextInput').value = '';
+        document.getElementById('postImageInput').value = '';
+        document.getElementById('postImagePreview').style.display = 'none';
+        document.getElementById('postImageName').textContent = '';
         document.getElementById('postEditor').style.display = 'none';
         await loadChannelPosts();
     }
@@ -2404,3 +2426,16 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 });
+
+function previewPostImage(input) {
+    const file = input.files[0];
+    if (!file) return;
+    document.getElementById('postImageName').textContent = file.name;
+    const reader = new FileReader();
+    reader.onload = e => {
+        const img = document.getElementById('postImagePreview');
+        img.src = e.target.result;
+        img.style.display = 'block';
+    };
+    reader.readAsDataURL(file);
+}
