@@ -1267,7 +1267,7 @@ async function joinByCode() {
     } else alert(data.error);
 }
 
-document.getElementById('searchGroupInput').addEventListener('input', async (e) => {
+document.getElementById('searchGroupInput')?.addEventListener('input', async (e) => {
     const q = e.target.value;
     if (q.length < 1) { document.getElementById('publicGroupResults').innerHTML = ''; return; }
     const token = localStorage.getItem('token');
