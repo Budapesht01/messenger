@@ -950,6 +950,68 @@ io.on('connection', async (socket) => {
   });
 });
 
+// Реакции на пост
+app.post('/api/posts/:id/react', authenticateJWT, async (req, res) => {
+  const { emoji } = req.body;
+  const post = await Post.findById(req.params.id);
+  if (!post) return res.status(404).json({ error: 'Not found' });
+  if (!post.reactions) post.reactions = [];
+  const existing = post.reactions.find(r => r.emoji === emoji);
+  if (existing) {
+    const idx = existing.users.indexOf(req.user.username);
+    if (idx === -1) existing.users.push(req.user.username);
+    else {
+      existing.users.splice(idx, 1);
+      if (existing.users.length === 0) post.reactions = post.reactions.filter(r => r.emoji !== emoji);
+    }
+  } else {
+    post.reactions.push({ emoji, users: [req.user.username] });
+  }
+  post.markModified('reactions');
+  await post.save();
+  res.json({ reactions: post.reactions });
+});
+
+// Просмотр поста
+app.post('/api/posts/:id/view', authenticateJWT, async (req, res) => {
+  await Post.findByIdAndUpdate(req.params.id, { $inc: { views: 1 } });
+  res.json({ ok: true });
+});
+
+// Удалить пост (owner канала)
+app.delete('/api/posts/:id', authenticateJWT, async (req, res) => {
+  const post = await Post.findById(req.params.id);
+  if (!post) return res.status(404).json({ error: 'Not found' });
+  const ch = await Channel.findById(post.channelId);
+  if (!ch || ch.owner !== req.user.username) return res.status(403).json({ error: 'Only owner' });
+  await Comment.deleteMany({ postId: post._id });
+  await Post.findByIdAndDelete(post._id);
+  res.json({ ok: true });
+});
+
+// Статистика канала
+app.get('/api/channels/:id/stats', authenticateJWT, async (req, res) => {
+  const ch = await Channel.findById(req.params.id);
+  if (!ch) return res.status(404).json({ error: 'Not found' });
+  if (ch.owner !== req.user.username) return res.status(403).json({ error: 'Only owner' });
+  const posts = await Post.find({ channelId: ch._id });
+  const totalViews = posts.reduce((a, p) => a + (p.views || 0), 0);
+  const totalLikes = posts.reduce((a, p) => a + p.likes.length, 0);
+  const totalComments = await Comment.countDocuments({ postId: { $in: posts.map(p => p._id) } });
+  res.json({ subscribers: ch.subscribers.length, posts: posts.length, totalViews, totalLikes, totalComments });
+});
+
+// Поиск каналов и групп
+app.get('/api/search', authenticateJWT, async (req, res) => {
+  const q = req.query.q || '';
+  if (!q) return res.json({ users: [], groups: [], channels: [] });
+  const re = new RegExp(q, 'i');
+  const users = await User.find({ username: re, emailVerified: true }).select('username avatar color online').limit(10);
+  const groups = await Group.find({ name: re, type: 'public' }).limit(10);
+  const channels = await Channel.find({ name: re }).limit(10);
+  res.json({ users, groups, channels });
+});
+
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
 
@@ -967,6 +1029,8 @@ const PostSchema = new mongoose.Schema({
   text: { type: String, default: '' },
   imageUrl: { type: String, default: null },
   likes: [{ type: String }],
+  reactions: [{ emoji: String, users: [String] }],
+  views: { type: Number, default: 0 },
   createdAt: { type: Date, default: Date.now }
 });
 const CommentSchema = new mongoose.Schema({
