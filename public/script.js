@@ -1099,6 +1099,8 @@ document.getElementById('searchUserInput').addEventListener('input', async (e) =
     }
     if (results.innerHTML === '') results.innerHTML = '<div style="padding:20px; text-align:center; color:var(--text-secondary); font-size:13px;">Ничего не найдено</div>';
 });
+
+document.addEventListener('DOMContentLoaded', () => {
     document.querySelectorAll('.friend-request-btn').forEach(btn => {
         btn.addEventListener('click', async (e) => {
             e.stopPropagation();
