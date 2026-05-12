@@ -812,22 +812,68 @@
     </div>
 </div>
 
-<div id="channelProfilePanel" style="display:none; position:fixed; inset:0; z-index:1000; background:rgba(0,0,0,0.6); align-items:center; justify-content:center;" onclick="if(event.target===this)closeChannelProfile()">
-    <div id="channelProfileInner" style="position:relative; width:360px; max-width:90vw; max-height:85vh; background:var(--glass-sidebar); border:1px solid var(--border); border-radius:20px; padding:24px; overflow-y:auto; transform:scale(0.92); opacity:0; transition:transform 0.22s ease, opacity 0.22s ease; display:flex; flex-direction:column; gap:16px;">
-        <div style="display:flex; align-items:center; gap:12px; padding-bottom:16px; border-bottom:1px solid var(--border);">
-            <button onclick="closeChannelProfile()" style="background:none;border:none;cursor:pointer;color:var(--text-secondary);padding:4px;">
+<div id="channelProfilePanel" style="display:none; position:fixed; inset:0; z-index:1000; background:rgba(0,0,0,0.65); align-items:center; justify-content:center;" onclick="if(event.target===this)closeChannelProfile()">
+    <div id="channelProfileInner" class="cp-card">
+        <!-- Шапка -->
+        <div class="cp-hero">
+            <button class="cp-close-btn" onclick="closeChannelProfile()">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
             </button>
-            <span style="font-weight:700; font-size:16px;">Профиль канала</span>
+            <div class="cp-avatar-wrap" id="cpAvatarWrap">
+                <span id="cpAvatar" class="cp-avatar">📢</span>
+                <button class="cp-avatar-edit" id="cpAvatarEditBtn" style="display:none;" onclick="toggleCpAvatarPicker()" title="Сменить аватар">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                </button>
+            </div>
+            <!-- Эмодзи пикер аватарки -->
+            <div class="cp-avatar-picker" id="cpAvatarPicker" style="display:none;">
+                <div id="cpAvatarPickerGrid"></div>
+            </div>
+            <div id="cpName" class="cp-name"></div>
+            <div id="cpSubs" class="cp-subs"></div>
         </div>
-        <div style="display:flex; flex-direction:column; align-items:center; gap:8px; padding:16px 0;">
-            <span id="cpAvatar" style="font-size:52px; line-height:1;">📢</span>
-            <div id="cpName" style="font-size:20px; font-weight:700; color:var(--text-primary); text-align:center;"></div>
-            <div id="cpSubs" style="font-size:13px; color:var(--text-secondary);"></div>
-        </div>
+
+        <!-- Блок редактирования (только для владельца) -->
         <div id="cpOwnerSection" style="display:none;">
-            <div style="font-size:12px; font-weight:600; color:var(--text-secondary); text-transform:uppercase; letter-spacing:0.05em; margin-bottom:8px;">Сменить аватар</div>
-            <div id="cpAvatarPicker" style="display:flex; flex-wrap:wrap; gap:4px;"></div>
+            <div class="cp-section-title">УПРАВЛЕНИЕ КАНАЛОМ</div>
+            <div class="cp-edit-row" onclick="cpStartEditName()">
+                <div class="cp-edit-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                </div>
+                <div class="cp-edit-info">
+                    <div class="cp-edit-label">Название канала</div>
+                    <div class="cp-edit-value" id="cpEditNameVal"></div>
+                </div>
+            </div>
+            <div id="cpNameEditBox" style="display:none; padding:0 16px 12px;">
+                <input type="text" id="cpNameInput" class="modal-input" maxlength="50" placeholder="Название канала">
+                <div style="display:flex; gap:8px; margin-top:8px;">
+                    <button class="secondary-btn" onclick="cpCancelEditName()" style="flex:1;">Отмена</button>
+                    <button class="primary-btn" onclick="cpSaveName()" style="flex:1;">Сохранить</button>
+                </div>
+            </div>
+            <div class="cp-edit-row" onclick="cpStartEditDesc()">
+                <div class="cp-edit-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><line x1="17" y1="10" x2="3" y2="10"/><line x1="21" y1="6" x2="3" y2="6"/><line x1="21" y1="14" x2="3" y2="14"/><line x1="17" y1="18" x2="3" y2="18"/></svg>
+                </div>
+                <div class="cp-edit-info">
+                    <div class="cp-edit-label">Описание</div>
+                    <div class="cp-edit-value" id="cpEditDescVal" style="color:var(--text-muted);">Нажмите чтобы добавить</div>
+                </div>
+            </div>
+            <div id="cpDescEditBox" style="display:none; padding:0 16px 12px;">
+                <textarea id="cpDescInput" class="modal-input" maxlength="200" placeholder="Описание канала..." style="resize:none; min-height:70px;"></textarea>
+                <div style="display:flex; gap:8px; margin-top:8px;">
+                    <button class="secondary-btn" onclick="cpCancelEditDesc()" style="flex:1;">Отмена</button>
+                    <button class="primary-btn" onclick="cpSaveDesc()" style="flex:1;">Сохранить</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Описание (для всех) -->
+        <div id="cpDescSection" style="display:none;">
+            <div class="cp-section-title">ОПИСАНИЕ</div>
+            <div id="cpDescText" style="padding:0 20px 16px; font-size:14px; color:var(--text-secondary); line-height:1.5;"></div>
         </div>
     </div>
 </div>
