@@ -1122,6 +1122,16 @@ app.delete('/api/channels/:id/posts/clear', authenticateJWT, async (req, res) =>
   res.json({ ok: true });
 });
 
+app.patch('/api/channels/:id', authenticateJWT, async (req, res) => {
+  const ch = await Channel.findById(req.params.id);
+  if (!ch) return res.status(404).json({ error: 'Not found' });
+  if (ch.owner !== req.user.username) return res.status(403).json({ error: 'Forbidden' });
+  if (req.body.avatar) ch.avatar = req.body.avatar;
+  if (req.body.name) ch.name = req.body.name;
+  await ch.save();
+  res.json(ch);
+});
+
 app.delete('/api/channels/:id', authenticateJWT, async (req, res) => {
   const ch = await Channel.findById(req.params.id);
   if (!ch) return res.status(404).json({ error: 'Not found' });
