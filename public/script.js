@@ -2434,6 +2434,8 @@ function closeSettingsPanel() {
 // ========== CHANNELS ==========
 let currentChannelId = null;
 let currentChannelOwner = null;
+let currentChannelName = '';
+let currentChannelAvatar = '📢';
 let currentPostId = null;
 
 async function loadChannels() {
@@ -2503,6 +2505,8 @@ async function createChannel() {
 async function openChannel(ch) {
     currentChannelId = ch._id;
     currentChannelOwner = ch.owner;
+    currentChannelName = ch.name || '';
+    currentChannelAvatar = ch.avatar || '📢';
 
     // Mark active
     document.querySelectorAll('.channel-item').forEach(el => el.classList.remove('active-channel'));
