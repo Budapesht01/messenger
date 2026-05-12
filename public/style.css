@@ -1128,7 +1128,6 @@ body {
     font-family: var(--font);
     font-size: 14px;
     outline: none;
-    margin-bottom: 10px;
     box-sizing: border-box;
     transition: border-color 0.2s;
 }
