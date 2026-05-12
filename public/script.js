@@ -2651,11 +2651,13 @@ function renderPost(post, container) {
     div.dataset.id = post._id;
     div.style.cssText = 'opacity:0; transform:translateY(8px); transition:opacity 0.22s ease, transform 0.22s ease;';
     div.innerHTML = `
-    <div class="post-sender-row">
-        <span class="post-channel-avatar">${escapeHtml(currentChannelAvatar || '📢')}</span>
-        <span class="post-channel-name">${escapeHtml(currentChannelName || '')}</span>
-    </div>
+    <div class="post-row">
+        <div class="post-avatar-col">
+            <span class="post-channel-avatar">${escapeHtml(currentChannelAvatar || '📢')}</span>
+        </div>
+        <div class="post-content-col">
         <div class="post-bubble">
+            <div class="post-channel-name">${escapeHtml(currentChannelName || '')}</div>
             ${post.imageUrl ? `<img src="${post.imageUrl}" class="post-bubble-image" onclick="openImageModal('${post.imageUrl}')">` : ''}
             ${post.text ? `<div class="post-bubble-text">${escapeHtml(post.text)}</div>` : ''}
             <div class="post-bubble-footer">
@@ -2670,7 +2672,9 @@ function renderPost(post, container) {
         <button class="post-comment-bar" onclick="openComments('${post._id}')">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
             <span id="commentCount_${post._id}">Комментировать</span>
-        </button>`;
+        </button>
+        </div>
+    </div>`;
 
     // Правый клик — контекстное меню как у сообщений
     div.addEventListener('contextmenu', (e) => {
