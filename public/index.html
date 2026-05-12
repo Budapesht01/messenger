@@ -462,30 +462,64 @@
 
     <!-- ===== МОДАЛКА: Инфо о группе ===== -->
     <div class="modal-overlay" id="groupInfoModal">
+        <div class="modal-card narrow group-profile-card">
+            <button class="modal-close" onclick="closeGroupInfoModal()" style="position:absolute;top:12px;right:12px;z-index:2;">✕</button>
+            <!-- Шапка профиля -->
+            <div class="group-profile-hero">
+                <div class="group-profile-avatar" id="groupInfoAvatar">👥</div>
+                <div class="group-profile-name" id="groupInfoName"></div>
+                <div class="group-profile-sub" id="groupInfoType"></div>
+            </div>
+            <!-- Кнопки действий -->
+            <div class="group-profile-actions">
+                <button class="group-action-btn" onclick="getGroupInviteLink()">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/></svg>
+                    <span>Ссылка</span>
+                </button>
+                <button class="group-action-btn" id="groupManageBtn" onclick="openGroupSettingsModal()" style="display:none;">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2 2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 01-2-2 2 2 0 012-2h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 012-2 2 2 0 012 2v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 012 2 2 2 0 01-2 2h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
+                    <span>Управление</span>
+                </button>
+                <button class="group-action-btn danger" id="leaveGroupBtn" onclick="leaveGroup()">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+                    <span>Выйти</span>
+                </button>
+                <button class="group-action-btn danger" id="deleteGroupBtn" onclick="deleteGroup()" style="display:none;">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/></svg>
+                    <span>Удалить</span>
+                </button>
+            </div>
+            <!-- Участники -->
+            <div class="group-profile-section">
+                <div class="group-profile-section-title" id="groupMembersTitle">УЧАСТНИКИ</div>
+                <div id="groupInfoMembers" class="group-members-list"></div>
+            </div>
+            <span id="groupInfoCode" style="display:none;"></span>
+        </div>
+    </div>
+
+    <!-- Настройки группы (для владельца) -->
+    <div class="modal-overlay" id="groupSettingsModal">
         <div class="modal-card narrow">
             <div class="modal-header">
-                <h3>О группе</h3>
-                <button class="modal-close" onclick="closeGroupInfoModal()">✕</button>
+                <h3>Управление группой</h3>
+                <button class="modal-close" onclick="closeGroupSettingsModal()">✕</button>
             </div>
             <div class="modal-body">
-                <div style="text-align:center; margin-bottom:20px;">
-                    <div style="font-size:56px; margin-bottom:8px;" id="groupInfoAvatar">👥</div>
-                    <div style="font-size:20px; font-weight:700; color:var(--text-primary); margin-bottom:6px;" id="groupInfoName"></div>
-                    <div style="font-size:13px; color:var(--text-secondary); background:rgba(106,176,243,0.1); display:inline-block; padding:4px 12px; border-radius:20px;" id="groupInfoType"></div>
+                <div class="modal-avatar-row" style="margin-bottom:14px;">
+                    <div class="avatar-preview large" id="settingsGroupAvatarPreview">👥</div>
+                    <button class="secondary-btn" id="pickSettingsGroupAvatarBtn" type="button">Изменить эмодзи</button>
                 </div>
-                <div style="margin-top:4px; margin-bottom:8px;">
-                    <div class="members-label" style="margin-bottom:8px;">Участники:</div>
-                    <div id="groupInfoMembers" class="members-list"></div>
+                <div id="settingsGroupAvatarPanel" style="display:none; background:var(--glass-input); border:1px solid var(--border); border-radius:12px; padding:10px; margin-bottom:10px;">
+                    <div id="settingsGroupEmojiGrid" style="display:grid; grid-template-columns:repeat(8,1fr); gap:4px; max-height:150px; overflow-y:auto;"></div>
                 </div>
-                <span id="groupInfoCode" style="display:none;"></span>
+                <input type="hidden" id="settingsGroupAvatarInput">
+                <input type="text" id="settingsGroupName" class="modal-input" placeholder="Название группы" maxlength="50">
+                <textarea id="settingsGroupDesc" class="modal-input" placeholder="Описание группы (необязательно)" maxlength="200" style="margin-top:8px; resize:none; min-height:70px;"></textarea>
             </div>
-            <div class="modal-footer" style="flex-direction:column; gap:8px;">
-                <div style="display:flex; gap:8px; width:100%;">
-                    <button class="secondary-btn" onclick="getGroupInviteLink()" style="flex:1;">Скопировать ссылку</button>
-                    <button class="secondary-btn" onclick="closeGroupInfoModal()" style="flex:1;">Закрыть</button>
-                </div>
-                <button class="logout-btn" id="deleteGroupBtn" onclick="deleteGroup()" style="display:none; width:100%;">Удалить группу</button>
-                <button class="logout-btn" id="leaveGroupBtn" onclick="leaveGroup()" style="display:none; width:100%;">Покинуть группу</button>
+            <div class="modal-footer" style="gap:8px;">
+                <button class="secondary-btn" onclick="closeGroupSettingsModal()">Отмена</button>
+                <button class="primary-btn" onclick="saveGroupSettings()">Сохранить</button>
             </div>
         </div>
     </div>
