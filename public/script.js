@@ -2557,11 +2557,12 @@ function renderPost(post, container) {
     div.dataset.id = post._id;
     div.style.cssText = 'opacity:0; transform:translateY(8px); transition:opacity 0.22s ease, transform 0.22s ease;';
     const chanName = document.getElementById('channelViewName')?.textContent || '';
-    div.innerHTML = `
-        <div class="post-sender-row">
-            <span class="post-channel-avatar">📢</span>
-            <span class="post-channel-name">${escapeHtml(chanName)}</span>
-        </div>
+const chanAvatar = document.getElementById('channelViewAvatar')?.textContent || '📢';
+div.innerHTML = `
+    <div class="post-sender-row">
+        <span class="post-channel-avatar" data-channel-avatar="${currentChannelId}">${escapeHtml(chanAvatar)}</span>
+        <span class="post-channel-name">${escapeHtml(chanName)}</span>
+    </div>
         <div class="post-bubble">
             ${post.imageUrl ? `<img src="${post.imageUrl}" class="post-bubble-image" onclick="openImageModal('${post.imageUrl}')">` : ''}
             ${post.text ? `<div class="post-bubble-text">${escapeHtml(post.text)}</div>` : ''}
@@ -2866,14 +2867,15 @@ function openChannelProfile() {
         const emojis = ['📢','📡','📻','🎙️','🔔','💬','🗣️','📣','🌐','🔥','⭐','💡','🎯','🚀','🎮','🎵','🏆','❤️','🎉','🌈','💎','🦁','🐉','🌙','☀️','🌊','🤖','🎨','📚','🍕'];
         picker.innerHTML = emojis.map(e => `<button onclick="setChannelAvatar('${e}')" style="font-size:22px;background:none;border:none;cursor:pointer;padding:4px;border-radius:8px;" title="${e}">${e}</button>`).join('');
     }
-    panel.style.display = 'block';
-    requestAnimationFrame(() => inner.style.transform = 'translateX(0)');
+    panel.style.display = 'flex';
+requestAnimationFrame(() => { requestAnimationFrame(() => { inner.style.transform = 'scale(1)'; inner.style.opacity = '1'; }); });
 }
 function closeChannelProfile() {
     const panel = document.getElementById('channelProfilePanel');
     const inner = document.getElementById('channelProfileInner');
-    inner.style.transform = 'translateX(100%)';
-    setTimeout(() => panel.style.display = 'none', 250);
+    inner.style.transform = 'scale(0.92)';
+inner.style.opacity = '0';
+setTimeout(() => panel.style.display = 'none', 220);
 }
 async function setChannelAvatar(emoji) {
     const token = localStorage.getItem('token');
@@ -2888,6 +2890,9 @@ async function setChannelAvatar(emoji) {
         // Обнови в списке
         const item = document.querySelector(`.channel-item[data-id="${currentChannelId}"] .channel-avatar`);
         if (item) item.textContent = emoji;
+        document.querySelectorAll(`.post-channel-avatar[data-channel-avatar="${currentChannelId}"]`).forEach(el => {
+    el.textContent = emoji;
+});
     }
 }
 
