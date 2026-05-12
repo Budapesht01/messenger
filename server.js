@@ -969,6 +969,14 @@ app.post('/api/posts/:id/react', authenticateJWT, async (req, res) => {
   }
   post.markModified('reactions');
   await post.save();
+  // Шлём всем подписчикам обновление реакций
+  const ch = await Channel.findById(post.channelId);
+  if (ch) {
+    for (const sub of ch.subscribers) {
+      const u = await User.findOne({ username: sub });
+      if (u && u.socketId) io.to(u.socketId).emit('post_reaction_updated', { postId: String(post._id), reactions: post.reactions });
+    }
+  }
   res.json({ reactions: post.reactions });
 });
 
