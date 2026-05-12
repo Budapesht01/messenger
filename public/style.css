@@ -3038,3 +3038,160 @@ body::before, body::after { display: none !important; }
     max-width: 200px;
 }
 .channel-name-btn:hover { text-decoration: underline; }
+
+/* ========== Group Profile Modal (TG-style) ========== */
+.group-profile-card {
+    padding: 0 !important;
+    overflow: hidden;
+    max-height: 85vh;
+    overflow-y: auto;
+}
+.group-profile-card::-webkit-scrollbar { width: 4px; }
+.group-profile-card::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.12); border-radius: 2px; }
+
+.group-profile-hero {
+    background: linear-gradient(180deg, rgba(85,136,204,0.25) 0%, transparent 100%);
+    padding: 40px 20px 20px;
+    text-align: center;
+    position: relative;
+}
+.group-profile-avatar {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    background: rgba(85,136,204,0.2);
+    border: 2px solid rgba(85,136,204,0.3);
+    font-size: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 12px;
+}
+.group-profile-name {
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin-bottom: 4px;
+}
+.group-profile-sub {
+    font-size: 13px;
+    color: var(--text-secondary);
+}
+
+.group-profile-actions {
+    display: flex;
+    justify-content: center;
+    gap: 8px;
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--border);
+    flex-wrap: wrap;
+}
+.group-action-btn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 5px;
+    background: var(--glass-input);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 10px 16px;
+    cursor: pointer;
+    color: var(--text-secondary);
+    font-size: 11px;
+    font-family: inherit;
+    min-width: 72px;
+    transition: background 0.15s, color 0.15s;
+}
+.group-action-btn:hover {
+    background: rgba(255,255,255,0.09);
+    color: var(--text-primary);
+}
+.group-action-btn.danger { color: #f87171; }
+.group-action-btn.danger:hover { background: rgba(248,113,113,0.1); }
+
+.group-profile-section {
+    padding: 12px 0 0;
+}
+.group-profile-section-title {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--text-muted);
+    letter-spacing: 0.08em;
+    padding: 0 20px 8px;
+}
+.group-members-list {
+    display: flex;
+    flex-direction: column;
+}
+.group-member-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 20px;
+    transition: background 0.12s;
+    cursor: default;
+}
+.group-member-row:hover { background: rgba(255,255,255,0.04); }
+.group-member-avatar {
+    width: 42px;
+    height: 42px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #5588cc, #7b68ee);
+    color: #fff;
+    font-size: 17px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+.group-member-info {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+.group-member-name {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-primary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.group-member-role {
+    font-size: 12px;
+    color: var(--accent);
+}
+.group-member-status {
+    font-size: 12px;
+    color: var(--text-muted);
+}
+
+/* Post sender row — show avatar circle like TG channel */
+.post-sender-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 2px 2px 6px;
+    max-width: 520px;
+    margin: 0 auto;
+}
+.post-channel-avatar {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: rgba(85,136,204,0.15);
+    border: 1px solid rgba(85,136,204,0.25);
+    font-size: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+.post-channel-name {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--accent);
+}
