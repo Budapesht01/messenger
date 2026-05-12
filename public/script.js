@@ -280,6 +280,32 @@ function initSocket(token) {
     });
 
     socket.on('group_added', (data) => { showNotification(`👥 Добавлен в «${data.group.name}»`); loadGroups(); socket.emit('join_group_room', data.group._id); });
+
+    socket.on('new_channel_post', (data) => {
+        if (currentChannelId && String(data.channelId) === String(currentChannelId)) {
+            const list = document.getElementById('channelPostsList');
+            if (list) renderPost(data.post, list);
+        }
+        // Уведомление если не в этом канале
+        if (!currentChannelId || String(data.channelId) !== String(currentChannelId)) {
+            showNotification(`📢 ${data.channelName}: новый пост`);
+        }
+    });
+socket.on('post_reaction_updated', (data) => {
+        const postEl = document.querySelector(`.channel-post[data-id="${data.postId}"]`);
+        if (!postEl) return;
+        const footer = postEl.querySelector('.post-bubble-footer');
+        if (!footer) return;
+        let reactDiv = footer.querySelector('.post-reactions');
+        const newReactions = (data.reactions || []).filter(r => r.users.length > 0);
+        if (!reactDiv) { reactDiv = document.createElement('div'); reactDiv.className = 'post-reactions'; footer.prepend(reactDiv); }
+        if (newReactions.length === 0) { reactDiv.remove(); return; }
+        reactDiv.innerHTML = newReactions.map(r => {
+            const mine = currentUser && r.users.includes(currentUser.username);
+            return `<button class="post-reaction-pill ${mine ? 'mine' : ''}" onclick="toggleReaction('${data.postId}', '${r.emoji}', this)">${r.emoji} <span>${r.users.length}</span></button>`;
+        }).join('');
+    });
+    
     socket.on('group_deleted', (data) => {
         if (currentGroupId === String(data.groupId)) { currentGroupId = null; document.querySelector('.chat-title').innerText = 'Выберите чат'; document.getElementById('messages').innerHTML = ''; }
         loadGroups();
@@ -2533,8 +2559,8 @@ function renderPost(post, container) {
         <div class="post-bubble">
             ${post.imageUrl ? `<img src="${post.imageUrl}" class="post-bubble-image" onclick="openImageModal('${post.imageUrl}')">` : ''}
             ${post.text ? `<div class="post-bubble-text">${escapeHtml(post.text)}</div>` : ''}
-            ${reactionsHtml ? `<div class="post-reactions" style="margin-bottom:4px;">${reactionsHtml}</div>` : ''}
             <div class="post-bubble-footer">
+                ${reactionsHtml ? `<div class="post-reactions">${reactionsHtml}</div>` : ''}
                 <span class="post-bubble-views">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
                     ${post.views || 0}
