@@ -648,6 +648,77 @@ function closeMsgMenu() {
     document.getElementById('msgContextMenu')?.remove();
 }
 
+// ========== Контекстное меню поста (TG-стиль) ==========
+function openPostMenu(post, postDiv, isOwner, e) {
+    document.getElementById('msgContextMenu')?.remove();
+    const menu = document.createElement('div');
+    menu.className = 'msg-context-menu';
+    menu.id = 'msgContextMenu';
+
+    const items = [];
+    items.push({
+        icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><circle cx="12" cy="12" r="10"/><path d="M8 13s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg>`,
+        label: 'Реакция',
+        action: () => { menu.remove(); openPostReactionPicker(post._id, postDiv); }
+    });
+    items.push({
+        icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>`,
+        label: 'Комментировать',
+        action: () => { menu.remove(); openComments(post._id); }
+    });
+    if (post.text) items.push({
+        icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><rect x="9" y="2" width="6" height="4" rx="1"/><path d="M16 4h2a2 2 0 012 2v14a2 2 0 01-2 2H6a2 2 0 01-2-2V6a2 2 0 012-2h2"/></svg>`,
+        label: 'Копировать текст',
+        action: () => { menu.remove(); navigator.clipboard.writeText(post.text); }
+    });
+    if (isOwner) items.push({
+        icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><polyline points="3,6 5,6 21,6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/></svg>`,
+        label: 'Удалить',
+        danger: true,
+        action: () => { menu.remove(); deletePost(post._id, postDiv); }
+    });
+
+    items.forEach(item => {
+        const btn = document.createElement('button');
+        btn.className = 'msg-menu-btn' + (item.danger ? ' danger' : '');
+        btn.innerHTML = `<span class="msg-menu-icon">${item.icon}</span><span>${item.label}</span>`;
+        btn.onclick = item.action;
+        menu.appendChild(btn);
+    });
+
+    document.body.appendChild(menu);
+    const menuW = 200, menuH = items.length * 44 + 12;
+    let top = e.clientY + 6, left = e.clientX;
+    if (top + menuH > window.innerHeight - 10) top = e.clientY - menuH - 6;
+    if (left + menuW > window.innerWidth - 8) left = window.innerWidth - menuW - 8;
+    if (left < 8) left = 8;
+    menu.style.top = top + 'px';
+    menu.style.left = left + 'px';
+    requestAnimationFrame(() => menu.classList.add('open'));
+    setTimeout(() => {
+        document.addEventListener('click', function h(ev) {
+            if (!menu.contains(ev.target)) { menu.remove(); document.removeEventListener('click', h); }
+        });
+    }, 50);
+}
+
+function openPostReactionPicker(postId, postDiv) {
+    document.querySelectorAll('.post-reaction-picker').forEach(p => p.remove());
+    const picker = document.createElement('div');
+    picker.className = 'post-reaction-picker';
+    picker.style.position = 'fixed';
+    const rect = postDiv.getBoundingClientRect();
+    picker.style.top = (rect.top - 60) + 'px';
+    picker.style.left = rect.left + 'px';
+    picker.innerHTML = REACTION_EMOJIS.map(em =>
+        `<button onclick="toggleReaction('${postId}', '${em}', this.closest('.channel-post')?.querySelector('.post-reactions')); this.closest('.post-reaction-picker').remove();">${em}</button>`
+    ).join('');
+    document.body.appendChild(picker);
+    setTimeout(() => document.addEventListener('click', function h(e) {
+        if (!picker.contains(e.target)) { picker.remove(); document.removeEventListener('click', h); }
+    }), 10);
+}
+
 // Закрепление
 async function togglePin(msgId) {
     const token = localStorage.getItem('token');
@@ -2336,7 +2407,8 @@ async function openChannel(ch) {
     const menuWrap = document.getElementById('channelMenuWrap');
     if (menuWrap) menuWrap.style.display = isOwner ? 'block' : 'none';
     // Post editor always visible for owner (Telegram style), hidden for subscribers
-    document.getElementById('postEditor').style.display = isOwner ? 'block' : 'none';
+    document.getElementById('postEditor').style.display = isOwner ? 'flex' : 'none';
+    if (isOwner) initPostEmojiPicker();
 
     // Show channel in .main area
     document.getElementById('noChatSelected').style.display = 'none';
@@ -2365,6 +2437,46 @@ async function loadChannelPosts() {
 const REACTION_EMOJIS = ['❤️','🔥','👍','😂','😮','😢','👏','🎉'];
 
 const CHANNEL_EMOJIS = ['📢','📡','📻','🎙️','🔔','💬','🗣️','📣','🌐','🔥','⭐','💡','🎯','🚀','🎮','🎵','🏆','❤️','🎉','🌈','💎','🦁','🐉','🌙','☀️','🌊','🤖','🎨','📚','🍕','⚽','🐶','🌺','🦋','🎸','🏠','✨','🎭','🦊','🐉'];
+
+function initPostEmojiPicker() {
+    const toggleBtn = document.getElementById('postEmojiToggleBtn');
+    const panel = document.getElementById('postEmojiPickerPanel');
+    const grid = document.getElementById('postEmojiGrid');
+    const catsContainer = document.getElementById('postEmojiCategories');
+    const input = document.getElementById('postTextInput');
+    if (!toggleBtn || panel._postPickerInit) return;
+    panel._postPickerInit = true;
+
+    emojiCategories.forEach((cat, i) => {
+        const btn = document.createElement('button');
+        btn.className = 'emoji-cat-btn' + (i === 0 ? ' active' : '');
+        btn.innerText = cat.icon;
+        btn.addEventListener('click', () => {
+            document.querySelectorAll('#postEmojiCategories .emoji-cat-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            renderPostGrid(cat.emojis);
+        });
+        catsContainer.appendChild(btn);
+    });
+
+    function renderPostGrid(emojis) {
+        grid.innerHTML = '';
+        emojis.forEach(e => {
+            const span = document.createElement('span');
+            span.innerText = e;
+            span.addEventListener('click', () => {
+                const pos = input.selectionStart || input.value.length;
+                input.value = input.value.slice(0, pos) + e + input.value.slice(pos);
+                input.focus();
+                panel.classList.remove('open');
+            });
+            grid.appendChild(span);
+        });
+    }
+    renderPostGrid(emojiCategories[0].emojis);
+    toggleBtn.addEventListener('click', (ev) => { ev.stopPropagation(); panel.classList.toggle('open'); });
+    document.addEventListener('click', (ev) => { if (!panel.contains(ev.target) && ev.target !== toggleBtn) panel.classList.remove('open'); });
+}
 
 function initChannelEmojiPicker() {
     const btn = document.getElementById('pickChannelAvatarBtn');
@@ -2411,33 +2523,29 @@ function renderPost(post, container) {
     const div = document.createElement('div');
     div.className = 'channel-post';
     div.dataset.id = post._id;
+    div.style.cssText = 'opacity:0; transform:translateY(8px); transition:opacity 0.22s ease, transform 0.22s ease;';
     div.innerHTML = `
         ${post.imageUrl ? `<img src="${post.imageUrl}" class="post-image" alt="" onclick="openImageModal('${post.imageUrl}')">` : ''}
         ${post.text ? `<div class="post-text">${escapeHtml(post.text)}</div>` : ''}
         ${reactionsHtml ? `<div class="post-reactions">${reactionsHtml}</div>` : ''}
-        <div class="post-footer">
-            <div class="post-footer-left">
-                <span class="post-views-count">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
-                    ${post.views || 0}
-                </span>
-                <span class="post-time">${time}</span>
-            </div>
-            <div class="post-actions">
-                <button class="post-react-trigger" onclick="toggleReactionPicker('${post._id}', this)">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><circle cx="12" cy="12" r="10"/><path d="M8 13s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg>
-                </button>
-                <button class="post-like-btn ${isLiked ? 'liked' : ''}" onclick="toggleLike('${post._id}', this)">
-                    <svg viewBox="0 0 24 24" fill="${isLiked ? 'currentColor' : 'none'}" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/></svg>
-                    <span>${post.likes.length}</span>
-                </button>
-                <button class="post-comment-btn" onclick="openComments('${post._id}')">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
-                    <span id="commentCount_${post._id}">0</span>
-                </button>
-                ${isOwner ? `<button class="post-delete-btn" onclick="deletePost('${post._id}', this)" title="Удалить пост"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polyline points="3,6 5,6 21,6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/></svg></button>` : ''}
-            </div>
-        </div>`;
+        <div class="post-meta-bar">
+            <span class="post-meta-views">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                ${post.views || 0}
+            </span>
+            <span class="post-meta-time">${time}</span>
+        </div>
+        <button class="post-comment-bar" onclick="openComments('${post._id}')">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
+            <span id="commentCount_${post._id}">Комментировать</span>
+        </button>`;
+
+    // Правый клик — контекстное меню как у сообщений
+    div.addEventListener('contextmenu', (e) => {
+        e.preventDefault();
+        openPostMenu(post, div, isOwner, e);
+    });
+
     container.appendChild(div);
     requestAnimationFrame(() => { div.style.opacity = '1'; div.style.transform = 'translateY(0)'; });
     // Count comments async
@@ -2612,9 +2720,7 @@ async function submitPost() {
         document.getElementById('postImageInput').value = '';
         document.getElementById('postImagePreview').style.display = 'none';
         document.getElementById('postImageName').textContent = '';
-        const _wrap = document.getElementById('postImagePreviewWrap');
-        if (_wrap) _wrap.style.display = 'none';
-        document.getElementById('postEditor').style.display = 'none';
+        // НЕ скрываем postEditor — он всегда виден для владельца
         await loadChannelPosts();
     }
 }
@@ -2684,8 +2790,6 @@ function previewPostImage(input) {
         const img = document.getElementById('postImagePreview');
         img.src = e.target.result;
         img.style.display = 'block';
-        const wrap = document.getElementById('postImagePreviewWrap');
-        if (wrap) wrap.style.display = 'flex';
     };
     reader.readAsDataURL(file);
 }
