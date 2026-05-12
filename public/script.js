@@ -2470,6 +2470,12 @@ function initPostEmojiPicker() {
     const grid = document.getElementById('postEmojiGrid');
     const catsContainer = document.getElementById('postEmojiCategories');
     const input = document.getElementById('postTextInput');
+    if (!input._keyHandlerSet) {
+        input._keyHandlerSet = true;
+        input.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); submitPost(); }
+        });
+    }
     if (!toggleBtn || panel._postPickerInit) return;
     panel._postPickerInit = true;
 
@@ -2840,4 +2846,58 @@ document.addEventListener('DOMContentLoaded', () => {
             if (input.value.trim()) input.dispatchEvent(new Event('input'));
         });
     });
+});
+
+// ===== Channel Profile Panel =====
+function openChannelProfile() {
+    if (!currentChannelId) return;
+    const panel = document.getElementById('channelProfilePanel');
+    const inner = document.getElementById('channelProfileInner');
+    // Fill data
+    document.getElementById('cpAvatar').textContent = document.getElementById('channelViewAvatar').textContent;
+    document.getElementById('cpName').textContent = document.getElementById('channelViewName').textContent;
+    document.getElementById('cpSubs').textContent = document.getElementById('channelViewSubs').textContent;
+    // Owner section
+    const isOwner = currentUser && currentChannelOwner === currentUser.username;
+    const ownerSection = document.getElementById('cpOwnerSection');
+    ownerSection.style.display = isOwner ? 'block' : 'none';
+    if (isOwner) {
+        const picker = document.getElementById('cpAvatarPicker');
+        const emojis = ['📢','📡','📻','🎙️','🔔','💬','🗣️','📣','🌐','🔥','⭐','💡','🎯','🚀','🎮','🎵','🏆','❤️','🎉','🌈','💎','🦁','🐉','🌙','☀️','🌊','🤖','🎨','📚','🍕'];
+        picker.innerHTML = emojis.map(e => `<button onclick="setChannelAvatar('${e}')" style="font-size:22px;background:none;border:none;cursor:pointer;padding:4px;border-radius:8px;" title="${e}">${e}</button>`).join('');
+    }
+    panel.style.display = 'block';
+    requestAnimationFrame(() => inner.style.transform = 'translateX(0)');
+}
+function closeChannelProfile() {
+    const panel = document.getElementById('channelProfilePanel');
+    const inner = document.getElementById('channelProfileInner');
+    inner.style.transform = 'translateX(100%)';
+    setTimeout(() => panel.style.display = 'none', 250);
+}
+async function setChannelAvatar(emoji) {
+    const token = localStorage.getItem('token');
+    const res = await fetch(`/api/channels/${currentChannelId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token },
+        body: JSON.stringify({ avatar: emoji })
+    });
+    if (res.ok) {
+        document.getElementById('channelViewAvatar').textContent = emoji;
+        document.getElementById('cpAvatar').textContent = emoji;
+        // Обнови в списке
+        const item = document.querySelector(`.channel-item[data-id="${currentChannelId}"] .channel-avatar`);
+        if (item) item.textContent = emoji;
+    }
+}
+
+document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && currentChannelId) {
+        closeChannelProfile();
+        currentChannelId = null; currentChannelOwner = null;
+        document.getElementById('channelViewPanel').style.display = 'none';
+        document.getElementById('channelView').style.display = 'none';
+        document.getElementById('noChatSelected').style.display = 'flex';
+        document.getElementById('backBtn').style.display = 'none';
+    }
 });
