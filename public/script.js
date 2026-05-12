@@ -2398,6 +2398,8 @@ function renderPost(post, container) {
             </div>
         </div>`;
     container.appendChild(div);
+    requestAnimationFrame(() => { div.style.opacity = '1'; div.style.transform = 'translateY(0)'; });
+    // Count comments async
     // Count comments async
     fetch(`/api/posts/${post._id}/comments`, { headers: { Authorization: 'Bearer ' + localStorage.getItem('token') } })
         .then(r => r.json()).then(comments => {
