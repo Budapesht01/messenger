@@ -2612,6 +2612,8 @@ async function submitPost() {
         document.getElementById('postImageInput').value = '';
         document.getElementById('postImagePreview').style.display = 'none';
         document.getElementById('postImageName').textContent = '';
+        const _wrap = document.getElementById('postImagePreviewWrap');
+        if (_wrap) _wrap.style.display = 'none';
         document.getElementById('postEditor').style.display = 'none';
         await loadChannelPosts();
     }
@@ -2682,6 +2684,8 @@ function previewPostImage(input) {
         const img = document.getElementById('postImagePreview');
         img.src = e.target.result;
         img.style.display = 'block';
+        const wrap = document.getElementById('postImagePreviewWrap');
+        if (wrap) wrap.style.display = 'flex';
     };
     reader.readAsDataURL(file);
 }
