@@ -2651,30 +2651,28 @@ function renderPost(post, container) {
     div.dataset.id = post._id;
     div.style.cssText = 'opacity:0; transform:translateY(8px); transition:opacity 0.22s ease, transform 0.22s ease;';
     div.innerHTML = `
-    <div class="post-row">
         <div class="post-avatar-col">
             <span class="post-channel-avatar">${escapeHtml(currentChannelAvatar || '📢')}</span>
         </div>
         <div class="post-content-col">
-        <div class="post-bubble">
-            <div class="post-channel-name">${escapeHtml(currentChannelName || '')}</div>
-            ${post.imageUrl ? `<img src="${post.imageUrl}" class="post-bubble-image" onclick="openImageModal('${post.imageUrl}')">` : ''}
-            ${post.text ? `<div class="post-bubble-text">${escapeHtml(post.text)}</div>` : ''}
-            <div class="post-bubble-footer">
-                ${reactionsHtml ? `<div class="post-reactions">${reactionsHtml}</div>` : ''}
-                <span class="post-bubble-views">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
-                    ${post.views || 0}
-                </span>
-                <span class="post-bubble-time">${time}</span>
+            <div class="post-bubble">
+                <div class="post-channel-name">${escapeHtml(currentChannelName || '')}</div>
+                ${post.imageUrl ? `<img src="${post.imageUrl}" class="post-bubble-image" onclick="openImageModal('${post.imageUrl}')">` : ''}
+                ${post.text ? `<div class="post-bubble-text">${escapeHtml(post.text)}</div>` : ''}
+                <div class="post-bubble-footer">
+                    ${reactionsHtml ? `<div class="post-reactions">${reactionsHtml}</div>` : ''}
+                    <span class="post-bubble-views">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                        ${post.views || 0}
+                    </span>
+                    <span class="post-bubble-time">${time}</span>
+                </div>
             </div>
-        </div>
-        <button class="post-comment-bar" onclick="openComments('${post._id}')">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
-            <span id="commentCount_${post._id}">Комментировать</span>
-        </button>
-        </div>
-    </div>`;
+            <button class="post-comment-bar" onclick="openComments('${post._id}')">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
+                <span id="commentCount_${post._id}">Комментировать</span>
+            </button>
+        </div>`;
 
     // Правый клик — контекстное меню как у сообщений
     div.addEventListener('contextmenu', (e) => {
@@ -2946,33 +2944,84 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 // ===== Channel Profile Panel =====
+const CP_EMOJIS = ['📢','📡','📻','🎙️','🔔','💬','🗣️','📣','🌐','🔥','⭐','💡','🎯','🚀','🎮','🎵','🏆','❤️','🎉','🌈','💎','🦁','🐉','🌙','☀️','🌊','🤖','🎨','📚','🍕','⚽','🏠','🎭','🦊','🌺','🎸','🐶','🍜'];
+
 function openChannelProfile() {
     if (!currentChannelId) return;
     const panel = document.getElementById('channelProfilePanel');
     const inner = document.getElementById('channelProfileInner');
-    // Fill data
-    document.getElementById('cpAvatar').textContent = document.getElementById('channelViewAvatar').textContent;
-    document.getElementById('cpName').textContent = document.getElementById('channelViewName').textContent;
-    document.getElementById('cpSubs').textContent = document.getElementById('channelViewSubs').textContent;
-    // Owner section
     const isOwner = currentUser && currentChannelOwner === currentUser.username;
+
+    // Fill hero
+    document.getElementById('cpAvatar').textContent = currentChannelAvatar || '📢';
+    document.getElementById('cpName').textContent = currentChannelName || '';
+    document.getElementById('cpSubs').textContent = document.getElementById('channelViewSubs').textContent;
+
+    // Edit btn on avatar
+    const editBtn = document.getElementById('cpAvatarEditBtn');
+    if (editBtn) editBtn.style.display = isOwner ? 'flex' : 'none';
+
+    // Owner section
     const ownerSection = document.getElementById('cpOwnerSection');
     ownerSection.style.display = isOwner ? 'block' : 'none';
     if (isOwner) {
-        const picker = document.getElementById('cpAvatarPicker');
-        const emojis = ['📢','📡','📻','🎙️','🔔','💬','🗣️','📣','🌐','🔥','⭐','💡','🎯','🚀','🎮','🎵','🏆','❤️','🎉','🌈','💎','🦁','🐉','🌙','☀️','🌊','🤖','🎨','📚','🍕'];
-        picker.innerHTML = emojis.map(e => `<button onclick="setChannelAvatar('${e}')" style="font-size:22px;background:none;border:none;cursor:pointer;padding:4px;border-radius:8px;" title="${e}">${e}</button>`).join('');
+        document.getElementById('cpEditNameVal').textContent = currentChannelName || '';
+        // Init avatar picker grid
+        const grid = document.getElementById('cpAvatarPickerGrid');
+        if (grid && !grid._init) {
+            grid._init = true;
+            grid.style.cssText = 'display:grid;grid-template-columns:repeat(8,1fr);gap:4px;';
+            CP_EMOJIS.forEach(e => {
+                const btn = document.createElement('button');
+                btn.textContent = e;
+                btn.style.cssText = 'font-size:22px;background:none;border:none;cursor:pointer;padding:5px;border-radius:8px;transition:background 0.12s;';
+                btn.onmouseover = () => btn.style.background = 'rgba(85,136,204,0.2)';
+                btn.onmouseout = () => btn.style.background = '';
+                btn.onclick = () => setChannelAvatar(e);
+                grid.appendChild(btn);
+            });
+        }
     }
+
+    // Description for all
+    fetch('/api/channels', { headers: { Authorization: 'Bearer ' + localStorage.getItem('token') } })
+        .then(r => r.json()).then(channels => {
+            const ch = channels.find(c => String(c._id) === String(currentChannelId));
+            if (!ch) return;
+            const desc = ch.description || '';
+            const descSection = document.getElementById('cpDescSection');
+            const descText = document.getElementById('cpDescText');
+            if (isOwner) {
+                const descVal = document.getElementById('cpEditDescVal');
+                if (descVal) descVal.textContent = desc || 'Нажмите чтобы добавить';
+            }
+            if (desc) {
+                descSection.style.display = 'block';
+                descText.textContent = desc;
+            } else {
+                descSection.style.display = 'none';
+            }
+            if (isOwner && document.getElementById('cpDescInput')) {
+                document.getElementById('cpDescInput').value = desc;
+            }
+        });
+
     panel.style.display = 'flex';
-requestAnimationFrame(() => { requestAnimationFrame(() => { inner.style.transform = 'scale(1)'; inner.style.opacity = '1'; }); });
+    requestAnimationFrame(() => { requestAnimationFrame(() => { inner.style.transform = 'scale(1)'; inner.style.opacity = '1'; }); });
 }
+
 function closeChannelProfile() {
-    const panel = document.getElementById('channelProfilePanel');
     const inner = document.getElementById('channelProfileInner');
     inner.style.transform = 'scale(0.92)';
-inner.style.opacity = '0';
-setTimeout(() => panel.style.display = 'none', 220);
+    inner.style.opacity = '0';
+    setTimeout(() => { document.getElementById('channelProfilePanel').style.display = 'none'; }, 200);
 }
+
+function toggleCpAvatarPicker() {
+    const picker = document.getElementById('cpAvatarPicker');
+    picker.style.display = picker.style.display === 'none' ? 'block' : 'none';
+}
+
 async function setChannelAvatar(emoji) {
     const token = localStorage.getItem('token');
     const res = await fetch(`/api/channels/${currentChannelId}`, {
@@ -2981,15 +3030,59 @@ async function setChannelAvatar(emoji) {
         body: JSON.stringify({ avatar: emoji })
     });
     if (res.ok) {
-        document.getElementById('channelViewAvatar').textContent = emoji;
-        document.getElementById('cpAvatar').textContent = emoji;
         currentChannelAvatar = emoji;
-        // Обнови в списке
+        document.getElementById('cpAvatar').textContent = emoji;
+        document.getElementById('channelViewAvatar').textContent = emoji;
+        document.getElementById('cpAvatarPicker').style.display = 'none';
         const item = document.querySelector(`.channel-item[data-id="${currentChannelId}"] .channel-avatar`);
         if (item) item.textContent = emoji;
-        document.querySelectorAll(`.post-channel-avatar[data-channel-avatar="${currentChannelId}"]`).forEach(el => {
-    el.textContent = emoji;
-});
+    }
+}
+
+// Edit name
+function cpStartEditName() {
+    document.getElementById('cpNameInput').value = currentChannelName || '';
+    document.getElementById('cpNameEditBox').style.display = 'block';
+}
+function cpCancelEditName() { document.getElementById('cpNameEditBox').style.display = 'none'; }
+async function cpSaveName() {
+    const name = document.getElementById('cpNameInput').value.trim();
+    if (!name) return;
+    const res = await fetch(`/api/channels/${currentChannelId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + localStorage.getItem('token') },
+        body: JSON.stringify({ name })
+    });
+    if (res.ok) {
+        currentChannelName = name;
+        document.getElementById('cpName').textContent = name;
+        document.getElementById('cpEditNameVal').textContent = name;
+        document.getElementById('channelViewName').textContent = name;
+        document.getElementById('cpNameEditBox').style.display = 'none';
+        const item = document.querySelector(`.channel-item[data-id="${currentChannelId}"] .channel-name`);
+        if (item) item.textContent = name;
+    }
+}
+
+// Edit description
+function cpStartEditDesc() {
+    document.getElementById('cpDescEditBox').style.display = 'block';
+}
+function cpCancelEditDesc() { document.getElementById('cpDescEditBox').style.display = 'none'; }
+async function cpSaveDesc() {
+    const description = document.getElementById('cpDescInput').value.trim();
+    const res = await fetch(`/api/channels/${currentChannelId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + localStorage.getItem('token') },
+        body: JSON.stringify({ description })
+    });
+    if (res.ok) {
+        document.getElementById('cpEditDescVal').textContent = description || 'Нажмите чтобы добавить';
+        const descSection = document.getElementById('cpDescSection');
+        const descText = document.getElementById('cpDescText');
+        if (description) { descSection.style.display = 'block'; descText.textContent = description; }
+        else { descSection.style.display = 'none'; }
+        document.getElementById('cpDescEditBox').style.display = 'none';
     }
 }
 
