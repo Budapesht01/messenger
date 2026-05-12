@@ -570,6 +570,18 @@ app.post('/api/groups', authenticateJWT, async (req, res) => {
   res.json({ group });
 });
 
+app.put('/api/groups/:id', authenticateJWT, async (req, res) => {
+  const group = await Group.findById(req.params.id);
+  if (!group) return res.status(404).json({ error: 'Not found' });
+  if (group.owner !== req.user.username) return res.status(403).json({ error: 'Only owner' });
+  const { name, description, avatar } = req.body;
+  if (name) group.name = name.trim();
+  if (description !== undefined) group.description = description;
+  if (avatar) group.avatar = avatar;
+  await group.save();
+  res.json({ group });
+});
+
 app.get('/api/groups', authenticateJWT, async (req, res) => {
   const groups = await Group.find({ members: req.user.username });
   res.json(groups);
