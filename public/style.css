@@ -3170,28 +3170,36 @@ body::before, body::after { display: none !important; }
 }
 
 /* Post sender row — show avatar circle like TG channel */
-.post-sender-row {
+.post-row {
     display: flex;
-    align-items: center;
+    align-items: flex-start;
     gap: 8px;
-    padding: 2px 2px 6px;
     max-width: 520px;
-    margin: 0 auto;
+}
+.post-avatar-col {
+    flex-shrink: 0;
+    padding-top: 2px;
+}
+.post-content-col {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
 }
 .post-channel-avatar {
-    width: 28px;
-    height: 28px;
+    width: 36px;
+    height: 36px;
     border-radius: 50%;
     background: rgba(85,136,204,0.15);
-    border: 1px solid rgba(85,136,204,0.25);
-    font-size: 16px;
+    border: 1px solid rgba(85,136,204,0.2);
+    font-size: 20px;
     display: flex;
     align-items: center;
     justify-content: center;
-    flex-shrink: 0;
 }
 .post-channel-name {
     font-size: 13px;
     font-weight: 700;
     color: var(--accent);
+    margin-bottom: 4px;
 }
