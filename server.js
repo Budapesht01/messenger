@@ -1103,6 +1103,17 @@ app.post('/api/posts/:id/comments', authenticateJWT, async (req, res) => {
   await comment.save();
   res.json(comment);
 });
+// Очистить историю постов канала
+app.delete('/api/channels/:id/posts/clear', authenticateJWT, async (req, res) => {
+  const ch = await Channel.findById(req.params.id);
+  if (!ch) return res.status(404).json({ error: 'Not found' });
+  if (ch.owner !== req.user.username) return res.status(403).json({ error: 'Only owner' });
+  const posts = await Post.find({ channelId: ch._id });
+  await Comment.deleteMany({ postId: { $in: posts.map(p => p._id) } });
+  await Post.deleteMany({ channelId: ch._id });
+  res.json({ ok: true });
+});
+
 app.delete('/api/channels/:id', authenticateJWT, async (req, res) => {
   const ch = await Channel.findById(req.params.id);
   if (!ch) return res.status(404).json({ error: 'Not found' });
