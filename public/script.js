@@ -2979,6 +2979,7 @@ async function setChannelAvatar(emoji) {
     if (res.ok) {
         document.getElementById('channelViewAvatar').textContent = emoji;
         document.getElementById('cpAvatar').textContent = emoji;
+        currentChannelAvatar = emoji;
         // Обнови в списке
         const item = document.querySelector(`.channel-item[data-id="${currentChannelId}"] .channel-avatar`);
         if (item) item.textContent = emoji;
