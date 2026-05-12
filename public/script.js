@@ -2530,15 +2530,17 @@ function renderPost(post, container) {
             <span class="post-channel-avatar">📢</span>
             <span class="post-channel-name">${escapeHtml(chanName)}</span>
         </div>
-        ${post.imageUrl ? `<img src="${post.imageUrl}" class="post-image" alt="" onclick="openImageModal('${post.imageUrl}')">` : ''}
-        ${post.text ? `<div class="post-text">${escapeHtml(post.text)}</div>` : ''}
-        ${reactionsHtml ? `<div class="post-reactions">${reactionsHtml}</div>` : ''}
-        <div class="post-meta-bar">
-            <span class="post-meta-views">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
-                ${post.views || 0}
-            </span>
-            <span class="post-meta-time">${time}</span>
+        <div class="post-bubble">
+            ${post.imageUrl ? `<img src="${post.imageUrl}" class="post-bubble-image" onclick="openImageModal('${post.imageUrl}')">` : ''}
+            ${post.text ? `<div class="post-bubble-text">${escapeHtml(post.text)}</div>` : ''}
+            ${reactionsHtml ? `<div class="post-reactions" style="margin-bottom:4px;">${reactionsHtml}</div>` : ''}
+            <div class="post-bubble-footer">
+                <span class="post-bubble-views">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                    ${post.views || 0}
+                </span>
+                <span class="post-bubble-time">${time}</span>
+            </div>
         </div>
         <button class="post-comment-bar" onclick="openComments('${post._id}')">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
