@@ -2553,28 +2553,34 @@ body::before, body::after { display: none !important; }
 .channel-item:hover { background: var(--glass-hover); }
 
 .channel-avatar {
-    font-size: 28px;
+    font-size: 22px;
     flex-shrink: 0;
-    width: 42px;
-    height: 42px;
+    width: 44px;
+    height: 44px;
     display: flex;
     align-items: center;
     justify-content: center;
-    background: var(--glass-input);
-    border-radius: 50%;
+    background: rgba(85,136,204,0.12);
+    border: 1px solid rgba(85,136,204,0.2);
+    border-radius: 12px;
+    transition: background 0.15s;
+}
+.channel-item:hover .channel-avatar {
+    background: rgba(85,136,204,0.18);
 }
 .channel-info { flex: 1; min-width: 0; }
 .channel-name {
-    font-size: 14px;
+    font-size: 13.5px;
     font-weight: 600;
     color: var(--text-primary);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+    transition: color 0.15s;
 }
 .channel-desc {
-    font-size: 12px;
-    color: var(--text-secondary);
+    font-size: 11.5px;
+    color: var(--text-muted);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -2583,7 +2589,11 @@ body::before, body::after { display: none !important; }
 .channel-meta { flex-shrink: 0; }
 .channel-subs {
     font-size: 11px;
-    color: var(--text-secondary);
+    color: var(--text-muted);
+    background: rgba(255,255,255,0.05);
+    padding: 2px 7px;
+    border-radius: 10px;
+    border: 1px solid var(--border);
 }
 
 /* Channel modal */
@@ -2819,7 +2829,11 @@ body::before, body::after { display: none !important; }
     border-radius: 6px;
     transition: background 0.12s;
 }
-.post-react-trigger:hover { background: var(--glass-hover); color: var(--text-primary); }
+
+.post-react-trigger:hover { background: rgba(255,255,255,0.08); color: var(--text-primary); }
+.post-like-btn:hover { background: rgba(248,113,113,0.12) !important; color: #f87171 !important; }
+.post-comment-btn:hover { background: rgba(255,255,255,0.08) !important; color: var(--text-primary) !important; }
+.post-delete-btn:hover { background: rgba(239,68,68,0.12) !important; color: #ef4444 !important; }
 
 .post-reaction-picker {
     position: absolute;
