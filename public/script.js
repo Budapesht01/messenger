@@ -2622,17 +2622,20 @@ async function deleteChannel() {
 
 function toggleChannelMenu() {
     const dropdown = document.getElementById('channelDropdown');
-    if (!dropdown) return;
-    const isOpen = dropdown.classList.contains('open');
-    dropdown.classList.toggle('open', !isOpen);
-    if (!isOpen) {
-        setTimeout(() => document.addEventListener('click', function h(e) {
-            if (!e.target.closest('#channelMenuWrap')) {
-                closeChannelMenu();
-                document.removeEventListener('click', h);
-            }
-        }), 10);
-    }
+    const btn = document.querySelector('#channelMenuWrap button');
+    if (!dropdown || !btn) return;
+    if (dropdown.classList.contains('open')) { closeChannelMenu(); return; }
+    const rect = btn.getBoundingClientRect();
+    dropdown.style.top = (rect.bottom + 6) + 'px';
+    dropdown.style.right = (window.innerWidth - rect.right) + 'px';
+    dropdown.style.left = 'auto';
+    dropdown.classList.add('open');
+    setTimeout(() => document.addEventListener('click', function h(e) {
+        if (!e.target.closest('#channelMenuWrap')) {
+            closeChannelMenu();
+            document.removeEventListener('click', h);
+        }
+    }), 10);
 }
 function closeChannelMenu() {
     const dropdown = document.getElementById('channelDropdown');
