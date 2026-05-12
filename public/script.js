@@ -2287,7 +2287,12 @@ async function loadChannels() {
 function openCreateChannelModal() {
     document.getElementById('channelNameInput').value = '';
     document.getElementById('channelDescInput').value = '';
-    document.getElementById('channelAvatarInput').value = '';
+    document.getElementById('channelAvatarInput').value = '📢';
+    const prev = document.getElementById('channelAvatarPreview');
+    if (prev) prev.textContent = '📢';
+    const panel = document.getElementById('channelAvatarPanel');
+    if (panel) panel.style.display = 'none';
+    initChannelEmojiPicker();
     document.getElementById('createChannelModal').classList.add('open');
 }
 
@@ -2295,7 +2300,7 @@ async function createChannel() {
     const token = localStorage.getItem('token');
     const name = document.getElementById('channelNameInput').value.trim();
     const description = document.getElementById('channelDescInput').value.trim();
-    const avatar = document.getElementById('channelAvatarInput').value.trim() || '📢';
+    const avatar = (document.getElementById('channelAvatarPreview')?.textContent.trim()) || document.getElementById('channelAvatarInput').value.trim() || '📢';
     if (!name) return;
     const res = await fetch('/api/channels', {
         method: 'POST',
@@ -2326,10 +2331,12 @@ async function openChannel(ch) {
     const subBtn = document.getElementById('channelSubBtn');
     subBtn.textContent = isSubbed ? 'Отписаться' : 'Подписаться';
     subBtn.className = isSubbed ? 'secondary-btn' : 'primary-btn';
-    document.getElementById('channelPostBtn').style.display = isOwner ? 'flex' : 'none';
-    document.getElementById('channelStatsBtn').style.display = isOwner ? 'flex' : 'none';
-    document.getElementById('channelDeleteBtn').style.display = isOwner ? 'flex' : 'none';
-    document.getElementById('postEditor').style.display = 'none';
+    subBtn.style.display = isOwner ? 'none' : 'flex';
+    // 3-dot menu only for owner
+    const menuWrap = document.getElementById('channelMenuWrap');
+    if (menuWrap) menuWrap.style.display = isOwner ? 'block' : 'none';
+    // Post editor always visible for owner (Telegram style), hidden for subscribers
+    document.getElementById('postEditor').style.display = isOwner ? 'block' : 'none';
 
     // Show channel in .main area
     document.getElementById('noChatSelected').style.display = 'none';
@@ -2356,6 +2363,40 @@ async function loadChannelPosts() {
 }
 
 const REACTION_EMOJIS = ['❤️','🔥','👍','😂','😮','😢','👏','🎉'];
+
+const CHANNEL_EMOJIS = ['📢','📡','📻','🎙️','🔔','💬','🗣️','📣','🌐','🔥','⭐','💡','🎯','🚀','🎮','🎵','🏆','❤️','🎉','🌈','💎','🦁','🐉','🌙','☀️','🌊','🤖','🎨','📚','🍕','⚽','🐶','🌺','🦋','🎸','🏠','✨','🎭','🦊','🐉'];
+
+function initChannelEmojiPicker() {
+    const btn = document.getElementById('pickChannelAvatarBtn');
+    const panel = document.getElementById('channelAvatarPanel');
+    const preview = document.getElementById('channelAvatarPreview');
+    const grid = document.getElementById('channelEmojiGrid');
+    if (!btn || !panel || !preview || !grid) return;
+    // prevent double-init
+    if (btn._channelPickerInit) return;
+    btn._channelPickerInit = true;
+    grid.innerHTML = '';
+    CHANNEL_EMOJIS.forEach(e => {
+        const span = document.createElement('span');
+        span.textContent = e;
+        span.style.cssText = 'font-size:22px;cursor:pointer;text-align:center;padding:5px;border-radius:8px;display:flex;align-items:center;justify-content:center;transition:background 0.12s;';
+        span.onmouseover = () => span.style.background = 'rgba(85,136,204,0.2)';
+        span.onmouseout = () => span.style.background = '';
+        span.addEventListener('click', () => {
+            preview.textContent = e;
+            document.getElementById('channelAvatarInput').value = e;
+            panel.style.display = 'none';
+        });
+        grid.appendChild(span);
+    });
+    btn.onclick = (e) => {
+        e.stopPropagation();
+        panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
+    };
+    document.addEventListener('click', (e) => {
+        if (!panel.contains(e.target) && e.target !== btn) panel.style.display = 'none';
+    });
+}
 
 function renderPost(post, container) {
     const isOwner = currentUser && currentChannelOwner === currentUser.username;
@@ -2462,6 +2503,44 @@ async function deleteChannel() {
         currentChannelId = null;
         loadChannels();
     }
+}
+
+function toggleChannelMenu() {
+    const dropdown = document.getElementById('channelDropdown');
+    if (!dropdown) return;
+    const isOpen = dropdown.classList.contains('open');
+    dropdown.classList.toggle('open', !isOpen);
+    if (!isOpen) {
+        setTimeout(() => document.addEventListener('click', function h(e) {
+            if (!e.target.closest('#channelMenuWrap')) {
+                closeChannelMenu();
+                document.removeEventListener('click', h);
+            }
+        }), 10);
+    }
+}
+function closeChannelMenu() {
+    const dropdown = document.getElementById('channelDropdown');
+    if (dropdown) dropdown.classList.remove('open');
+}
+
+async function clearChannelHistory() {
+    if (!currentChannelId) return;
+    showConfirm(
+        'Очистить историю',
+        'Все посты в канале будут удалены без возможности восстановления.',
+        async () => {
+            const token = localStorage.getItem('token');
+            const res = await fetch(`/api/channels/${currentChannelId}/posts/clear`, {
+                method: 'DELETE',
+                headers: { Authorization: 'Bearer ' + token }
+            });
+            if (res.ok) {
+                document.getElementById('channelPostsList').innerHTML =
+                    '<div style="padding:30px; text-align:center; color:var(--text-secondary); font-size:13px;">Постов пока нет</div>';
+            }
+        }
+    );
 }
 
 async function openChannelStats() {
