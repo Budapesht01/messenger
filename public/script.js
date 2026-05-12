@@ -2524,7 +2524,12 @@ function renderPost(post, container) {
     div.className = 'channel-post';
     div.dataset.id = post._id;
     div.style.cssText = 'opacity:0; transform:translateY(8px); transition:opacity 0.22s ease, transform 0.22s ease;';
+    const chanName = document.getElementById('channelViewName')?.textContent || '';
     div.innerHTML = `
+        <div class="post-sender-row">
+            <span class="post-channel-avatar">📢</span>
+            <span class="post-channel-name">${escapeHtml(chanName)}</span>
+        </div>
         ${post.imageUrl ? `<img src="${post.imageUrl}" class="post-image" alt="" onclick="openImageModal('${post.imageUrl}')">` : ''}
         ${post.text ? `<div class="post-text">${escapeHtml(post.text)}</div>` : ''}
         ${reactionsHtml ? `<div class="post-reactions">${reactionsHtml}</div>` : ''}
