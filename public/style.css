@@ -2648,16 +2648,17 @@ body::before, body::after { display: none !important; }
     align-items: flex-start;
     margin-bottom: 8px;
     max-width: 520px;
+    width: fit-content;
 }
 .post-bubble {
     background: var(--glass-message-other);
     border: 1px solid var(--border);
-    border-radius: 4px 18px 18px 18px;
+    border-radius: 4px 18px 0 0;
     padding: 10px 14px 8px;
     max-width: 520px;
-    width: 100%;
+    width: fit-content;
+    min-width: 180px;
     box-sizing: border-box;
-    position: relative;
     word-break: break-word;
 }
 .post-bubble-image {
@@ -2698,8 +2699,8 @@ body::before, body::after { display: none !important; }
     display: flex;
     align-items: center;
     gap: 8px;
+    max-width: 100%;
     width: 100%;
-    max-width: 520px;
     box-sizing: border-box;
     padding: 7px 14px;
     background: var(--glass-input);
@@ -2815,6 +2816,7 @@ body::before, body::after { display: none !important; }
     display: flex;
     flex-direction: column;
     gap: 12px;
+    align-items: flex-start;
 }
 
 /* Active channel item */
