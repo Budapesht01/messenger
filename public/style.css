@@ -3027,3 +3027,14 @@ body::before, body::after { display: none !important; }
     font-weight: 600;
     color: var(--accent);
 }
+
+.channel-name-btn {
+    font-weight: 700;
+    font-size: 16px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    color: var(--text-primary);
+    max-width: 200px;
+}
+.channel-name-btn:hover { text-decoration: underline; }
