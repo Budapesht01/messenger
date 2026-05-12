@@ -1139,7 +1139,8 @@ app.patch('/api/channels/:id', authenticateJWT, async (req, res) => {
   if (!ch) return res.status(404).json({ error: 'Not found' });
   if (ch.owner !== req.user.username) return res.status(403).json({ error: 'Forbidden' });
   if (req.body.avatar) ch.avatar = req.body.avatar;
-  if (req.body.name) ch.name = req.body.name;
+  if (req.body.name) ch.name = req.body.name.trim();
+  if (req.body.description !== undefined) ch.description = req.body.description;
   await ch.save();
   res.json(ch);
 });
