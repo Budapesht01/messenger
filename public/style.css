@@ -316,7 +316,6 @@ body {
     font-family: var(--font);
     font-size: 13px;
     outline: none;
-    margin-bottom: 10px;
     transition: border-color 0.2s;
     box-sizing: border-box;
 }
