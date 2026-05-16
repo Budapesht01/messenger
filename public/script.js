@@ -1255,18 +1255,9 @@ function closeCreateGroupModal() {
 
 function getGroupInviteLink() {
     const code = document.getElementById('groupInfoCode')?.innerText?.trim();
-    if (!code) return;
-    const link = code;
-    if (navigator.clipboard && navigator.clipboard.writeText) {
-        navigator.clipboard.writeText(link).then(() => {
-            const btn = document.querySelector('#groupInfoModal .secondary-btn');
-            const orig = btn.innerText;
-            btn.innerText = '✓ Скопировано';
-            setTimeout(() => btn.innerText = orig, 2000);
-        }).catch(() => fallbackCopyLink(link));
-    } else {
-        fallbackCopyLink(link);
-    }
+    if (!code) { alert('Код приглашения не найден'); return; }
+    closeGroupInfoModal();
+    showInviteCode(code, document.getElementById('groupInfoName')?.innerText || '', 'private');
 }
 
 function fallbackCopyLink(text) {
@@ -1701,6 +1692,10 @@ if (isAdmin) {
         initAvatarPicker();
         initThemePanel();
         if (window.innerWidth <= 768) sidebar.classList.add('open');
+        // On mobile, show sidebar (chat list) on startup
+        if (window.innerWidth <= 768) {
+            document.getElementById('noChatSelected').style.display = 'none';
+        }
     }
     if (Notification.permission !== 'granted') Notification.requestPermission();
     initEmojiPicker();
