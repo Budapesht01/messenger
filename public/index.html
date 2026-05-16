@@ -161,7 +161,7 @@
             <div class="tab-content" id="search-tab">
                 <div class="search-box-wrap">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16" style="color:var(--text-secondary);"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-                    <input type="text" id="searchUserInput" placeholder="Поиск людей, групп, каналов..." class="search-box-input">
+                    <input type="text" id="searchUserInput" placeholder="Поиск людей, групп, каналов..." class="search-box-input" autocomplete="off">
                 </div>
                 <div class="search-filter-btns">
                     <button class="search-filter-btn active" data-filter="all">Все</button>
@@ -332,6 +332,9 @@
             <div id="channelViewPanel" style="display:none; flex:1; flex-direction:column; overflow:hidden; position:absolute; inset:0; background:var(--bg-gradient); z-index:5;">
                 <div id="channelView" class="channel-view" style="display:none;">
                     <div class="channel-view-header">
+                        <button id="channelBackBtn" class="mobile-only" onclick="closeChat()" style="background:none;border:none;cursor:pointer;color:var(--accent);padding:4px 8px 4px 0;display:none;align-items:center;flex-shrink:0;">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="22" height="22"><polyline points="15 18 9 12 15 6"/></svg>
+                        </button>
                         <button onclick="openChannelProfile()" style="background:none;border:none;cursor:pointer;padding:0;display:flex;align-items:center;gap:10px;flex:1;min-width:0;text-align:left;">
     <span id="channelViewAvatar" style="font-size:22px; width:44px; height:44px; display:flex; align-items:center; justify-content:center; background:rgba(85,136,204,0.12); border:1px solid rgba(85,136,204,0.2); border-radius:12px; flex-shrink:0;">📢</span>
     <div style="flex:1; min-width:0;">
