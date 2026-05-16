@@ -2930,20 +2930,22 @@ body::before, body::after { display: none !important; }
 .search-box-wrap {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 6px;
     background: rgba(255,255,255,0.06);
     border: none;
-    border-radius: 22px;
-    padding: 9px 14px;
-    margin: 10px 12px 6px;
-    transition: background 0.18s;
+    border-radius: 10px;
+    padding: 6px 10px;
+    margin: 8px 12px 4px;
+    transition: background 0.15s;
 }
 .search-box-wrap:focus-within {
-    background: rgba(255,255,255,0.1);
+    background: rgba(255,255,255,0.09);
 }
 .search-box-wrap svg {
     flex-shrink: 0;
     color: var(--text-secondary);
+    width: 14px;
+    height: 14px;
 }
 .search-box-input {
     flex: 1;
