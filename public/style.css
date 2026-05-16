@@ -3064,10 +3064,12 @@ body::before, body::after { display: none !important; }
     width: 360px;
     max-width: 90vw;
     max-height: 88vh;
-    overflow: hidden;
+    overflow: visible;
     position: relative;
     display: flex;
     flex-direction: column;
+    /* clip children except the avatar-wrap */
+    isolation: isolate;
 }
 .group-profile-card > .gp-scroll {
     overflow-y: auto;
@@ -3087,6 +3089,7 @@ body::before, body::after { display: none !important; }
     border-radius: 20px 20px 0 0;
     position: relative;
     flex-shrink: 0;
+    overflow: visible;
 }
 .gp-close {
     position: absolute;
@@ -3103,12 +3106,12 @@ body::before, body::after { display: none !important; }
     display: flex;
     align-items: center;
     justify-content: center;
+    z-index: 3;
 }
 .gp-avatar-wrap {
-    padding: 0 20px;
-    margin-top: -40px;
-    flex-shrink: 0;
-    position: relative;
+    position: absolute;
+    bottom: -40px;
+    left: 20px;
     z-index: 2;
 }
 .gp-avatar {
