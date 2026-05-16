@@ -2333,6 +2333,17 @@ function openFavorites() {
 function closeChat() {
     currentChat = null;
     currentGroupId = null;
+    // Also close channel if open
+    if (currentChannelId) {
+        currentChannelId = null;
+        currentChannelOwner = null;
+        const panel = document.getElementById('channelViewPanel');
+        if (panel) panel.style.display = 'none';
+        const cv = document.getElementById('channelView');
+        if (cv) cv.style.display = 'none';
+        const ch = document.getElementById('chatHeader');
+        if (ch) ch.style.display = '';
+    }
     document.getElementById('noChatSelected').style.display = 'flex';
     document.getElementById('inputArea').style.display = 'none';
     document.getElementById('backBtn').style.display = 'none';
@@ -2484,6 +2495,11 @@ async function openChannel(ch) {
     if (chatHeader) chatHeader.style.display = 'none';
     document.getElementById('channelViewPanel').style.display = 'flex';
     document.getElementById('channelView').style.display = 'flex';
+    // Close sidebar on mobile
+    if (window.innerWidth <= 768) {
+        sidebar.classList.remove('open');
+        document.getElementById('backBtn').style.display = 'flex';
+    }
     await loadChannelPosts();
 }
 
