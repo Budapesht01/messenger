@@ -3064,13 +3064,25 @@ body::before, body::after { display: none !important; }
     width: 360px;
     max-width: 90vw;
     max-height: 88vh;
-    overflow-y: auto;
+    overflow: hidden;
     position: relative;
     display: flex;
     flex-direction: column;
 }
+.group-profile-card > .gp-scroll {
+    overflow-y: auto;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+}
+.gp-scroll {
+    overflow-y: auto;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+}
 .gp-banner {
-    height: 80px;
+    height: 90px;
     background: linear-gradient(135deg, #5588cc 0%, #7c6eaf 100%);
     border-radius: 20px 20px 0 0;
     position: relative;
@@ -3094,20 +3106,22 @@ body::before, body::after { display: none !important; }
 }
 .gp-avatar-wrap {
     padding: 0 20px;
-    margin-top: -36px;
+    margin-top: -40px;
     flex-shrink: 0;
+    position: relative;
+    z-index: 2;
 }
 .gp-avatar {
-    width: 72px;
-    height: 72px;
-    font-size: 38px;
+    width: 80px;
+    height: 80px;
+    font-size: 42px;
     display: flex;
     align-items: center;
     justify-content: center;
-    background: var(--glass-sidebar);
-    border: 4px solid var(--glass-sidebar);
+    background: var(--bg-primary, #1a1a2e);
+    border: 4px solid var(--bg-primary, #1a1a2e);
     border-radius: 50%;
-    box-shadow: 0 2px 12px rgba(0,0,0,0.3);
+    box-shadow: 0 2px 12px rgba(0,0,0,0.4);
 }
 .gp-info {
     padding: 10px 20px 4px;
