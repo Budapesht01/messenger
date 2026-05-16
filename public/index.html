@@ -506,10 +506,7 @@
                 </div>
                 <div id="groupInfoMembers" class="gp-members-list"></div>
             </div>
-            <!-- Delete btn (owner only) -->
-            <div style="padding:0 16px 16px;">
-                <button class="logout-btn" id="deleteGroupBtn" onclick="deleteGroup()" style="display:none; width:100%;">Удалить группу</button>
-            </div>
+
             </div>
         </div>
         <span id="groupInfoCode" style="display:none;"></span>
@@ -544,6 +541,15 @@
                 <div>
                     <div style="font-size:12px; color:var(--text-secondary); margin-bottom:6px; font-weight:600;">Описание (необязательно)</div>
                     <textarea id="gsDescInput" class="modal-input" placeholder="Описание группы..." rows="3" style="width:100%; box-sizing:border-box; resize:vertical; font-family:inherit; font-size:14px;"></textarea>
+                </div>
+                <!-- Banner color -->
+                <div>
+                    <div style="font-size:12px; color:var(--text-secondary); margin-bottom:8px; font-weight:600;">Цвет баннера</div>
+                    <div style="display:flex; flex-wrap:wrap; gap:8px; align-items:center;" id="gsBannerColors"></div>
+                </div>
+                <!-- Danger zone -->
+                <div style="border-top:1px solid var(--border); padding-top:14px;">
+                    <button class="logout-btn" onclick="deleteGroup(); closeGroupSettings();" style="width:100%;">Удалить группу</button>
                 </div>
             </div>
             <div class="modal-footer">
@@ -867,7 +873,7 @@
                     <span class="gp-action-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg></span>
                     <span>Управление</span>
                 </button>
-                <button class="gp-action-btn" id="cpLeaveBtn" onclick="unsubscribeChannel()">
+                <button class="gp-action-btn" id="cpLeaveBtn" onclick="unsubscribeChannel()" style="display:none;">
                     <span class="gp-action-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg></span>
                     <span>Отписаться</span>
                 </button>
@@ -905,6 +911,15 @@
             <div>
                 <div style="font-size:12px; color:var(--text-secondary); margin-bottom:6px; font-weight:600;">Описание (необязательно)</div>
                 <textarea id="cmDescInput" class="modal-input" placeholder="Описание канала..." rows="3" style="width:100%; box-sizing:border-box; resize:vertical; font-family:inherit; font-size:14px;"></textarea>
+            </div>
+            <!-- Banner color -->
+            <div>
+                <div style="font-size:12px; color:var(--text-secondary); margin-bottom:8px; font-weight:600;">Цвет баннера</div>
+                <div style="display:flex; flex-wrap:wrap; gap:8px; align-items:center;" id="cmBannerColors"></div>
+            </div>
+            <!-- Danger zone -->
+            <div style="border-top:1px solid var(--border); padding-top:14px;">
+                <button class="logout-btn" onclick="deleteChannel(); closeChannelManage();" style="width:100%;">Удалить канал</button>
             </div>
         </div>
         <div class="modal-footer">
