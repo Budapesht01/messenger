@@ -1403,38 +1403,50 @@ async function showGroupInfo() {
     if (!group) return;
     const isOwner = group.owner === currentUser.username;
 
-    // Avatar — big circle
-    const avatarEl = document.getElementById('groupInfoAvatar');
-    avatarEl.textContent = group.avatar || '👥';
+    document.getElementById('groupInfoAvatar').innerText = group.avatar || '👥';
+    document.getElementById('groupInfoName').innerText = group.name;
+    document.getElementById('groupInfoType').innerText = group.type === 'public' ? '🌍 Публичная' : '🔒 Закрытая';
+    document.getElementById('groupInfoCode').innerText = group.inviteCode;
 
-    document.getElementById('groupInfoName').textContent = group.name;
-    document.getElementById('groupInfoCode').textContent = group.inviteCode;
-    document.getElementById('groupInfoType').textContent = (group.type === 'public' ? '🌍 Публичная' : '🔒 Закрытая') + ' · ' + group.members.length + ' участников';
+    const descEl = document.getElementById('groupInfoDesc');
+    if (group.description) {
+        descEl.innerText = group.description;
+        descEl.style.display = 'block';
+    } else {
+        descEl.style.display = 'none';
+    }
 
-    // Members list — TG style
-    document.getElementById('groupMembersTitle').textContent = group.members.length + ' УЧАСТНИКОВ';
+    document.getElementById('gpManageBtn').style.display = isOwner ? 'flex' : 'none';
+    document.getElementById('gpLeaveBtn').style.display = !isOwner ? 'flex' : 'none';
+    document.getElementById('gpAddMemberBtn').style.display = isOwner ? 'flex' : 'none';
+    document.getElementById('deleteGroupBtn').style.display = isOwner ? 'block' : 'none';
+    document.getElementById('gpMembersCount').innerText = group.members.length;
+
+    // Fetch online status
+    let userMap = {};
+    try {
+        const allUsers = await (await fetch('/api/users/all', { headers: { 'Authorization': `Bearer ${token}` } })).json();
+        (Array.isArray(allUsers) ? allUsers : []).forEach(u => userMap[u.username] = u);
+    } catch(e) {}
+
     document.getElementById('groupInfoMembers').innerHTML = group.members.map(m => {
-        const isM_Owner = m === group.owner;
-        const initial = (m[0] || '?').toUpperCase();
-        return `<div class="group-member-row">
-            <div class="group-member-avatar">${initial}</div>
-            <div class="group-member-info">
-                <span class="group-member-name">${escapeHtml(m)}</span>
-                ${isM_Owner ? '<span class="group-member-role">владелец</span>' : '<span class="group-member-status">в сети</span>'}
+        const u = userMap[m] || {};
+        const avatar = u.avatar || '😀';
+        const online = u.online;
+        const isM = m === group.owner;
+        return `<div class="gp-member-item">
+            <div class="gp-member-avatar${online ? ' online' : ''}">${escapeHtml(avatar)}</div>
+            <div class="gp-member-info">
+                <span class="gp-member-name" style="color:${u.color || 'var(--text-primary)'};">${escapeHtml(m)}</span>
+                <span class="gp-member-status">${online ? 'в сети' : 'не в сети'}</span>
             </div>
+            ${isM ? '<span class="gp-member-role owner">владелец</span>' : ''}
         </div>`;
     }).join('');
-
-    // Buttons
-    document.getElementById('deleteGroupBtn').style.display = isOwner ? 'flex' : 'none';
-    document.getElementById('leaveGroupBtn').style.display = !isOwner ? 'flex' : 'none';
-    const manageBtn = document.getElementById('groupManageBtn');
-    if (manageBtn) manageBtn.style.display = isOwner ? 'flex' : 'none';
 
     document.getElementById('groupInfoModal').classList.add('open');
 }
 function closeGroupInfoModal() { document.getElementById('groupInfoModal').classList.remove('open'); }
-
 async function deleteGroup() {
     if (!confirm('Удалить группу для всех?')) return;
     await fetch(`/api/groups/${currentGroupId}`, { method: 'DELETE', headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` } });
@@ -1446,73 +1458,6 @@ async function leaveGroup() {
     const data = await res.json();
     if (res.ok) { closeGroupInfoModal(); currentGroupId = null; document.querySelector('.chat-title').innerText = 'Выберите чат'; document.getElementById('messages').innerHTML = ''; loadGroups(); }
     else alert(data.error);
-}
-
-// ========== Настройки группы ==========
-function openGroupSettingsModal() {
-    if (!currentGroupId) return;
-    const token = localStorage.getItem('token');
-    fetch('/api/groups', { headers: { 'Authorization': `Bearer ${token}` } })
-        .then(r => r.json()).then(groups => {
-            const group = groups.find(g => String(g._id) === String(currentGroupId));
-            if (!group) return;
-            document.getElementById('settingsGroupName').value = group.name;
-            document.getElementById('settingsGroupDesc').value = group.description || '';
-            document.getElementById('settingsGroupAvatarInput').value = group.avatar || '👥';
-            document.getElementById('settingsGroupAvatarPreview').textContent = group.avatar || '👥';
-            document.getElementById('settingsGroupAvatarPanel').style.display = 'none';
-            initSettingsGroupEmojiPicker();
-            closeGroupInfoModal();
-            document.getElementById('groupSettingsModal').classList.add('open');
-        });
-}
-function closeGroupSettingsModal() { document.getElementById('groupSettingsModal').classList.remove('open'); }
-
-async function saveGroupSettings() {
-    const token = localStorage.getItem('token');
-    const name = document.getElementById('settingsGroupName').value.trim();
-    const description = document.getElementById('settingsGroupDesc').value.trim();
-    const avatar = document.getElementById('settingsGroupAvatarInput').value || document.getElementById('settingsGroupAvatarPreview').textContent;
-    if (!name) return;
-    const res = await fetch(`/api/groups/${currentGroupId}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-        body: JSON.stringify({ name, description, avatar })
-    });
-    if (res.ok) {
-        closeGroupSettingsModal();
-        loadGroups();
-        // Update chat title
-        document.querySelector('.chat-title').innerText = name;
-    }
-}
-
-const GROUP_SETTING_EMOJIS = ['👥','🎮','🎵','📚','💼','🏆','🌍','🔥','⭐','🚀','🎯','💡','🎨','🌈','❤️','🐉','🦁','🤖','🏠','🎉','🌙','☀️','🌊','💎','🎸','⚽','🎭','🦊','🌺','🍕'];
-
-function initSettingsGroupEmojiPicker() {
-    const btn = document.getElementById('pickSettingsGroupAvatarBtn');
-    const panel = document.getElementById('settingsGroupAvatarPanel');
-    const preview = document.getElementById('settingsGroupAvatarPreview');
-    const grid = document.getElementById('settingsGroupEmojiGrid');
-    const input = document.getElementById('settingsGroupAvatarInput');
-    if (!btn || btn._settingsPickerInit) return;
-    btn._settingsPickerInit = true;
-    grid.innerHTML = '';
-    GROUP_SETTING_EMOJIS.forEach(e => {
-        const span = document.createElement('span');
-        span.textContent = e;
-        span.style.cssText = 'font-size:22px;cursor:pointer;text-align:center;padding:5px;border-radius:8px;display:flex;align-items:center;justify-content:center;transition:background 0.12s;';
-        span.onmouseover = () => span.style.background = 'rgba(85,136,204,0.2)';
-        span.onmouseout = () => span.style.background = '';
-        span.addEventListener('click', () => {
-            preview.textContent = e;
-            input.value = e;
-            panel.style.display = 'none';
-        });
-        grid.appendChild(span);
-    });
-    btn.onclick = (ev) => { ev.stopPropagation(); panel.style.display = panel.style.display === 'none' ? 'block' : 'none'; };
-    document.addEventListener('click', (ev) => { if (!panel.contains(ev.target) && ev.target !== btn) panel.style.display = 'none'; });
 }
 
 // ========== Профиль ==========
@@ -2434,8 +2379,6 @@ function closeSettingsPanel() {
 // ========== CHANNELS ==========
 let currentChannelId = null;
 let currentChannelOwner = null;
-let currentChannelName = '';
-let currentChannelAvatar = '📢';
 let currentPostId = null;
 
 async function loadChannels() {
@@ -2505,8 +2448,6 @@ async function createChannel() {
 async function openChannel(ch) {
     currentChannelId = ch._id;
     currentChannelOwner = ch.owner;
-    currentChannelName = ch.name || '';
-    currentChannelAvatar = ch.avatar || '📢';
 
     // Mark active
     document.querySelectorAll('.channel-item').forEach(el => el.classList.remove('active-channel'));
@@ -2650,28 +2591,30 @@ function renderPost(post, container) {
     div.className = 'channel-post';
     div.dataset.id = post._id;
     div.style.cssText = 'opacity:0; transform:translateY(8px); transition:opacity 0.22s ease, transform 0.22s ease;';
+    const chanName = document.getElementById('channelViewName')?.textContent || '';
+    const chanAvatar = document.getElementById('channelViewAvatar')?.textContent || '📢';
     div.innerHTML = `
-        <div class="post-avatar-col">
-            <span class="post-channel-avatar">${escapeHtml(currentChannelAvatar || '📢')}</span>
-        </div>
-        <div class="post-content-col">
-            <div class="post-bubble">
-                <div class="post-channel-name">${escapeHtml(currentChannelName || '')}</div>
-                ${post.imageUrl ? `<img src="${post.imageUrl}" class="post-bubble-image" onclick="openImageModal('${post.imageUrl}')">` : ''}
-                ${post.text ? `<div class="post-bubble-text">${escapeHtml(post.text)}</div>` : ''}
-                <div class="post-bubble-footer">
-                    ${reactionsHtml ? `<div class="post-reactions">${reactionsHtml}</div>` : ''}
-                    <span class="post-bubble-views">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
-                        ${post.views || 0}
-                    </span>
-                    <span class="post-bubble-time">${time}</span>
+        <div class="post-row">
+            <span class="post-channel-avatar" data-channel-avatar="${currentChannelId}">${escapeHtml(chanAvatar)}</span>
+            <div class="post-right">
+                <div class="post-bubble">
+                    <div class="post-channel-name">${escapeHtml(chanName)}</div>
+                    ${post.imageUrl ? `<img src="${post.imageUrl}" class="post-bubble-image" onclick="openImageModal('${post.imageUrl}')">` : ''}
+                    ${post.text ? `<div class="post-bubble-text">${escapeHtml(post.text)}</div>` : ''}
+                    <div class="post-bubble-footer">
+                        ${reactionsHtml ? `<div class="post-reactions">${reactionsHtml}</div>` : ''}
+                        <span class="post-bubble-views">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                            ${post.views || 0}
+                        </span>
+                        <span class="post-bubble-time">${time}</span>
+                    </div>
                 </div>
+                <button class="post-comment-bar" onclick="openComments('${post._id}')">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
+                    <span id="commentCount_${post._id}">Комментировать</span>
+                </button>
             </div>
-            <button class="post-comment-bar" onclick="openComments('${post._id}')">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
-                <span id="commentCount_${post._id}">Комментировать</span>
-            </button>
         </div>`;
 
     // Правый клик — контекстное меню как у сообщений
@@ -2944,84 +2887,33 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 // ===== Channel Profile Panel =====
-const CP_EMOJIS = ['📢','📡','📻','🎙️','🔔','💬','🗣️','📣','🌐','🔥','⭐','💡','🎯','🚀','🎮','🎵','🏆','❤️','🎉','🌈','💎','🦁','🐉','🌙','☀️','🌊','🤖','🎨','📚','🍕','⚽','🏠','🎭','🦊','🌺','🎸','🐶','🍜'];
-
 function openChannelProfile() {
     if (!currentChannelId) return;
     const panel = document.getElementById('channelProfilePanel');
     const inner = document.getElementById('channelProfileInner');
-    const isOwner = currentUser && currentChannelOwner === currentUser.username;
-
-    // Fill hero
-    document.getElementById('cpAvatar').textContent = currentChannelAvatar || '📢';
-    document.getElementById('cpName').textContent = currentChannelName || '';
+    // Fill data
+    document.getElementById('cpAvatar').textContent = document.getElementById('channelViewAvatar').textContent;
+    document.getElementById('cpName').textContent = document.getElementById('channelViewName').textContent;
     document.getElementById('cpSubs').textContent = document.getElementById('channelViewSubs').textContent;
-
-    // Edit btn on avatar
-    const editBtn = document.getElementById('cpAvatarEditBtn');
-    if (editBtn) editBtn.style.display = isOwner ? 'flex' : 'none';
-
     // Owner section
+    const isOwner = currentUser && currentChannelOwner === currentUser.username;
     const ownerSection = document.getElementById('cpOwnerSection');
     ownerSection.style.display = isOwner ? 'block' : 'none';
     if (isOwner) {
-        document.getElementById('cpEditNameVal').textContent = currentChannelName || '';
-        // Init avatar picker grid
-        const grid = document.getElementById('cpAvatarPickerGrid');
-        if (grid && !grid._init) {
-            grid._init = true;
-            grid.style.cssText = 'display:grid;grid-template-columns:repeat(8,1fr);gap:4px;';
-            CP_EMOJIS.forEach(e => {
-                const btn = document.createElement('button');
-                btn.textContent = e;
-                btn.style.cssText = 'font-size:22px;background:none;border:none;cursor:pointer;padding:5px;border-radius:8px;transition:background 0.12s;';
-                btn.onmouseover = () => btn.style.background = 'rgba(85,136,204,0.2)';
-                btn.onmouseout = () => btn.style.background = '';
-                btn.onclick = () => setChannelAvatar(e);
-                grid.appendChild(btn);
-            });
-        }
+        const picker = document.getElementById('cpAvatarPicker');
+        const emojis = ['📢','📡','📻','🎙️','🔔','💬','🗣️','📣','🌐','🔥','⭐','💡','🎯','🚀','🎮','🎵','🏆','❤️','🎉','🌈','💎','🦁','🐉','🌙','☀️','🌊','🤖','🎨','📚','🍕'];
+        picker.innerHTML = emojis.map(e => `<button onclick="setChannelAvatar('${e}')" style="font-size:22px;background:none;border:none;cursor:pointer;padding:4px;border-radius:8px;" title="${e}">${e}</button>`).join('');
     }
-
-    // Description for all
-    fetch('/api/channels', { headers: { Authorization: 'Bearer ' + localStorage.getItem('token') } })
-        .then(r => r.json()).then(channels => {
-            const ch = channels.find(c => String(c._id) === String(currentChannelId));
-            if (!ch) return;
-            const desc = ch.description || '';
-            const descSection = document.getElementById('cpDescSection');
-            const descText = document.getElementById('cpDescText');
-            if (isOwner) {
-                const descVal = document.getElementById('cpEditDescVal');
-                if (descVal) descVal.textContent = desc || 'Нажмите чтобы добавить';
-            }
-            if (desc) {
-                descSection.style.display = 'block';
-                descText.textContent = desc;
-            } else {
-                descSection.style.display = 'none';
-            }
-            if (isOwner && document.getElementById('cpDescInput')) {
-                document.getElementById('cpDescInput').value = desc;
-            }
-        });
-
     panel.style.display = 'flex';
-    requestAnimationFrame(() => { requestAnimationFrame(() => { inner.style.transform = 'scale(1)'; inner.style.opacity = '1'; }); });
+requestAnimationFrame(() => { requestAnimationFrame(() => { inner.style.transform = 'scale(1)'; inner.style.opacity = '1'; }); });
 }
-
 function closeChannelProfile() {
+    const panel = document.getElementById('channelProfilePanel');
     const inner = document.getElementById('channelProfileInner');
     inner.style.transform = 'scale(0.92)';
-    inner.style.opacity = '0';
-    setTimeout(() => { document.getElementById('channelProfilePanel').style.display = 'none'; }, 200);
+inner.style.opacity = '0';
+setTimeout(() => panel.style.display = 'none', 220);
 }
-
-function toggleCpAvatarPicker() {
-    const picker = document.getElementById('cpAvatarPicker');
-    picker.style.display = picker.style.display === 'none' ? 'block' : 'none';
-}
-
 async function setChannelAvatar(emoji) {
     const token = localStorage.getItem('token');
     const res = await fetch(`/api/channels/${currentChannelId}`, {
@@ -3030,59 +2922,14 @@ async function setChannelAvatar(emoji) {
         body: JSON.stringify({ avatar: emoji })
     });
     if (res.ok) {
-        currentChannelAvatar = emoji;
-        document.getElementById('cpAvatar').textContent = emoji;
         document.getElementById('channelViewAvatar').textContent = emoji;
-        document.getElementById('cpAvatarPicker').style.display = 'none';
+        document.getElementById('cpAvatar').textContent = emoji;
+        // Обнови в списке
         const item = document.querySelector(`.channel-item[data-id="${currentChannelId}"] .channel-avatar`);
         if (item) item.textContent = emoji;
-    }
-}
-
-// Edit name
-function cpStartEditName() {
-    document.getElementById('cpNameInput').value = currentChannelName || '';
-    document.getElementById('cpNameEditBox').style.display = 'block';
-}
-function cpCancelEditName() { document.getElementById('cpNameEditBox').style.display = 'none'; }
-async function cpSaveName() {
-    const name = document.getElementById('cpNameInput').value.trim();
-    if (!name) return;
-    const res = await fetch(`/api/channels/${currentChannelId}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + localStorage.getItem('token') },
-        body: JSON.stringify({ name })
-    });
-    if (res.ok) {
-        currentChannelName = name;
-        document.getElementById('cpName').textContent = name;
-        document.getElementById('cpEditNameVal').textContent = name;
-        document.getElementById('channelViewName').textContent = name;
-        document.getElementById('cpNameEditBox').style.display = 'none';
-        const item = document.querySelector(`.channel-item[data-id="${currentChannelId}"] .channel-name`);
-        if (item) item.textContent = name;
-    }
-}
-
-// Edit description
-function cpStartEditDesc() {
-    document.getElementById('cpDescEditBox').style.display = 'block';
-}
-function cpCancelEditDesc() { document.getElementById('cpDescEditBox').style.display = 'none'; }
-async function cpSaveDesc() {
-    const description = document.getElementById('cpDescInput').value.trim();
-    const res = await fetch(`/api/channels/${currentChannelId}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + localStorage.getItem('token') },
-        body: JSON.stringify({ description })
-    });
-    if (res.ok) {
-        document.getElementById('cpEditDescVal').textContent = description || 'Нажмите чтобы добавить';
-        const descSection = document.getElementById('cpDescSection');
-        const descText = document.getElementById('cpDescText');
-        if (description) { descSection.style.display = 'block'; descText.textContent = description; }
-        else { descSection.style.display = 'none'; }
-        document.getElementById('cpDescEditBox').style.display = 'none';
+        document.querySelectorAll(`.post-channel-avatar[data-channel-avatar="${currentChannelId}"]`).forEach(el => {
+    el.textContent = emoji;
+});
     }
 }
 
@@ -3094,5 +2941,90 @@ document.addEventListener('keydown', (e) => {
         document.getElementById('channelView').style.display = 'none';
         document.getElementById('noChatSelected').style.display = 'flex';
         document.getElementById('backBtn').style.display = 'none';
+    }
+});
+
+// ========== Group Settings ==========
+const GS_EMOJIS = ['👥','🔥','💬','🎮','🎵','📚','🏆','⚡','🌟','💎','🚀','🎯','🌈','🦁','🐯','🦊','🐺','🦅','🐉','🌊','🎭','🎪','🎸','🎤','🏀','⚽','🎲','🃏','🌙','☀️','💡','🔮','🛡️','⚔️','🎓','🏛️','🌺','🍀','💰','🎁'];
+
+async function openGroupSettings() {
+    if (!currentGroupId) return;
+    const token = localStorage.getItem('token');
+    const groups = await (await fetch('/api/groups', { headers: { 'Authorization': `Bearer ${token}` } })).json();
+    const group = groups.find(g => String(g._id) === String(currentGroupId));
+    if (!group) return;
+
+    document.getElementById('gsAvatarPreview').innerText = group.avatar || '👥';
+    document.getElementById('gsNameInput').value = group.name || '';
+    document.getElementById('gsDescInput').value = group.description || '';
+    document.getElementById('gsAvatarPanel').style.display = 'none';
+
+    // Build emoji grid
+    const grid = document.getElementById('gsAvatarGrid');
+    grid.innerHTML = GS_EMOJIS.map(e =>
+        `<button onclick="selectGsAvatar('${e}')" style="font-size:22px;background:none;border:none;cursor:pointer;padding:4px;border-radius:8px;transition:background 0.15s;" onmouseover="this.style.background='rgba(255,255,255,0.1)'" onmouseout="this.style.background='none'">${e}</button>`
+    ).join('');
+
+    document.getElementById('groupSettingsModal').classList.add('open');
+}
+
+function closeGroupSettings() {
+    document.getElementById('groupSettingsModal').classList.remove('open');
+}
+
+function toggleGsAvatarPanel() {
+    const p = document.getElementById('gsAvatarPanel');
+    p.style.display = p.style.display === 'none' ? 'block' : 'none';
+}
+
+function selectGsAvatar(emoji) {
+    document.getElementById('gsAvatarPreview').innerText = emoji;
+    document.getElementById('gsAvatarPanel').style.display = 'none';
+}
+
+async function saveGroupSettings() {
+    const token = localStorage.getItem('token');
+    const name = document.getElementById('gsNameInput').value.trim();
+    const description = document.getElementById('gsDescInput').value.trim();
+    const avatar = document.getElementById('gsAvatarPreview').innerText;
+
+    if (!name) { alert('Введите название группы'); return; }
+
+    const res = await fetch(`/api/groups/${currentGroupId}`, {
+        method: 'PATCH',
+        headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, description, avatar })
+    });
+
+    if (res.ok) {
+        const updated = await res.json();
+        // Update header
+        document.querySelector('.chat-title').innerText = updated.name;
+        // Update sidebar item
+        const item = document.querySelector(`.group-item[data-id="${currentGroupId}"]`);
+        if (item) {
+            const nameEl = item.querySelector('.group-name');
+            if (nameEl) nameEl.innerText = updated.name;
+            const avatarEl = item.querySelector('.group-avatar');
+            if (avatarEl) avatarEl.innerText = updated.avatar;
+        }
+        closeGroupSettings();
+    } else {
+        alert('Ошибка сохранения');
+    }
+}
+
+// Handle group_updated socket event
+socket.on('group_updated', ({ group }) => {
+    if (!group) return;
+    if (currentGroupId === String(group._id)) {
+        document.querySelector('.chat-title').innerText = group.name;
+    }
+    const item = document.querySelector(`.group-item[data-id="${group._id}"]`);
+    if (item) {
+        const nameEl = item.querySelector('.group-name');
+        if (nameEl) nameEl.innerText = group.name;
+        const avatarEl = item.querySelector('.group-avatar');
+        if (avatarEl) avatarEl.innerText = group.avatar;
     }
 });
