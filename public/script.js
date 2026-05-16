@@ -2352,6 +2352,8 @@ function closeChat() {
         if (cv) cv.style.display = 'none';
         const ch = document.getElementById('chatHeader');
         if (ch) ch.style.display = '';
+        const chBack = document.getElementById('channelBackBtn');
+        if (chBack) chBack.style.display = 'none';
     }
     document.getElementById('noChatSelected').style.display = 'flex';
     document.getElementById('inputArea').style.display = 'none';
@@ -2508,6 +2510,8 @@ async function openChannel(ch) {
     if (window.innerWidth <= 768) {
         sidebar.classList.remove('open');
         document.getElementById('backBtn').style.display = 'flex';
+        const chBack = document.getElementById('channelBackBtn');
+        if (chBack) chBack.style.display = 'flex';
     }
     await loadChannelPosts();
 }
