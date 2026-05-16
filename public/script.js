@@ -1157,6 +1157,15 @@ function updateFriendStatus(username, online) {
 }
 
 // ========== Поиск ==========
+const _searchInput = document.getElementById('searchUserInput');
+const _filterBtns = document.querySelector('.search-filter-btns');
+function _showSearchFilters() { _filterBtns.classList.add('visible'); }
+function _hideSearchFilters() {
+    if (!_searchInput.value.trim()) _filterBtns.classList.remove('visible');
+}
+_searchInput.addEventListener('focus', _showSearchFilters);
+_searchInput.addEventListener('blur', () => setTimeout(_hideSearchFilters, 150));
+
 document.getElementById('searchUserInput').addEventListener('input', async (e) => {
     const q = e.target.value.trim();
     const results = document.getElementById('searchResults');
