@@ -2932,24 +2932,18 @@ body::before, body::after { display: none !important; }
     align-items: center;
     gap: 8px;
     background: rgba(255,255,255,0.06);
-    border: 1.5px solid transparent;
+    border: none;
     border-radius: 22px;
     padding: 9px 14px;
     margin: 10px 12px 6px;
-    transition: border-color 0.18s, background 0.18s, box-shadow 0.18s;
+    transition: background 0.18s;
 }
 .search-box-wrap:focus-within {
-    border-color: var(--accent);
-    background: rgba(255,255,255,0.09);
-    box-shadow: 0 0 0 3px rgba(85,136,204,0.12);
+    background: rgba(255,255,255,0.1);
 }
 .search-box-wrap svg {
     flex-shrink: 0;
     color: var(--text-secondary);
-    transition: color 0.18s;
-}
-.search-box-wrap:focus-within svg {
-    color: var(--accent);
 }
 .search-box-input {
     flex: 1;
@@ -2965,16 +2959,25 @@ body::before, body::after { display: none !important; }
 .search-filter-btns {
     display: flex;
     gap: 6px;
-    padding: 8px 12px 10px;
+    padding: 0 12px;
     overflow-x: auto;
     scrollbar-width: none;
+    max-height: 0;
+    overflow-y: hidden;
+    opacity: 0;
+    transition: max-height 0.22s ease, opacity 0.18s ease, padding 0.18s ease;
+}
+.search-filter-btns.visible {
+    max-height: 48px;
+    opacity: 1;
+    padding: 6px 12px 10px;
 }
 .search-filter-btns::-webkit-scrollbar { display: none; }
 .search-filter-btn {
     background: var(--glass-input);
     border: 1px solid var(--border);
     border-radius: 20px;
-    padding: 6px 16px;
+    padding: 5px 14px;
     font-size: 13px;
     color: var(--text-secondary);
     cursor: pointer;
@@ -2982,7 +2985,7 @@ body::before, body::after { display: none !important; }
     font-family: inherit;
     font-weight: 500;
     transition: background 0.15s, color 0.15s, border-color 0.15s;
-    flex: 1;
+    flex-shrink: 0;
     text-align: center;
 }
 .search-filter-btn:hover {
