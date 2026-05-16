@@ -570,18 +570,6 @@ app.post('/api/groups', authenticateJWT, async (req, res) => {
   res.json({ group });
 });
 
-app.put('/api/groups/:id', authenticateJWT, async (req, res) => {
-  const group = await Group.findById(req.params.id);
-  if (!group) return res.status(404).json({ error: 'Not found' });
-  if (group.owner !== req.user.username) return res.status(403).json({ error: 'Only owner' });
-  const { name, description, avatar } = req.body;
-  if (name) group.name = name.trim();
-  if (description !== undefined) group.description = description;
-  if (avatar) group.avatar = avatar;
-  await group.save();
-  res.json({ group });
-});
-
 app.get('/api/groups', authenticateJWT, async (req, res) => {
   const groups = await Group.find({ members: req.user.username });
   res.json(groups);
@@ -633,6 +621,23 @@ app.post('/api/groups/:id/leave', authenticateJWT, async (req, res) => {
     if (u && u.socketId) io.to(u.socketId).emit('group_member_left', { groupId: group._id, username: req.user.username });
   }
   res.json({ message: 'Left group' });
+});
+
+app.patch('/api/groups/:id', authenticateJWT, async (req, res) => {
+  const group = await Group.findById(req.params.id);
+  if (!group) return res.status(404).json({ error: 'Not found' });
+  if (group.owner !== req.user.username) return res.status(403).json({ error: 'Only owner can update' });
+  const { name, description, avatar } = req.body;
+  if (name) group.name = name;
+  if (description !== undefined) group.description = description;
+  if (avatar) group.avatar = avatar;
+  await group.save();
+  // Notify all members
+  for (const member of group.members) {
+    const u = await User.findOne({ username: member });
+    if (u && u.socketId) io.to(u.socketId).emit('group_updated', { group });
+  }
+  res.json(group);
 });
 
 app.delete('/api/groups/:id', authenticateJWT, async (req, res) => {
@@ -1139,8 +1144,7 @@ app.patch('/api/channels/:id', authenticateJWT, async (req, res) => {
   if (!ch) return res.status(404).json({ error: 'Not found' });
   if (ch.owner !== req.user.username) return res.status(403).json({ error: 'Forbidden' });
   if (req.body.avatar) ch.avatar = req.body.avatar;
-  if (req.body.name) ch.name = req.body.name.trim();
-  if (req.body.description !== undefined) ch.description = req.body.description;
+  if (req.body.name) ch.name = req.body.name;
   await ch.save();
   res.json(ch);
 });
