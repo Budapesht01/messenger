@@ -463,37 +463,36 @@
     <!-- ===== МОДАЛКА: Инфо о группе ===== -->
     <div class="modal-overlay" id="groupInfoModal" onclick="if(event.target===this)closeGroupInfoModal()">
         <div class="group-profile-card">
-            <!-- Header banner -->
+            <!-- Header banner with avatar inside -->
             <div class="gp-banner">
                 <button class="gp-close" onclick="closeGroupInfoModal()">✕</button>
+                <div class="gp-avatar-wrap">
+                    <div class="gp-avatar" id="groupInfoAvatar">👥</div>
+                </div>
             </div>
             <div class="gp-scroll">
-            <!-- Avatar -->
-            <div class="gp-avatar-wrap">
-                <div class="gp-avatar" id="groupInfoAvatar">👥</div>
-            </div>
             <!-- Name & status -->
-            <div class="gp-info">
+            <div class="gp-info" style="margin-top:48px;">
                 <div class="gp-name" id="groupInfoName"></div>
                 <div class="gp-type" id="groupInfoType"></div>
                 <div class="gp-desc" id="groupInfoDesc" style="display:none;"></div>
             </div>
             <!-- Action buttons -->
             <div class="gp-actions">
-                <button class="gp-action-btn" onclick="closeGroupInfoModal()">
-                    <span class="gp-action-icon">🔔</span>
+                <button class="gp-action-btn" id="gpMuteBtn" onclick="toggleGroupMute(this)">
+                    <span class="gp-action-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/></svg></span>
                     <span>Звук</span>
                 </button>
                 <button class="gp-action-btn" id="gpManageBtn" style="display:none;" onclick="closeGroupInfoModal(); openGroupSettings()">
-                    <span class="gp-action-icon">⚙️</span>
+                    <span class="gp-action-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg></span>
                     <span>Управление</span>
                 </button>
                 <button class="gp-action-btn" id="gpLeaveBtn" style="display:none;" onclick="leaveGroup()">
-                    <span class="gp-action-icon">🚪</span>
+                    <span class="gp-action-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg></span>
                     <span>Покинуть</span>
                 </button>
                 <button class="gp-action-btn" id="gpMoreBtn">
-                    <span class="gp-action-icon">•••</span>
+                    <span class="gp-action-icon"><svg viewBox="0 0 24 24" fill="currentColor" width="20" height="20"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg></span>
                     <span>Ещё</span>
                 </button>
             </div>
@@ -844,45 +843,73 @@
 
 <div id="channelProfilePanel" style="display:none; position:fixed; inset:0; z-index:1000; background:rgba(0,0,0,0.6); align-items:center; justify-content:center;" onclick="if(event.target===this)closeChannelProfile()">
     <div id="channelProfileInner" style="position:relative; width:360px; max-width:90vw; max-height:85vh; background:var(--glass-sidebar); border:1px solid var(--border); border-radius:20px; overflow:hidden; transform:scale(0.92); opacity:0; transition:transform 0.22s ease, opacity 0.22s ease; display:flex; flex-direction:column;">
-        <!-- Banner -->
-        <div style="height:90px; background:linear-gradient(135deg, #cc5588 0%, #af6e7c 100%); position:relative; flex-shrink:0;">
-            <button onclick="closeChannelProfile()" style="position:absolute;top:10px;right:12px;background:rgba(0,0,0,0.35);border:none;color:#fff;font-size:16px;width:28px;height:28px;border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center;">✕</button>
+        <!-- Banner with avatar inside -->
+        <div style="height:90px; background:linear-gradient(135deg, #cc5588 0%, #af6e7c 100%); position:relative; flex-shrink:0; overflow:visible;">
+            <button onclick="closeChannelProfile()" style="position:absolute;top:10px;right:12px;background:rgba(0,0,0,0.35);border:none;color:#fff;font-size:16px;width:28px;height:28px;border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:3;">✕</button>
+            <div class="gp-avatar-wrap" style="position:absolute;bottom:-40px;left:20px;">
+                <div class="gp-avatar" id="cpAvatar">📢</div>
+            </div>
         </div>
         <!-- Scrollable content -->
         <div class="gp-scroll">
-            <!-- Avatar -->
-            <div class="gp-avatar-wrap">
-                <div class="gp-avatar" id="cpAvatar">📢</div>
-            </div>
             <!-- Name & subs -->
-            <div class="gp-info">
+            <div class="gp-info" style="margin-top:48px;">
                 <div class="gp-name" id="cpName"></div>
                 <div class="gp-type" id="cpSubs"></div>
             </div>
             <!-- Actions -->
             <div class="gp-actions">
-                <button class="gp-action-btn">
-                    <span class="gp-action-icon">🔔</span>
+                <button class="gp-action-btn" id="cpMuteBtn" onclick="toggleChannelMute(this)">
+                    <span class="gp-action-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/></svg></span>
                     <span>Уведомления</span>
                 </button>
                 <button class="gp-action-btn" id="cpManageBtn" style="display:none;" onclick="openChannelManage()">
-                    <span class="gp-action-icon">⚙️</span>
+                    <span class="gp-action-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg></span>
                     <span>Управление</span>
                 </button>
                 <button class="gp-action-btn" id="cpLeaveBtn" onclick="unsubscribeChannel()">
-                    <span class="gp-action-icon">🚪</span>
+                    <span class="gp-action-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg></span>
                     <span>Отписаться</span>
                 </button>
                 <button class="gp-action-btn">
-                    <span class="gp-action-icon">•••</span>
+                    <span class="gp-action-icon"><svg viewBox="0 0 24 24" fill="currentColor" width="20" height="20"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg></span>
                     <span>Ещё</span>
                 </button>
             </div>
-            <!-- Owner avatar section -->
-            <div id="cpOwnerSection" style="display:none; padding:0 16px 16px;">
-                <div style="font-size:12px; font-weight:700; color:var(--text-secondary); text-transform:uppercase; letter-spacing:0.05em; margin-bottom:8px;">Сменить аватар</div>
-                <div id="cpAvatarPicker" style="display:flex; flex-wrap:wrap; gap:4px;"></div>
+        </div>
+    </div>
+</div>
+
+<!-- Channel Manage Modal -->
+<div class="modal-overlay" id="channelManageModal">
+    <div class="modal-card narrow">
+        <div class="modal-header">
+            <h3>Управление каналом</h3>
+            <button class="modal-close" onclick="closeChannelManage()">✕</button>
+        </div>
+        <div class="modal-body" style="gap:16px; display:flex; flex-direction:column;">
+            <div style="display:flex; align-items:center; gap:16px;">
+                <div id="cmAvatarPreview" style="font-size:48px; width:72px; height:72px; display:flex; align-items:center; justify-content:center; background:rgba(85,136,204,0.12); border:2px solid rgba(85,136,204,0.3); border-radius:50%; cursor:pointer; flex-shrink:0;" onclick="toggleCmAvatarPanel()">📢</div>
+                <div style="flex:1;">
+                    <div style="font-size:12px; color:var(--text-secondary); margin-bottom:6px;">Аватар канала</div>
+                    <button class="secondary-btn" style="width:auto; padding:6px 14px; font-size:13px;" onclick="toggleCmAvatarPanel()">Сменить</button>
+                </div>
             </div>
+            <div id="cmAvatarPanel" style="display:none; background:var(--glass-input); border:1px solid var(--border); border-radius:12px; padding:10px;">
+                <div id="cmAvatarGrid" style="display:flex; flex-wrap:wrap; gap:4px;"></div>
+            </div>
+            <div>
+                <div style="font-size:12px; color:var(--text-secondary); margin-bottom:6px; font-weight:600;">Название канала</div>
+                <input id="cmNameInput" class="modal-input" placeholder="Название канала" style="width:100%; box-sizing:border-box;">
+            </div>
+            <div>
+                <div style="font-size:12px; color:var(--text-secondary); margin-bottom:6px; font-weight:600;">Описание (необязательно)</div>
+                <textarea id="cmDescInput" class="modal-input" placeholder="Описание канала..." rows="3" style="width:100%; box-sizing:border-box; resize:vertical; font-family:inherit; font-size:14px;"></textarea>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="secondary-btn" onclick="closeChannelManage()">Отмена</button>
+            <button class="primary-btn" onclick="saveChannelManage()" style="width:auto; margin-bottom:0;">Сохранить</button>
         </div>
     </div>
 </div>
