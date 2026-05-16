@@ -461,65 +461,93 @@
     </div>
 
     <!-- ===== МОДАЛКА: Инфо о группе ===== -->
-    <div class="modal-overlay" id="groupInfoModal">
-        <div class="modal-card narrow group-profile-card">
-            <button class="modal-close" onclick="closeGroupInfoModal()" style="position:absolute;top:12px;right:12px;z-index:2;">✕</button>
-            <!-- Шапка профиля -->
-            <div class="group-profile-hero">
-                <div class="group-profile-avatar" id="groupInfoAvatar">👥</div>
-                <div class="group-profile-name" id="groupInfoName"></div>
-                <div class="group-profile-sub" id="groupInfoType"></div>
+    <div class="modal-overlay" id="groupInfoModal" onclick="if(event.target===this)closeGroupInfoModal()">
+        <div class="group-profile-card">
+            <!-- Header banner -->
+            <div class="gp-banner">
+                <button class="gp-close" onclick="closeGroupInfoModal()">✕</button>
             </div>
-            <!-- Кнопки действий -->
-            <div class="group-profile-actions">
-                <button class="group-action-btn" onclick="getGroupInviteLink()">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/></svg>
-                    <span>Ссылка</span>
+            <!-- Avatar -->
+            <div class="gp-avatar-wrap">
+                <div class="gp-avatar" id="groupInfoAvatar">👥</div>
+            </div>
+            <!-- Name & status -->
+            <div class="gp-info">
+                <div class="gp-name" id="groupInfoName"></div>
+                <div class="gp-type" id="groupInfoType"></div>
+                <div class="gp-desc" id="groupInfoDesc" style="display:none;"></div>
+            </div>
+            <!-- Action buttons -->
+            <div class="gp-actions">
+                <button class="gp-action-btn" onclick="closeGroupInfoModal()">
+                    <span class="gp-action-icon">🔔</span>
+                    <span>Звук</span>
                 </button>
-                <button class="group-action-btn" id="groupManageBtn" onclick="openGroupSettingsModal()" style="display:none;">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2 2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 01-2-2 2 2 0 012-2h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 012-2 2 2 0 012 2v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 012 2 2 2 0 01-2 2h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
+                <button class="gp-action-btn" id="gpManageBtn" style="display:none;" onclick="closeGroupInfoModal(); openGroupSettings()">
+                    <span class="gp-action-icon">⚙️</span>
                     <span>Управление</span>
                 </button>
-                <button class="group-action-btn danger" id="leaveGroupBtn" onclick="leaveGroup()">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
-                    <span>Выйти</span>
+                <button class="gp-action-btn" id="gpLeaveBtn" style="display:none;" onclick="leaveGroup()">
+                    <span class="gp-action-icon">🚪</span>
+                    <span>Покинуть</span>
                 </button>
-                <button class="group-action-btn danger" id="deleteGroupBtn" onclick="deleteGroup()" style="display:none;">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/></svg>
-                    <span>Удалить</span>
+                <button class="gp-action-btn" id="gpMoreBtn">
+                    <span class="gp-action-icon">•••</span>
+                    <span>Ещё</span>
                 </button>
             </div>
-            <!-- Участники -->
-            <div class="group-profile-section">
-                <div class="group-profile-section-title" id="groupMembersTitle">УЧАСТНИКИ</div>
-                <div id="groupInfoMembers" class="group-members-list"></div>
+            <!-- Members section -->
+            <div class="gp-members-section">
+                <div class="gp-members-header">
+                    <div class="gp-members-count"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg> <span id="gpMembersCount">0</span> УЧАСТНИКОВ</div>
+                    <button class="gp-add-member-btn" id="gpAddMemberBtn" style="display:none;" title="Добавить участника">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><path d="M16 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="8.5" cy="7" r="4"/><line x1="20" y1="8" x2="20" y2="14"/><line x1="23" y1="11" x2="17" y2="11"/></svg>
+                    </button>
+                </div>
+                <div id="groupInfoMembers" class="gp-members-list"></div>
             </div>
-            <span id="groupInfoCode" style="display:none;"></span>
+            <!-- Delete btn (owner only) -->
+            <div style="padding:0 16px 16px;">
+                <button class="logout-btn" id="deleteGroupBtn" onclick="deleteGroup()" style="display:none; width:100%;">Удалить группу</button>
+            </div>
         </div>
+        <span id="groupInfoCode" style="display:none;"></span>
     </div>
 
-    <!-- Настройки группы (для владельца) -->
+    <!-- Group Settings Modal -->
     <div class="modal-overlay" id="groupSettingsModal">
         <div class="modal-card narrow">
             <div class="modal-header">
-                <h3>Управление группой</h3>
-                <button class="modal-close" onclick="closeGroupSettingsModal()">✕</button>
+                <h3>Настройки группы</h3>
+                <button class="modal-close" onclick="closeGroupSettings()">✕</button>
             </div>
-            <div class="modal-body">
-                <div class="modal-avatar-row" style="margin-bottom:14px;">
-                    <div class="avatar-preview large" id="settingsGroupAvatarPreview">👥</div>
-                    <button class="secondary-btn" id="pickSettingsGroupAvatarBtn" type="button">Изменить эмодзи</button>
+            <div class="modal-body" style="gap:16px; display:flex; flex-direction:column;">
+                <!-- Avatar picker -->
+                <div style="display:flex; align-items:center; gap:16px;">
+                    <div id="gsAvatarPreview" style="font-size:48px; width:72px; height:72px; display:flex; align-items:center; justify-content:center; background:rgba(85,136,204,0.12); border:2px solid rgba(85,136,204,0.3); border-radius:50%; cursor:pointer; flex-shrink:0;" onclick="toggleGsAvatarPanel()">👥</div>
+                    <div style="flex:1;">
+                        <div style="font-size:12px; color:var(--text-secondary); margin-bottom:6px;">Аватар группы</div>
+                        <button class="secondary-btn" style="width:auto; padding:6px 14px; font-size:13px;" onclick="toggleGsAvatarPanel()">Сменить</button>
+                    </div>
                 </div>
-                <div id="settingsGroupAvatarPanel" style="display:none; background:var(--glass-input); border:1px solid var(--border); border-radius:12px; padding:10px; margin-bottom:10px;">
-                    <div id="settingsGroupEmojiGrid" style="display:grid; grid-template-columns:repeat(8,1fr); gap:4px; max-height:150px; overflow-y:auto;"></div>
+                <!-- Avatar emoji picker -->
+                <div id="gsAvatarPanel" style="display:none; background:var(--glass-input); border:1px solid var(--border); border-radius:12px; padding:10px;">
+                    <div id="gsAvatarGrid" style="display:flex; flex-wrap:wrap; gap:4px;"></div>
                 </div>
-                <input type="hidden" id="settingsGroupAvatarInput">
-                <input type="text" id="settingsGroupName" class="modal-input" placeholder="Название группы" maxlength="50">
-                <textarea id="settingsGroupDesc" class="modal-input" placeholder="Описание группы (необязательно)" maxlength="200" style="margin-top:8px; resize:none; min-height:70px;"></textarea>
+                <!-- Name -->
+                <div>
+                    <div style="font-size:12px; color:var(--text-secondary); margin-bottom:6px; font-weight:600;">Название группы</div>
+                    <input id="gsNameInput" class="modal-input" placeholder="Название группы" style="width:100%; box-sizing:border-box;">
+                </div>
+                <!-- Description -->
+                <div>
+                    <div style="font-size:12px; color:var(--text-secondary); margin-bottom:6px; font-weight:600;">Описание (необязательно)</div>
+                    <textarea id="gsDescInput" class="modal-input" placeholder="Описание группы..." rows="3" style="width:100%; box-sizing:border-box; resize:vertical; font-family:inherit; font-size:14px;"></textarea>
+                </div>
             </div>
-            <div class="modal-footer" style="gap:8px;">
-                <button class="secondary-btn" onclick="closeGroupSettingsModal()">Отмена</button>
-                <button class="primary-btn" onclick="saveGroupSettings()">Сохранить</button>
+            <div class="modal-footer">
+                <button class="secondary-btn" onclick="closeGroupSettings()">Отмена</button>
+                <button class="primary-btn" onclick="saveGroupSettings()" style="width:auto; margin-bottom:0;">Сохранить</button>
             </div>
         </div>
     </div>
@@ -812,68 +840,22 @@
     </div>
 </div>
 
-<div id="channelProfilePanel" style="display:none; position:fixed; inset:0; z-index:1000; background:rgba(0,0,0,0.65); align-items:center; justify-content:center;" onclick="if(event.target===this)closeChannelProfile()">
-    <div id="channelProfileInner" class="cp-card">
-        <!-- Шапка -->
-        <div class="cp-hero">
-            <button class="cp-close-btn" onclick="closeChannelProfile()">
+<div id="channelProfilePanel" style="display:none; position:fixed; inset:0; z-index:1000; background:rgba(0,0,0,0.6); align-items:center; justify-content:center;" onclick="if(event.target===this)closeChannelProfile()">
+    <div id="channelProfileInner" style="position:relative; width:360px; max-width:90vw; max-height:85vh; background:var(--glass-sidebar); border:1px solid var(--border); border-radius:20px; padding:24px; overflow-y:auto; transform:scale(0.92); opacity:0; transition:transform 0.22s ease, opacity 0.22s ease; display:flex; flex-direction:column; gap:16px;">
+        <div style="display:flex; align-items:center; gap:12px; padding-bottom:16px; border-bottom:1px solid var(--border);">
+            <button onclick="closeChannelProfile()" style="background:none;border:none;cursor:pointer;color:var(--text-secondary);padding:4px;">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
             </button>
-            <div class="cp-avatar-wrap" id="cpAvatarWrap">
-                <span id="cpAvatar" class="cp-avatar">📢</span>
-                <button class="cp-avatar-edit" id="cpAvatarEditBtn" style="display:none;" onclick="toggleCpAvatarPicker()" title="Сменить аватар">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-                </button>
-            </div>
-            <!-- Эмодзи пикер аватарки -->
-            <div class="cp-avatar-picker" id="cpAvatarPicker" style="display:none;">
-                <div id="cpAvatarPickerGrid"></div>
-            </div>
-            <div id="cpName" class="cp-name"></div>
-            <div id="cpSubs" class="cp-subs"></div>
+            <span style="font-weight:700; font-size:16px;">Профиль канала</span>
         </div>
-
-        <!-- Блок редактирования (только для владельца) -->
+        <div style="display:flex; flex-direction:column; align-items:center; gap:8px; padding:16px 0;">
+            <span id="cpAvatar" style="font-size:52px; line-height:1;">📢</span>
+            <div id="cpName" style="font-size:20px; font-weight:700; color:var(--text-primary); text-align:center;"></div>
+            <div id="cpSubs" style="font-size:13px; color:var(--text-secondary);"></div>
+        </div>
         <div id="cpOwnerSection" style="display:none;">
-            <div class="cp-section-title">УПРАВЛЕНИЕ КАНАЛОМ</div>
-            <div class="cp-edit-row" onclick="cpStartEditName()">
-                <div class="cp-edit-icon">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-                </div>
-                <div class="cp-edit-info">
-                    <div class="cp-edit-label">Название канала</div>
-                    <div class="cp-edit-value" id="cpEditNameVal"></div>
-                </div>
-            </div>
-            <div id="cpNameEditBox" style="display:none; padding:0 16px 12px;">
-                <input type="text" id="cpNameInput" class="modal-input" maxlength="50" placeholder="Название канала">
-                <div style="display:flex; gap:8px; margin-top:8px;">
-                    <button class="secondary-btn" onclick="cpCancelEditName()" style="flex:1;">Отмена</button>
-                    <button class="primary-btn" onclick="cpSaveName()" style="flex:1;">Сохранить</button>
-                </div>
-            </div>
-            <div class="cp-edit-row" onclick="cpStartEditDesc()">
-                <div class="cp-edit-icon">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><line x1="17" y1="10" x2="3" y2="10"/><line x1="21" y1="6" x2="3" y2="6"/><line x1="21" y1="14" x2="3" y2="14"/><line x1="17" y1="18" x2="3" y2="18"/></svg>
-                </div>
-                <div class="cp-edit-info">
-                    <div class="cp-edit-label">Описание</div>
-                    <div class="cp-edit-value" id="cpEditDescVal" style="color:var(--text-muted);">Нажмите чтобы добавить</div>
-                </div>
-            </div>
-            <div id="cpDescEditBox" style="display:none; padding:0 16px 12px;">
-                <textarea id="cpDescInput" class="modal-input" maxlength="200" placeholder="Описание канала..." style="resize:none; min-height:70px;"></textarea>
-                <div style="display:flex; gap:8px; margin-top:8px;">
-                    <button class="secondary-btn" onclick="cpCancelEditDesc()" style="flex:1;">Отмена</button>
-                    <button class="primary-btn" onclick="cpSaveDesc()" style="flex:1;">Сохранить</button>
-                </div>
-            </div>
-        </div>
-
-        <!-- Описание (для всех) -->
-        <div id="cpDescSection" style="display:none;">
-            <div class="cp-section-title">ОПИСАНИЕ</div>
-            <div id="cpDescText" style="padding:0 20px 16px; font-size:14px; color:var(--text-secondary); line-height:1.5;"></div>
+            <div style="font-size:12px; font-weight:600; color:var(--text-secondary); text-transform:uppercase; letter-spacing:0.05em; margin-bottom:8px;">Сменить аватар</div>
+            <div id="cpAvatarPicker" style="display:flex; flex-wrap:wrap; gap:4px;"></div>
         </div>
     </div>
 </div>
