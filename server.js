@@ -151,6 +151,7 @@ const GroupSchema = new mongoose.Schema({
   name: { type: String, required: true },
   description: { type: String, default: '' },
   avatar: { type: String, default: '👥' },
+  bannerColor: { type: String, default: '' },
   type: { type: String, enum: ['public', 'private'], default: 'private' },
   owner: { type: String, required: true },
   members: [{ type: String }],
@@ -632,10 +633,11 @@ app.patch('/api/groups/:id', authenticateJWT, async (req, res) => {
   const group = await Group.findById(req.params.id);
   if (!group) return res.status(404).json({ error: 'Not found' });
   if (group.owner !== req.user.username) return res.status(403).json({ error: 'Only owner can update' });
-  const { name, description, avatar } = req.body;
+  const { name, description, avatar, bannerColor } = req.body;
   if (name) group.name = name;
   if (description !== undefined) group.description = description;
   if (avatar) group.avatar = avatar;
+  if (bannerColor !== undefined) group.bannerColor = bannerColor;
   await group.save();
   for (const member of group.members) {
     const u = await User.findOne({ username: member });
@@ -1049,6 +1051,7 @@ const ChannelSchema = new mongoose.Schema({
   name: { type: String, required: true },
   description: { type: String, default: '' },
   avatar: { type: String, default: '📢' },
+  bannerColor: { type: String, default: '' },
   owner: { type: String, required: true },
   subscribers: [{ type: String }],
   createdAt: { type: Date, default: Date.now }
@@ -1149,6 +1152,8 @@ app.patch('/api/channels/:id', authenticateJWT, async (req, res) => {
   if (ch.owner !== req.user.username) return res.status(403).json({ error: 'Forbidden' });
   if (req.body.avatar) ch.avatar = req.body.avatar;
   if (req.body.name) ch.name = req.body.name;
+  if (req.body.description !== undefined) ch.description = req.body.description;
+  if (req.body.bannerColor !== undefined) ch.bannerColor = req.body.bannerColor;
   await ch.save();
   res.json(ch);
 });
