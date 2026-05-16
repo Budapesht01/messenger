@@ -2899,6 +2899,7 @@ function openChannelProfile() {
     const isOwner = currentUser && currentChannelOwner === currentUser.username;
     const ownerSection = document.getElementById('cpOwnerSection');
     ownerSection.style.display = isOwner ? 'block' : 'none';
+    document.getElementById('cpManageBtn').style.display = isOwner ? 'flex' : 'none';
     if (isOwner) {
         const picker = document.getElementById('cpAvatarPicker');
         const emojis = ['📢','📡','📻','🎙️','🔔','💬','🗣️','📣','🌐','🔥','⭐','💡','🎯','🚀','🎮','🎵','🏆','❤️','🎉','🌈','💎','🦁','🐉','🌙','☀️','🌊','🤖','🎨','📚','🍕'];
@@ -2913,6 +2914,27 @@ function closeChannelProfile() {
     inner.style.transform = 'scale(0.92)';
 inner.style.opacity = '0';
 setTimeout(() => panel.style.display = 'none', 220);
+}
+async function unsubscribeChannel() {
+    if (!currentChannelId) return;
+    const token = localStorage.getItem('token');
+    const res = await fetch(`/api/channels/${currentChannelId}/unsubscribe`, {
+        method: 'POST',
+        headers: { Authorization: 'Bearer ' + token }
+    });
+    if (res.ok) {
+        closeChannelProfile();
+        currentChannelId = null; currentChannelOwner = null;
+        document.getElementById('channelViewPanel').style.display = 'none';
+        document.getElementById('channelView').style.display = 'none';
+        document.getElementById('noChatSelected').style.display = 'flex';
+        loadChannels();
+    }
+}
+function openChannelManage() {
+    // Открываем существующий раздел смены аватара — он уже в cpOwnerSection
+    closeChannelProfile();
+    openChannelProfile();
 }
 async function setChannelAvatar(emoji) {
     const token = localStorage.getItem('token');
