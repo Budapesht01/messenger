@@ -375,6 +375,11 @@ app.get('/api/users/search', authenticateJWT, async (req, res) => {
   res.json(users.filter(u => u.username !== req.user.username));
 });
 
+app.get('/api/users/all', authenticateJWT, async (req, res) => {
+  const users = await User.find({}, 'username avatar color online lastSeen');
+  res.json(users);
+});
+
 app.get('/api/friends', authenticateJWT, async (req, res) => {
   const user = await User.findOne({ username: req.user.username });
   const friends = await User.find({ username: { $in: user.friends } }, 'username avatar color online lastSeen');
@@ -633,6 +638,22 @@ app.patch('/api/groups/:id', authenticateJWT, async (req, res) => {
   if (avatar) group.avatar = avatar;
   await group.save();
   // Notify all members
+  for (const member of group.members) {
+    const u = await User.findOne({ username: member });
+    if (u && u.socketId) io.to(u.socketId).emit('group_updated', { group });
+  }
+  res.json(group);
+});
+
+app.patch('/api/groups/:id', authenticateJWT, async (req, res) => {
+  const group = await Group.findById(req.params.id);
+  if (!group) return res.status(404).json({ error: 'Not found' });
+  if (group.owner !== req.user.username) return res.status(403).json({ error: 'Only owner can update' });
+  const { name, description, avatar } = req.body;
+  if (name) group.name = name;
+  if (description !== undefined) group.description = description;
+  if (avatar) group.avatar = avatar;
+  await group.save();
   for (const member of group.members) {
     const u = await User.findOne({ username: member });
     if (u && u.socketId) io.to(u.socketId).emit('group_updated', { group });
