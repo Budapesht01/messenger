@@ -1444,6 +1444,9 @@ async function showGroupInfo() {
         </div>`;
     }).join('');
 
+    // Update mute button state
+    const muteBtn = document.getElementById('gpMuteBtn');
+    if (muteBtn) updateMuteBtn(muteBtn, mutedGroups.has(String(currentGroupId)));
     document.getElementById('groupInfoModal').classList.add('open');
 }
 function closeGroupInfoModal() { document.getElementById('groupInfoModal').classList.remove('open'); }
@@ -2905,6 +2908,9 @@ function openChannelProfile() {
         const emojis = ['📢','📡','📻','🎙️','🔔','💬','🗣️','📣','🌐','🔥','⭐','💡','🎯','🚀','🎮','🎵','🏆','❤️','🎉','🌈','💎','🦁','🐉','🌙','☀️','🌊','🤖','🎨','📚','🍕'];
         picker.innerHTML = emojis.map(e => `<button onclick="setChannelAvatar('${e}')" style="font-size:22px;background:none;border:none;cursor:pointer;padding:4px;border-radius:8px;" title="${e}">${e}</button>`).join('');
     }
+    // Update mute button state
+    const cpMuteBtn = document.getElementById('cpMuteBtn');
+    if (cpMuteBtn) updateMuteBtn(cpMuteBtn, mutedChannels.has(String(currentChannelId)));
     panel.style.display = 'flex';
 requestAnimationFrame(() => { requestAnimationFrame(() => { inner.style.transform = 'scale(1)'; inner.style.opacity = '1'; }); });
 }
@@ -2932,9 +2938,81 @@ async function unsubscribeChannel() {
     }
 }
 function openChannelManage() {
-    // Открываем существующий раздел смены аватара — он уже в cpOwnerSection
-    closeChannelProfile();
-    openChannelProfile();
+    if (!currentChannelId) return;
+    const avatar = document.getElementById('channelViewAvatar')?.textContent || '📢';
+    const name = document.getElementById('channelViewName')?.textContent || '';
+    document.getElementById('cmAvatarPreview').innerText = avatar;
+    document.getElementById('cmNameInput').value = name;
+    document.getElementById('cmDescInput').value = '';
+    document.getElementById('cmAvatarPanel').style.display = 'none';
+    const CM_EMOJIS = ['📢','📡','📻','🎙️','🔔','💬','🌐','🔥','⭐','💡','🎯','🚀','🎮','🎵','🏆','❤️','🎉','🌈','💎','🦁','🐉','🌙','☀️','🌊','🤖','🎨','📚','🍕','🎪','🎭'];
+    document.getElementById('cmAvatarGrid').innerHTML = CM_EMOJIS.map(e =>
+        `<button onclick="selectCmAvatar('${e}')" style="font-size:22px;background:none;border:none;cursor:pointer;padding:4px;border-radius:8px;transition:background 0.15s;" onmouseover="this.style.background='rgba(255,255,255,0.1)'" onmouseout="this.style.background='none'">${e}</button>`
+    ).join('');
+    document.getElementById('channelManageModal').classList.add('open');
+}
+function closeChannelManage() {
+    document.getElementById('channelManageModal').classList.remove('open');
+}
+function toggleCmAvatarPanel() {
+    const p = document.getElementById('cmAvatarPanel');
+    p.style.display = p.style.display === 'none' ? 'block' : 'none';
+}
+function selectCmAvatar(emoji) {
+    document.getElementById('cmAvatarPreview').innerText = emoji;
+    document.getElementById('cmAvatarPanel').style.display = 'none';
+}
+async function saveChannelManage() {
+    const token = localStorage.getItem('token');
+    const avatar = document.getElementById('cmAvatarPreview').innerText;
+    const name = document.getElementById('cmNameInput').value.trim();
+    const description = document.getElementById('cmDescInput').value.trim();
+    if (!name) { alert('Введите название'); return; }
+    const res = await fetch(`/api/channels/${currentChannelId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token },
+        body: JSON.stringify({ avatar, name, description })
+    });
+    if (res.ok) {
+        document.getElementById('channelViewAvatar').textContent = avatar;
+        document.getElementById('channelViewName').textContent = name;
+        document.getElementById('cpAvatar').textContent = avatar;
+        document.getElementById('cpName').textContent = name;
+        const item = document.querySelector(`.channel-item[data-id="${currentChannelId}"] .channel-avatar`);
+        if (item) item.textContent = avatar;
+        document.querySelectorAll(`.post-channel-avatar[data-channel-avatar="${currentChannelId}"]`).forEach(el => el.textContent = avatar);
+        closeChannelManage();
+    } else { alert('Ошибка сохранения'); }
+}
+
+// Mute toggles
+const mutedGroups = new Set(JSON.parse(localStorage.getItem('mutedGroups') || '[]'));
+const mutedChannels = new Set(JSON.parse(localStorage.getItem('mutedChannels') || '[]'));
+
+function toggleGroupMute(btn) {
+    if (!currentGroupId) return;
+    const muted = mutedGroups.has(currentGroupId);
+    if (muted) { mutedGroups.delete(currentGroupId); } else { mutedGroups.add(currentGroupId); }
+    localStorage.setItem('mutedGroups', JSON.stringify([...mutedGroups]));
+    updateMuteBtn(btn, !muted);
+}
+function toggleChannelMute(btn) {
+    if (!currentChannelId) return;
+    const muted = mutedChannels.has(currentChannelId);
+    if (muted) { mutedChannels.delete(currentChannelId); } else { mutedChannels.add(currentChannelId); }
+    localStorage.setItem('mutedChannels', JSON.stringify([...mutedChannels]));
+    updateMuteBtn(btn, !muted);
+}
+function updateMuteBtn(btn, muted) {
+    const svg = btn.querySelector('svg');
+    if (muted) {
+        btn.style.opacity = '0.5';
+        // Add strikethrough line to bell
+        if (svg) svg.innerHTML = '<path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/><line x1="2" y1="2" x2="22" y2="22" stroke="currentColor" stroke-width="2"/>';
+    } else {
+        btn.style.opacity = '1';
+        if (svg) svg.innerHTML = '<path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/>';
+    }
 }
 async function setChannelAvatar(emoji) {
     const token = localStorage.getItem('token');
