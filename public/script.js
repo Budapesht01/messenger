@@ -1422,7 +1422,6 @@ async function showGroupInfo() {
     document.getElementById('gpManageBtn').style.display = isOwner ? 'flex' : 'none';
     document.getElementById('gpLeaveBtn').style.display = !isOwner ? 'flex' : 'none';
     document.getElementById('gpAddMemberBtn').style.display = isOwner ? 'flex' : 'none';
-    document.getElementById('deleteGroupBtn').style.display = isOwner ? 'block' : 'none';
     document.getElementById('gpMembersCount').innerText = group.members.length;
 
     // Fetch online status
