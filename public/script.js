@@ -1,4 +1,6 @@
 let socket;
+const mutedGroups = new Set(JSON.parse(localStorage.getItem('mutedGroups') || '[]'));
+const mutedChannels = new Set(JSON.parse(localStorage.getItem('mutedChannels') || '[]'));
 
 function closeModal(id) {
     const el = document.getElementById(id);
@@ -173,6 +175,7 @@ function initSocket(token) {
     socket = io({ auth: { token } });
     socket.on('connect', () => console.log('connected'));
     socket.on('history', () => {});
+    registerGroupUpdatedHandler();
 
    socket.on('private_message', (msg) => {
         const isOwn = msg.from === currentUser?.username;
@@ -2900,19 +2903,12 @@ function openChannelProfile() {
     document.getElementById('cpSubs').textContent = document.getElementById('channelViewSubs').textContent;
     // Owner section
     const isOwner = currentUser && currentChannelOwner === currentUser.username;
-    const ownerSection = document.getElementById('cpOwnerSection');
-    ownerSection.style.display = isOwner ? 'block' : 'none';
     document.getElementById('cpManageBtn').style.display = isOwner ? 'flex' : 'none';
-    if (isOwner) {
-        const picker = document.getElementById('cpAvatarPicker');
-        const emojis = ['📢','📡','📻','🎙️','🔔','💬','🗣️','📣','🌐','🔥','⭐','💡','🎯','🚀','🎮','🎵','🏆','❤️','🎉','🌈','💎','🦁','🐉','🌙','☀️','🌊','🤖','🎨','📚','🍕'];
-        picker.innerHTML = emojis.map(e => `<button onclick="setChannelAvatar('${e}')" style="font-size:22px;background:none;border:none;cursor:pointer;padding:4px;border-radius:8px;" title="${e}">${e}</button>`).join('');
-    }
     // Update mute button state
     const cpMuteBtn = document.getElementById('cpMuteBtn');
     if (cpMuteBtn) updateMuteBtn(cpMuteBtn, mutedChannels.has(String(currentChannelId)));
     panel.style.display = 'flex';
-requestAnimationFrame(() => { requestAnimationFrame(() => { inner.style.transform = 'scale(1)'; inner.style.opacity = '1'; }); });
+    requestAnimationFrame(() => { requestAnimationFrame(() => { inner.style.transform = 'scale(1)'; inner.style.opacity = '1'; }); });
 }
 function closeChannelProfile() {
     const panel = document.getElementById('channelProfilePanel');
@@ -2986,9 +2982,6 @@ async function saveChannelManage() {
 }
 
 // Mute toggles
-const mutedGroups = new Set(JSON.parse(localStorage.getItem('mutedGroups') || '[]'));
-const mutedChannels = new Set(JSON.parse(localStorage.getItem('mutedChannels') || '[]'));
-
 function toggleGroupMute(btn) {
     if (!currentGroupId) return;
     const muted = mutedGroups.has(currentGroupId);
@@ -3114,17 +3107,20 @@ async function saveGroupSettings() {
     }
 }
 
-// Handle group_updated socket event
-socket.on('group_updated', ({ group }) => {
-    if (!group) return;
-    if (currentGroupId === String(group._id)) {
-        document.querySelector('.chat-title').innerText = group.name;
-    }
-    const item = document.querySelector(`.group-item[data-id="${group._id}"]`);
-    if (item) {
-        const nameEl = item.querySelector('.group-name');
-        if (nameEl) nameEl.innerText = group.name;
-        const avatarEl = item.querySelector('.group-avatar');
-        if (avatarEl) avatarEl.innerText = group.avatar;
-    }
-});
+// Handle group_updated socket event - registered after socket init
+function registerGroupUpdatedHandler() {
+    if (!socket) return;
+    socket.on('group_updated', ({ group }) => {
+        if (!group) return;
+        if (currentGroupId === String(group._id)) {
+            document.querySelector('.chat-title').innerText = group.name;
+        }
+        const item = document.querySelector(`.group-item[data-id="${group._id}"]`);
+        if (item) {
+            const nameEl = item.querySelector('.group-name');
+            if (nameEl) nameEl.innerText = group.name;
+            const avatarEl = item.querySelector('.group-avatar');
+            if (avatarEl) avatarEl.innerText = group.avatar;
+        }
+    });
+}
