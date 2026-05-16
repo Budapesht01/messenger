@@ -1450,6 +1450,12 @@ async function showGroupInfo() {
     // Update mute button state
     const muteBtn = document.getElementById('gpMuteBtn');
     if (muteBtn) updateMuteBtn(muteBtn, mutedGroups.has(String(currentGroupId)));
+    // Apply saved banner color
+    const savedGroupBanner = localStorage.getItem('groupBanner_' + currentGroupId);
+    if (savedGroupBanner) {
+        const bannerEl = document.querySelector('#groupInfoModal .gp-banner');
+        if (bannerEl) bannerEl.style.background = savedGroupBanner;
+    }
     document.getElementById('groupInfoModal').classList.add('open');
 }
 function closeGroupInfoModal() { document.getElementById('groupInfoModal').classList.remove('open'); }
@@ -2904,6 +2910,11 @@ function openChannelProfile() {
     // Owner section
     const isOwner = currentUser && currentChannelOwner === currentUser.username;
     document.getElementById('cpManageBtn').style.display = isOwner ? 'flex' : 'none';
+    document.getElementById('cpLeaveBtn').style.display = isOwner ? 'none' : 'flex';
+    // Apply banner color if saved
+    const bannerEl = inner.querySelector('div[style*="background:linear-gradient"]') || inner.querySelector('div[style*="background: linear-gradient"]') || inner.querySelector('.cp-banner');
+    const savedColor = localStorage.getItem('channelBanner_' + currentChannelId);
+    if (bannerEl && savedColor) bannerEl.style.background = savedColor;
     // Update mute button state
     const cpMuteBtn = document.getElementById('cpMuteBtn');
     if (cpMuteBtn) updateMuteBtn(cpMuteBtn, mutedChannels.has(String(currentChannelId)));
@@ -2945,6 +2956,24 @@ function openChannelManage() {
     document.getElementById('cmAvatarGrid').innerHTML = CM_EMOJIS.map(e =>
         `<button onclick="selectCmAvatar('${e}')" style="font-size:22px;background:none;border:none;cursor:pointer;padding:4px;border-radius:8px;transition:background 0.15s;" onmouseover="this.style.background='rgba(255,255,255,0.1)'" onmouseout="this.style.background='none'">${e}</button>`
     ).join('');
+    // Banner colors
+    const BANNER_COLORS = [
+        { label: 'По умолчанию', value: '' },
+        { label: '', value: 'linear-gradient(135deg, #cc5588 0%, #af6e7c 100%)' },
+        { label: '', value: 'linear-gradient(135deg, #5588cc 0%, #7c6eaf 100%)' },
+        { label: '', value: 'linear-gradient(135deg, #22c55e 0%, #16a34a 100%)' },
+        { label: '', value: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)' },
+        { label: '', value: 'linear-gradient(135deg, #ef4444 0%, #b91c1c 100%)' },
+        { label: '', value: 'linear-gradient(135deg, #8b5cf6 0%, #6d28d9 100%)' },
+        { label: '', value: 'linear-gradient(135deg, #06b6d4 0%, #0284c7 100%)' },
+        { label: '', value: 'linear-gradient(135deg, #111 0%, #333 100%)' },
+    ];
+    const currentColor = localStorage.getItem('channelBanner_' + currentChannelId) || '';
+    document.getElementById('cmBannerColors').innerHTML = BANNER_COLORS.map(c =>
+        `<button onclick="selectBannerColor(this, '${c.value}', 'channel')"
+            style="width:32px;height:32px;border-radius:50%;border:3px solid ${currentColor===c.value?'var(--accent)':'transparent'};cursor:pointer;background:${c.value||'var(--glass-input)'};transition:border 0.15s;flex-shrink:0;"
+            title="${c.label||c.value}"></button>`
+    ).join('');
     document.getElementById('channelManageModal').classList.add('open');
 }
 function closeChannelManage() {
@@ -2958,16 +2987,26 @@ function selectCmAvatar(emoji) {
     document.getElementById('cmAvatarPreview').innerText = emoji;
     document.getElementById('cmAvatarPanel').style.display = 'none';
 }
+let _selectedChannelBanner = null;
+let _selectedGroupBanner = null;
+function selectBannerColor(btn, color, type) {
+    const container = btn.parentElement;
+    container.querySelectorAll('button').forEach(b => b.style.borderColor = 'transparent');
+    btn.style.borderColor = 'var(--accent)';
+    if (type === 'channel') _selectedChannelBanner = color;
+    else _selectedGroupBanner = color;
+}
 async function saveChannelManage() {
     const token = localStorage.getItem('token');
     const avatar = document.getElementById('cmAvatarPreview').innerText;
     const name = document.getElementById('cmNameInput').value.trim();
     const description = document.getElementById('cmDescInput').value.trim();
     if (!name) { alert('Введите название'); return; }
+    const bannerColor = _selectedChannelBanner !== null ? _selectedChannelBanner : localStorage.getItem('channelBanner_' + currentChannelId) || '';
     const res = await fetch(`/api/channels/${currentChannelId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token },
-        body: JSON.stringify({ avatar, name, description })
+        body: JSON.stringify({ avatar, name, description, bannerColor })
     });
     if (res.ok) {
         document.getElementById('channelViewAvatar').textContent = avatar;
@@ -2977,6 +3016,14 @@ async function saveChannelManage() {
         const item = document.querySelector(`.channel-item[data-id="${currentChannelId}"] .channel-avatar`);
         if (item) item.textContent = avatar;
         document.querySelectorAll(`.post-channel-avatar[data-channel-avatar="${currentChannelId}"]`).forEach(el => el.textContent = avatar);
+        if (bannerColor !== undefined) {
+            localStorage.setItem('channelBanner_' + currentChannelId, bannerColor);
+            // Apply to open profile banner
+            const inner = document.getElementById('channelProfileInner');
+            const bannerEl = inner ? inner.querySelector('div[style*="linear-gradient"]') : null;
+            if (bannerEl) bannerEl.style.background = bannerColor || 'linear-gradient(135deg, #cc5588 0%, #af6e7c 100%)';
+        }
+        _selectedChannelBanner = null;
         closeChannelManage();
     } else { alert('Ошибка сохранения'); }
 }
@@ -3058,6 +3105,24 @@ async function openGroupSettings() {
         `<button onclick="selectGsAvatar('${e}')" style="font-size:22px;background:none;border:none;cursor:pointer;padding:4px;border-radius:8px;transition:background 0.15s;" onmouseover="this.style.background='rgba(255,255,255,0.1)'" onmouseout="this.style.background='none'">${e}</button>`
     ).join('');
 
+    // Banner colors
+    const BANNER_COLORS = [
+        { value: '' },
+        { value: 'linear-gradient(135deg, #5588cc 0%, #7c6eaf 100%)' },
+        { value: 'linear-gradient(135deg, #cc5588 0%, #af6e7c 100%)' },
+        { value: 'linear-gradient(135deg, #22c55e 0%, #16a34a 100%)' },
+        { value: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)' },
+        { value: 'linear-gradient(135deg, #ef4444 0%, #b91c1c 100%)' },
+        { value: 'linear-gradient(135deg, #8b5cf6 0%, #6d28d9 100%)' },
+        { value: 'linear-gradient(135deg, #06b6d4 0%, #0284c7 100%)' },
+        { value: 'linear-gradient(135deg, #111 0%, #333 100%)' },
+    ];
+    const currentColor = localStorage.getItem('groupBanner_' + currentGroupId) || '';
+    document.getElementById('gsBannerColors').innerHTML = BANNER_COLORS.map(c =>
+        `<button onclick="selectBannerColor(this, '${c.value}', 'group')"
+            style="width:32px;height:32px;border-radius:50%;border:3px solid ${currentColor===c.value?'var(--accent)':'transparent'};cursor:pointer;background:${c.value||'var(--glass-input)'};transition:border 0.15s;flex-shrink:0;"></button>`
+    ).join('');
+
     document.getElementById('groupSettingsModal').classList.add('open');
 }
 
@@ -3083,10 +3148,11 @@ async function saveGroupSettings() {
 
     if (!name) { alert('Введите название группы'); return; }
 
+    const bannerColor = _selectedGroupBanner !== null ? _selectedGroupBanner : localStorage.getItem('groupBanner_' + currentGroupId) || '';
     const res = await fetch(`/api/groups/${currentGroupId}`, {
         method: 'PATCH',
         headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, description, avatar })
+        body: JSON.stringify({ name, description, avatar, bannerColor })
     });
 
     if (res.ok) {
@@ -3100,6 +3166,14 @@ async function saveGroupSettings() {
             if (nameEl) nameEl.innerText = updated.name;
             const avatarEl = item.querySelector('.group-avatar');
             if (avatarEl) avatarEl.innerText = updated.avatar;
+        }
+        // Save and apply banner color
+        if (_selectedGroupBanner !== null) {
+            localStorage.setItem('groupBanner_' + currentGroupId, _selectedGroupBanner);
+            // Apply to open group profile banner
+            const bannerEl = document.querySelector('#groupInfoModal .gp-banner');
+            if (bannerEl) bannerEl.style.background = _selectedGroupBanner || 'linear-gradient(135deg, #5588cc 0%, #7c6eaf 100%)';
+            _selectedGroupBanner = null;
         }
         closeGroupSettings();
     } else {
