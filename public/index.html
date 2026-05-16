@@ -467,6 +467,7 @@
             <div class="gp-banner">
                 <button class="gp-close" onclick="closeGroupInfoModal()">✕</button>
             </div>
+            <div class="gp-scroll">
             <!-- Avatar -->
             <div class="gp-avatar-wrap">
                 <div class="gp-avatar" id="groupInfoAvatar">👥</div>
@@ -509,6 +510,7 @@
             <!-- Delete btn (owner only) -->
             <div style="padding:0 16px 16px;">
                 <button class="logout-btn" id="deleteGroupBtn" onclick="deleteGroup()" style="display:none; width:100%;">Удалить группу</button>
+            </div>
             </div>
         </div>
         <span id="groupInfoCode" style="display:none;"></span>
@@ -841,21 +843,46 @@
 </div>
 
 <div id="channelProfilePanel" style="display:none; position:fixed; inset:0; z-index:1000; background:rgba(0,0,0,0.6); align-items:center; justify-content:center;" onclick="if(event.target===this)closeChannelProfile()">
-    <div id="channelProfileInner" style="position:relative; width:360px; max-width:90vw; max-height:85vh; background:var(--glass-sidebar); border:1px solid var(--border); border-radius:20px; padding:24px; overflow-y:auto; transform:scale(0.92); opacity:0; transition:transform 0.22s ease, opacity 0.22s ease; display:flex; flex-direction:column; gap:16px;">
-        <div style="display:flex; align-items:center; gap:12px; padding-bottom:16px; border-bottom:1px solid var(--border);">
-            <button onclick="closeChannelProfile()" style="background:none;border:none;cursor:pointer;color:var(--text-secondary);padding:4px;">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-            </button>
-            <span style="font-weight:700; font-size:16px;">Профиль канала</span>
+    <div id="channelProfileInner" style="position:relative; width:360px; max-width:90vw; max-height:85vh; background:var(--glass-sidebar); border:1px solid var(--border); border-radius:20px; overflow:hidden; transform:scale(0.92); opacity:0; transition:transform 0.22s ease, opacity 0.22s ease; display:flex; flex-direction:column;">
+        <!-- Banner -->
+        <div style="height:90px; background:linear-gradient(135deg, #cc5588 0%, #af6e7c 100%); position:relative; flex-shrink:0;">
+            <button onclick="closeChannelProfile()" style="position:absolute;top:10px;right:12px;background:rgba(0,0,0,0.35);border:none;color:#fff;font-size:16px;width:28px;height:28px;border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center;">✕</button>
         </div>
-        <div style="display:flex; flex-direction:column; align-items:center; gap:8px; padding:16px 0;">
-            <span id="cpAvatar" style="font-size:52px; line-height:1;">📢</span>
-            <div id="cpName" style="font-size:20px; font-weight:700; color:var(--text-primary); text-align:center;"></div>
-            <div id="cpSubs" style="font-size:13px; color:var(--text-secondary);"></div>
-        </div>
-        <div id="cpOwnerSection" style="display:none;">
-            <div style="font-size:12px; font-weight:600; color:var(--text-secondary); text-transform:uppercase; letter-spacing:0.05em; margin-bottom:8px;">Сменить аватар</div>
-            <div id="cpAvatarPicker" style="display:flex; flex-wrap:wrap; gap:4px;"></div>
+        <!-- Scrollable content -->
+        <div class="gp-scroll">
+            <!-- Avatar -->
+            <div class="gp-avatar-wrap">
+                <div class="gp-avatar" id="cpAvatar">📢</div>
+            </div>
+            <!-- Name & subs -->
+            <div class="gp-info">
+                <div class="gp-name" id="cpName"></div>
+                <div class="gp-type" id="cpSubs"></div>
+            </div>
+            <!-- Actions -->
+            <div class="gp-actions">
+                <button class="gp-action-btn">
+                    <span class="gp-action-icon">🔔</span>
+                    <span>Уведомления</span>
+                </button>
+                <button class="gp-action-btn" id="cpManageBtn" style="display:none;" onclick="openChannelManage()">
+                    <span class="gp-action-icon">⚙️</span>
+                    <span>Управление</span>
+                </button>
+                <button class="gp-action-btn" id="cpLeaveBtn" onclick="unsubscribeChannel()">
+                    <span class="gp-action-icon">🚪</span>
+                    <span>Отписаться</span>
+                </button>
+                <button class="gp-action-btn">
+                    <span class="gp-action-icon">•••</span>
+                    <span>Ещё</span>
+                </button>
+            </div>
+            <!-- Owner avatar section -->
+            <div id="cpOwnerSection" style="display:none; padding:0 16px 16px;">
+                <div style="font-size:12px; font-weight:700; color:var(--text-secondary); text-transform:uppercase; letter-spacing:0.05em; margin-bottom:8px;">Сменить аватар</div>
+                <div id="cpAvatarPicker" style="display:flex; flex-wrap:wrap; gap:4px;"></div>
+            </div>
         </div>
     </div>
 </div>
