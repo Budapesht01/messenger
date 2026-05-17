@@ -310,7 +310,13 @@ socket.on('post_reaction_updated', (data) => {
     });
     
     socket.on('group_deleted', (data) => {
-        if (currentGroupId === String(data.groupId)) { currentGroupId = null; document.querySelector('.chat-title').innerText = 'Выберите чат'; document.getElementById('messages').innerHTML = ''; }
+        if (currentGroupId === String(data.groupId)) {
+            currentGroupId = null;
+            document.querySelector('.chat-title').innerText = 'Выберите чат';
+            document.getElementById('messages').innerHTML = '';
+            if (window.innerWidth <= 768) { sidebar.classList.add('open'); document.getElementById('noChatSelected').style.display = 'none'; }
+            else document.getElementById('noChatSelected').style.display = 'flex';
+        }
         loadGroups();
     });
     socket.on('group_member_joined', () => loadGroups());
@@ -1461,14 +1467,27 @@ function closeGroupInfoModal() { document.getElementById('groupInfoModal').class
 async function deleteGroup() {
     if (!confirm('Удалить группу для всех?')) return;
     await fetch(`/api/groups/${currentGroupId}`, { method: 'DELETE', headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` } });
-    closeGroupInfoModal(); currentGroupId = null; document.querySelector('.chat-title').innerText = 'Выберите чат'; document.getElementById('messages').innerHTML = ''; loadGroups();
+    closeGroupInfoModal();
+    currentGroupId = null;
+    document.querySelector('.chat-title').innerText = 'Выберите чат';
+    document.getElementById('messages').innerHTML = '';
+    loadGroups();
+    if (window.innerWidth <= 768) { sidebar.classList.add('open'); document.getElementById('noChatSelected').style.display = 'none'; }
+    else document.getElementById('noChatSelected').style.display = 'flex';
 }
 async function leaveGroup() {
     if (!confirm('Выйти из группы?')) return;
     const res = await fetch(`/api/groups/${currentGroupId}/leave`, { method: 'POST', headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` } });
     const data = await res.json();
-    if (res.ok) { closeGroupInfoModal(); currentGroupId = null; document.querySelector('.chat-title').innerText = 'Выберите чат'; document.getElementById('messages').innerHTML = ''; loadGroups(); }
-    else alert(data.error);
+    if (res.ok) {
+        closeGroupInfoModal();
+        currentGroupId = null;
+        document.querySelector('.chat-title').innerText = 'Выберите чат';
+        document.getElementById('messages').innerHTML = '';
+        loadGroups();
+        if (window.innerWidth <= 768) { sidebar.classList.add('open'); document.getElementById('noChatSelected').style.display = 'none'; }
+        else document.getElementById('noChatSelected').style.display = 'flex';
+    } else alert(data.error);
 }
 
 // ========== Профиль ==========
@@ -2355,15 +2374,20 @@ function closeChat() {
         const chBack = document.getElementById('channelBackBtn');
         if (chBack) chBack.style.display = 'none';
     }
-    document.getElementById('noChatSelected').style.display = 'flex';
     document.getElementById('inputArea').style.display = 'none';
     document.getElementById('backBtn').style.display = 'none';
     document.getElementById('chatMenuWrap').style.display = 'none';
     document.getElementById('groupMenuWrap').style.display = 'none';
     document.querySelector('.chat-title').innerText = 'Выберите чат';
-    document.getElementById('messagesList').innerHTML = '';
+    document.getElementById('messages').innerHTML = '';
     document.querySelectorAll('.user-item').forEach(el => el.classList.remove('active-chat'));
-    if (window.innerWidth <= 768) sidebar.classList.add('open');
+    if (window.innerWidth <= 768) {
+        // On mobile: open sidebar, hide the "select chat" placeholder
+        sidebar.classList.add('open');
+        document.getElementById('noChatSelected').style.display = 'none';
+    } else {
+        document.getElementById('noChatSelected').style.display = 'flex';
+    }
 }
 
 function switchToTab(tabId) {
@@ -2719,9 +2743,12 @@ async function deleteChannel() {
     const res = await fetch(`/api/channels/${currentChannelId}`, { method: 'DELETE', headers: { Authorization: 'Bearer ' + token } });
     if (res.ok) {
         document.getElementById('channelViewPanel').style.display = 'none';
-        document.getElementById('noChatSelected').style.display = 'flex';
         currentChannelId = null;
+        currentChannelOwner = null;
         loadChannels();
+        closeChannelManage();
+        if (window.innerWidth <= 768) { sidebar.classList.add('open'); document.getElementById('noChatSelected').style.display = 'none'; }
+        else document.getElementById('noChatSelected').style.display = 'flex';
     }
 }
 
@@ -2963,8 +2990,9 @@ async function unsubscribeChannel() {
         currentChannelId = null; currentChannelOwner = null;
         document.getElementById('channelViewPanel').style.display = 'none';
         document.getElementById('channelView').style.display = 'none';
-        document.getElementById('noChatSelected').style.display = 'flex';
         loadChannels();
+        if (window.innerWidth <= 768) { sidebar.classList.add('open'); document.getElementById('noChatSelected').style.display = 'none'; }
+        else document.getElementById('noChatSelected').style.display = 'flex';
     }
 }
 function openChannelManage() {
