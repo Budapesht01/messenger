@@ -2361,19 +2361,18 @@ function openFavorites() {
 function closeChat() {
     currentChat = null;
     currentGroupId = null;
-    // Also close channel if open
-    if (currentChannelId) {
-        currentChannelId = null;
-        currentChannelOwner = null;
-        const panel = document.getElementById('channelViewPanel');
-        if (panel) panel.style.display = 'none';
-        const cv = document.getElementById('channelView');
-        if (cv) cv.style.display = 'none';
-        const ch = document.getElementById('chatHeader');
-        if (ch) ch.style.display = '';
-        const chBack = document.getElementById('channelBackBtn');
-        if (chBack) chBack.style.display = 'none';
-    }
+    // Always hide channel panel
+    currentChannelId = null;
+    currentChannelOwner = null;
+    const panel = document.getElementById('channelViewPanel');
+    if (panel) panel.style.display = 'none';
+    const cv = document.getElementById('channelView');
+    if (cv) cv.style.display = 'none';
+    const ch = document.getElementById('chatHeader');
+    if (ch) ch.style.display = '';
+    const chBack = document.getElementById('channelBackBtn');
+    if (chBack) chBack.style.display = 'none';
+
     document.getElementById('inputArea').style.display = 'none';
     document.getElementById('backBtn').style.display = 'none';
     document.getElementById('chatMenuWrap').style.display = 'none';
@@ -2382,7 +2381,6 @@ function closeChat() {
     document.getElementById('messages').innerHTML = '';
     document.querySelectorAll('.user-item').forEach(el => el.classList.remove('active-chat'));
     if (window.innerWidth <= 768) {
-        // On mobile: open sidebar, hide the "select chat" placeholder
         sidebar.classList.add('open');
         document.getElementById('noChatSelected').style.display = 'none';
     } else {
