@@ -565,7 +565,7 @@ app.post('/api/messages/:id/react', authenticateJWT, async (req, res) => {
 app.post('/api/groups', authenticateJWT, async (req, res) => {
   const { name, description, type, avatar, members } = req.body;
   if (!name) return res.status(400).json({ error: 'Name required' });
-  const allMembers = normalizeMembers([req.user.username, ...(members || [])]);
+  const allMembers = [...new Set([req.user.username, ...(members || [])])];
   const group = new Group({
     name: name.trim(), description: description || '',
     avatar: avatar || '👥', type: type || 'private',
@@ -584,11 +584,7 @@ app.post('/api/groups', authenticateJWT, async (req, res) => {
 
 app.get('/api/groups', authenticateJWT, async (req, res) => {
   const groups = await Group.find({ members: req.user.username });
-  res.json(groups.map(group => {
-    const plain = group.toObject();
-    plain.members = normalizeMembers(plain.members);
-    return plain;
-  }));
+  res.json(groups);
 });
 
 app.get('/api/groups/public', authenticateJWT, async (req, res) => {
@@ -602,15 +598,9 @@ app.post('/api/groups/join', authenticateJWT, async (req, res) => {
   const { inviteCode } = req.body;
   const group = await Group.findOne({ inviteCode: inviteCode?.toUpperCase() });
   if (!group) return res.status(404).json({ error: 'Group not found' });
-  group.members = normalizeMembers(group.members);
-  if (group.members.includes(req.user.username)) {
-    await group.save();
-    return res.status(400).json({ error: 'Already a member' });
-  }
-  await Group.updateOne({ _id: group._id }, { $addToSet: { members: req.user.username } });
+  if (group.members.includes(req.user.username)) return res.status(400).json({ error: 'Already a member' });
+  await Group.updateOne({ _id: group._id }, { $push: { members: req.user.username } });
   const updated = await Group.findById(group._id);
-  updated.members = normalizeMembers(updated.members);
-  await updated.save();
   for (const member of updated.members) {
     const u = await User.findOne({ username: member });
     if (u && u.socketId) io.to(u.socketId).emit('group_member_joined', { groupId: group._id, username: req.user.username });
@@ -628,16 +618,9 @@ app.post('/api/groups/:id/join', authenticateJWT, async (req, res) => {
   const group = await Group.findById(req.params.id);
   if (!group) return res.status(404).json({ error: 'Not found' });
   if (group.type !== 'public') return res.status(403).json({ error: 'Private group' });
-  group.members = normalizeMembers(group.members);
-  if (group.members.includes(req.user.username)) {
-    await group.save();
-    return res.status(400).json({ error: 'Already a member' });
-  }
-  await Group.updateOne({ _id: group._id }, { $addToSet: { members: req.user.username } });
-  const updated = await Group.findById(group._id);
-  updated.members = normalizeMembers(updated.members);
-  await updated.save();
-  res.json({ group: updated });
+  if (group.members.includes(req.user.username)) return res.status(400).json({ error: 'Already a member' });
+  await Group.updateOne({ _id: group._id }, { $push: { members: req.user.username } });
+  res.json({ group: await Group.findById(group._id) });
 });
 
 app.post('/api/groups/:id/leave', authenticateJWT, async (req, res) => {
@@ -686,17 +669,11 @@ app.post('/api/groups/:id/invite', authenticateJWT, async (req, res) => {
   const { username } = req.body;
   const group = await Group.findById(req.params.id);
   if (!group || !group.members.includes(req.user.username)) return res.status(403).json({ error: 'Forbidden' });
-  group.members = normalizeMembers(group.members);
-  if (group.members.includes(username)) {
-    await group.save();
-    return res.status(400).json({ error: 'Already a member' });
-  }
+  if (group.members.includes(username)) return res.status(400).json({ error: 'Already a member' });
   const target = await User.findOne({ username });
   if (!target) return res.status(404).json({ error: 'User not found' });
-  await Group.updateOne({ _id: group._id }, { $addToSet: { members: username } });
+  await Group.updateOne({ _id: group._id }, { $push: { members: username } });
   const updated = await Group.findById(group._id);
-  updated.members = normalizeMembers(updated.members);
-  await updated.save();
   if (target.socketId) io.to(target.socketId).emit('group_added', { group: updated });
   for (const member of group.members) {
     const u = await User.findOne({ username: member });
@@ -991,33 +968,6 @@ io.on('connection', async (socket) => {
     if (chatUser?.socketId) {
       io.to(chatUser.socketId).emit('messages_read', { by: user.username, chatWith: chatWith });
     }
-  });
-
-  socket.on('mark_group_read', async ({ groupId }) => {
-    if (!groupId) return;
-    const group = await Group.findById(groupId);
-    if (!group || !group.members.includes(user.username)) return;
-
-    const unreadMessages = await Message.find({
-      groupId,
-      from: { $ne: user.username },
-      deleted: false,
-      readBy: { $ne: user.username }
-    }).select('_id from');
-
-    if (unreadMessages.length === 0) return;
-
-    const messageIds = unreadMessages.map(message => message._id);
-    await Message.updateMany(
-      { _id: { $in: messageIds } },
-      { $addToSet: { readBy: user.username } }
-    );
-
-    io.to(`group:${groupId}`).emit('group_messages_read', {
-      groupId: String(groupId),
-      by: user.username,
-      messageIds: messageIds.map(String)
-    });
   });
   
   socket.on('disconnect', async () => {
