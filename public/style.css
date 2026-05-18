@@ -2930,7 +2930,7 @@ body::before, body::after { display: none !important; }
     display: flex;
     align-items: center;
     gap: 6px;
-    background: rgba(255,255,255,0.06);
+
     border: none;
     border-radius: 10px;
     padding: 6px 10px;
