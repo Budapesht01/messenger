@@ -162,12 +162,6 @@ const GroupSchema = new mongoose.Schema({
 const User = mongoose.model('User', UserSchema);
 const Message = mongoose.model('Message', MessageSchema);
 const Group = mongoose.model('Group', GroupSchema);
-const normalizeMembers = (members = []) => [...new Set(
-  members
-    .filter(Boolean)
-    .map(member => String(member).trim())
-    .filter(Boolean)
-)];
 const PendingVerification = mongoose.model('PendingVerification', new mongoose.Schema({
   email: { type: String, unique: true, required: true },
   code: { type: String, required: true },
