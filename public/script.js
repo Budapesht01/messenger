@@ -656,7 +656,6 @@ function renderMessages(messages) {
         // Mark as history so no slide-in animation
     });
 }
-}
 
 function scrollToMessage(id) {
     const el = document.querySelector(`.message[data-id="${id}"]`);
