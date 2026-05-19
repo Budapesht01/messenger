@@ -280,7 +280,14 @@ function initSocket(token) {
         updateFriendPreview(data.to || currentChat, data);
     });
 
-    socket.on('friend_status', (data) => updateFriendStatus(data.username, data.online));
+    socket.on('friend_status', (data) => {
+        updateFriendStatus(data.username, data.online);
+        // Update subtitle if this is the open chat
+        if (currentChat === data.username) {
+            const sub = document.getElementById('chatSubtitle');
+            if (sub) updateSubtitleFromFriend(sub, { online: data.online, lastSeen: data.lastSeen });
+        }
+    });
     socket.on('friend_request', (data) => { showNotification(`👤 Запрос от ${data.from}`); loadFriendRequests(); });
     socket.on('friend_accepted', (data) => { showNotification(`✅ ${data.by} принял запрос`); loadFriends(); });
 
@@ -502,10 +509,17 @@ function updateUnreadBadge(username) {
 // ========== Рендер сообщения ==========
 function formatText(str) {
     if (!str) return '';
+    const myUsername = currentUser?.username || '';
     return escapeHtml(str)
         .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
         .replace(/\*(.+?)\*/g, '<em>$1</em>')
-        .replace(/`(.+?)`/g, '<code>$1</code>');
+        .replace(/`(.+?)`/g, '<code>$1</code>')
+        .replace(/@([\w а-яёА-ЯЁ]+)/g, (match, name) => {
+            const isSelf = name.trim().toLowerCase() === myUsername.toLowerCase();
+            return isSelf
+                ? `<span class="mention mention-self">@${name}</span>`
+                : `<span class="mention">@${name}</span>`;
+        });
 }
 
 function renderReactionBar(bar, reactions, messageId) {
@@ -611,6 +625,11 @@ function addMessageToChat(msg) {
     const bar = div.querySelector('.reaction-bar');
     if (msg.reactions && msg.reactions.length > 0) renderReactionBar(bar, msg.reactions, msg._id);
 
+    // Подсветить если упомянут текущий пользователь
+    if (!isOwn && msg.text && currentUser && msg.text.includes('@' + currentUser.username)) {
+        div.classList.add('mention-highlight');
+    }
+
     // Контекстное меню по правой кнопке мыши
     const bubble = div.querySelector('.message-bubble');
     bubble.addEventListener('contextmenu', (e) => {
@@ -621,13 +640,22 @@ function addMessageToChat(msg) {
         if (selectMode) { e.stopPropagation(); toggleSelectMode(msg._id); }
     });
     container.appendChild(div);
+    // Slide-in animation only for new messages (not history load)
+    if (!div._isHistory) {
+        requestAnimationFrame(() => div.classList.add('animate-in'));
+        setTimeout(() => div.classList.remove('animate-in'), 400);
+    }
     container.scrollTop = container.scrollHeight;
 }
 
 function renderMessages(messages) {
     messagesContainer = document.getElementById('messages');
     messagesContainer.innerHTML = '';
-    messages.forEach(msg => addMessageToChat(msg));
+    messages.forEach(msg => {
+        const el = addMessageToChat(msg);
+        // Mark as history so no slide-in animation
+    });
+}
 }
 
 function scrollToMessage(id) {
@@ -1018,11 +1046,55 @@ function switchChat(username) {
     document.getElementById('groupMenuWrap').style.display = 'none';
     document.getElementById('messageInput').placeholder = 'Сообщение...';
     restoreDraft('dm_' + username);
-    fetchHistoryForUser(username); // галочки рендерятся из реального readBy внутри
+    // Set subtitle from friend list
+    setChatSubtitle(username);
+    fetchHistoryForUser(username);
     markRead(username);
     sidebar.classList.remove('open');
     setActiveChatItem('dm_' + username);
     if (window.innerWidth <= 768) document.getElementById('backBtn').style.display = 'flex';
+}
+
+function setChatSubtitle(username) {
+    const sub = document.getElementById('chatSubtitle');
+    if (!sub) return;
+    // Find from loaded friends
+    const token = localStorage.getItem('token');
+    fetch('/api/friends', { headers: { Authorization: 'Bearer ' + token } })
+        .then(r => r.json()).then(data => {
+            const friend = (data.friends || data).find(f => f.username === username);
+            if (!friend) { sub.textContent = ''; return; }
+            updateSubtitleFromFriend(sub, friend);
+        }).catch(() => {});
+}
+
+function updateSubtitleFromFriend(sub, friend) {
+    if (!sub) return;
+    if (friend.online) {
+        sub.textContent = 'в сети';
+        sub.className = 'chat-subtitle online';
+    } else if (friend.lastSeen) {
+        sub.textContent = formatLastSeen(friend.lastSeen);
+        sub.className = 'chat-subtitle';
+    } else {
+        sub.textContent = '';
+        sub.className = 'chat-subtitle';
+    }
+}
+
+function formatLastSeen(dateStr) {
+    const now = new Date();
+    const d = new Date(dateStr);
+    const diffMs = now - d;
+    const diffMin = Math.floor(diffMs / 60000);
+    const diffH = Math.floor(diffMin / 60);
+    const diffD = Math.floor(diffH / 24);
+    if (diffMin < 1) return 'только что в сети';
+    if (diffMin < 60) return `был(а) ${diffMin} мин. назад`;
+    if (diffH < 24) return `был(а) ${diffH} ч. назад`;
+    if (diffD === 1) return 'был(а) вчера';
+    const months = ['янв','фев','мар','апр','май','июн','июл','авг','сен','окт','ноя','дек'];
+    return `был(а) ${d.getDate()} ${months[d.getMonth()]}`;
 }
 
 async function switchGroupChat(groupId, groupName) {
@@ -1033,6 +1105,8 @@ async function switchGroupChat(groupId, groupName) {
     const ch2 = document.getElementById('chatHeader'); if (ch2) ch2.style.display = '';
     const cvp2 = document.getElementById('channelViewPanel'); if (cvp2) cvp2.style.display = 'none';
     document.querySelector('.chat-title').innerText = groupName;
+    const sub2 = document.getElementById('chatSubtitle');
+    if (sub2) { sub2.textContent = ''; sub2.className = 'chat-subtitle'; }
     document.getElementById('groupInfoBtn').style.display = 'none';
     document.getElementById('groupMenuWrap').style.display = 'flex';
     document.getElementById('chatMenuWrap').style.display = 'none';
