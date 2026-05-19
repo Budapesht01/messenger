@@ -198,7 +198,16 @@ function initSocket(token) {
     socket.on('group_message', (msg) => {
         if (currentGroupId && currentGroupId === String(msg.groupId)) {
             addMessageToChat(msg);
+            // Mark as read immediately since we're viewing this group
+            socket.emit('mark_group_read', { groupId: msg.groupId });
         } else {
+            // Add unread badge to group item
+            const groupEl = document.querySelector(`[data-chat-key="group_${msg.groupId}"]`);
+            if (groupEl) {
+                let badge = groupEl.querySelector('.unread-count');
+                if (!badge) { badge = document.createElement('span'); badge.className = 'unread-count'; groupEl.appendChild(badge); }
+                badge.innerText = (parseInt(badge.innerText) || 0) + 1;
+            }
             showNotification(`💬 Сообщение в группе`);
         }
         notify();
@@ -251,11 +260,16 @@ function initSocket(token) {
                 el.innerHTML = '✓✓'; el.classList.add('read');
             });
         }
-        // Обновить галочку в превью списка друзей
+        // Update check in friend preview in real time
         const item = document.querySelector(`.user-item[data-chat-key="dm_${reader}"]`);
         if (item) {
             const check = item.querySelector('.last-msg-time-wrap span:first-child');
             if (check) { check.innerHTML = '✓✓'; check.style.color = 'var(--accent)'; }
+        }
+        // If reader read OUR messages - clear their unread badge (they sent us something before)
+        if (reader && unreadCounts[reader]) {
+            unreadCounts[reader] = 0;
+            updateUnreadBadge(reader);
         }
     });
 
@@ -1029,6 +1043,11 @@ async function switchGroupChat(groupId, groupName) {
     const token = localStorage.getItem('token');
     const res = await fetch(`/api/groups/${groupId}/messages`, { headers: { 'Authorization': `Bearer ${token}` } });
     if (res.ok) renderMessages(await res.json());
+    // Mark group messages as read
+    if (socket) socket.emit('mark_group_read', { groupId });
+    // Clear unread badge on this group item
+    const groupEl = document.querySelector(`[data-chat-key="group_${groupId}"]`);
+    if (groupEl) { const badge = groupEl.querySelector('.unread-count'); if (badge) badge.remove(); }
     if (window.innerWidth <= 768) document.getElementById('backBtn').style.display = 'flex';
 }
 
@@ -2361,18 +2380,19 @@ function openFavorites() {
 function closeChat() {
     currentChat = null;
     currentGroupId = null;
-    // Always hide channel panel
-    currentChannelId = null;
-    currentChannelOwner = null;
-    const panel = document.getElementById('channelViewPanel');
-    if (panel) panel.style.display = 'none';
-    const cv = document.getElementById('channelView');
-    if (cv) cv.style.display = 'none';
-    const ch = document.getElementById('chatHeader');
-    if (ch) ch.style.display = '';
-    const chBack = document.getElementById('channelBackBtn');
-    if (chBack) chBack.style.display = 'none';
-
+    // Also close channel if open
+    if (currentChannelId) {
+        currentChannelId = null;
+        currentChannelOwner = null;
+        const panel = document.getElementById('channelViewPanel');
+        if (panel) panel.style.display = 'none';
+        const cv = document.getElementById('channelView');
+        if (cv) cv.style.display = 'none';
+        const ch = document.getElementById('chatHeader');
+        if (ch) ch.style.display = '';
+        const chBack = document.getElementById('channelBackBtn');
+        if (chBack) chBack.style.display = 'none';
+    }
     document.getElementById('inputArea').style.display = 'none';
     document.getElementById('backBtn').style.display = 'none';
     document.getElementById('chatMenuWrap').style.display = 'none';
@@ -2381,6 +2401,7 @@ function closeChat() {
     document.getElementById('messages').innerHTML = '';
     document.querySelectorAll('.user-item').forEach(el => el.classList.remove('active-chat'));
     if (window.innerWidth <= 768) {
+        // On mobile: open sidebar, hide the "select chat" placeholder
         sidebar.classList.add('open');
         document.getElementById('noChatSelected').style.display = 'none';
     } else {
