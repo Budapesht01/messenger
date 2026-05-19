@@ -1087,7 +1087,7 @@ const Post = mongoose.model('Post', PostSchema);
 const Comment = mongoose.model('Comment', CommentSchema);
 
 app.get('/api/channels', authenticateJWT, async (req, res) => {
-  const channels = await Channel.find().sort({ createdAt: -1 });
+  const channels = await Channel.find({ subscribers: req.user.username }).sort({ createdAt: -1 });
   res.json(channels);
 });
 app.post('/api/channels', authenticateJWT, async (req, res) => {
