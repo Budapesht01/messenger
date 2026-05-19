@@ -1678,32 +1678,34 @@ function applyTheme(themeId) {
 
 function initThemePanel() {
     if (window.innerWidth <= 768) sidebar.classList.add('open');
-    const grid = document.getElementById('themeGrid');
-    if (!grid) return;
-    grid.innerHTML = '';
+    const grids = [document.getElementById('themeGrid'), document.getElementById('themeGrid2')].filter(Boolean);
+    if (!grids.length) return;
     const currentTheme = localStorage.getItem('theme') || 'dark';
     const accents = { dark: '#6c8fff', light: '#3b72e8', aurora: '#a78bfa', ember: '#f59e0b', forest: '#34d399', rose: '#f472b6' };
-    themes.forEach(t => {
-        const card = document.createElement('div');
-        card.className = 'theme-card' + (t.id === currentTheme ? ' active' : '');
-        card.dataset.theme = t.id;
-        card.onclick = () => applyTheme(t.id);
-        const accent = accents[t.id] || '#6c8fff';
-        card.innerHTML = `
-            <div class="theme-preview" style="border-color:${t.id === currentTheme ? accent : 'transparent'}">
-                <div class="theme-preview-sidebar" style="background:${t.sidebar}">
-                    <div style="width:70%;height:5px;border-radius:3px;background:${accent};opacity:0.7;margin:4px auto 2px;"></div>
-                    <div style="width:55%;height:3px;border-radius:2px;background:rgba(255,255,255,0.1);margin:2px auto;"></div>
-                    <div style="width:65%;height:3px;border-radius:2px;background:rgba(255,255,255,0.1);margin:2px auto;"></div>
+    grids.forEach(grid => {
+        grid.innerHTML = '';
+        themes.forEach(t => {
+            const card = document.createElement('div');
+            card.className = 'theme-card' + (t.id === currentTheme ? ' active' : '');
+            card.dataset.theme = t.id;
+            card.onclick = () => applyTheme(t.id);
+            const accent = accents[t.id] || '#6c8fff';
+            card.innerHTML = `
+                <div class="theme-preview" style="border-color:${t.id === currentTheme ? accent : 'transparent'}">
+                    <div class="theme-preview-sidebar" style="background:${t.sidebar}">
+                        <div style="width:70%;height:5px;border-radius:3px;background:${accent};opacity:0.7;margin:4px auto 2px;"></div>
+                        <div style="width:55%;height:3px;border-radius:2px;background:rgba(255,255,255,0.1);margin:2px auto;"></div>
+                        <div style="width:65%;height:3px;border-radius:2px;background:rgba(255,255,255,0.1);margin:2px auto;"></div>
+                    </div>
+                    <div class="theme-preview-main" style="background:${t.main}">
+                        <div class="theme-preview-msg other" style="background:${t.other};border:1px solid rgba(255,255,255,0.06);"></div>
+                        <div class="theme-preview-msg own" style="background:${accent};opacity:0.85;"></div>
+                    </div>
                 </div>
-                <div class="theme-preview-main" style="background:${t.main}">
-                    <div class="theme-preview-msg other" style="background:${t.other};border:1px solid rgba(255,255,255,0.06);"></div>
-                    <div class="theme-preview-msg own" style="background:${accent};opacity:0.85;"></div>
-                </div>
-            </div>
-            <div class="theme-name" style="color:${t.id === currentTheme ? accent : ''}">${t.name}</div>
-        `;
-        grid.appendChild(card);
+                <div class="theme-name" style="color:${t.id === currentTheme ? accent : ''}">${t.name}</div>
+            `;
+            grid.appendChild(card);
+        });
     });
 }
 
