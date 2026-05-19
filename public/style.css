@@ -183,6 +183,15 @@ body {
     flex-direction: column;
     z-index: 10;
     flex-shrink: 0;
+    position: relative;
+}
+.sidebar::after {
+    content: '';
+    position: absolute;
+    top: 0; right: -1px;
+    width: 1px; height: 100%;
+    background: linear-gradient(180deg, var(--accent-glow, transparent) 0%, transparent 100%);
+    pointer-events: none;
 }
 
 .user-info {
@@ -1279,84 +1288,165 @@ body {
 /* ============================================================
    THEMES
    ============================================================ */
+/* ========== THEMES ========== */
+
+/* ── 1. MIDNIGHT (default dark) ── */
 [data-theme="dark"] {
-    --bg-gradient: #212121;
-    --glass-sidebar: #2b2b2b;
-    --glass-header: #2b2b2b;
-    --glass-input: #3a3a3a;
-    --glass-message-own: #2b5278;
-    --glass-message-other: #333333;
-    --glass-card: #2b2b2b;
-    --glass-hover: rgba(255,255,255,0.07);
+    --bg-gradient: #0d0d12;
+    --glass-sidebar: #13131a;
+    --glass-header: #13131a;
+    --glass-input: #1c1c26;
+    --glass-message-own: #1a2f5e;
+    --glass-message-other: #1a1a24;
+    --glass-card: #16161f;
+    --glass-hover: rgba(255,255,255,0.05);
     --border: rgba(255,255,255,0.06);
-    --border-strong: rgba(255,255,255,0.10);
-    --accent: #5588cc;
-    --accent-glow: rgba(85,136,204,0.2);
-    --accent-dim: rgba(85,136,204,0.15);
-    --text-primary: #e8e8e8;
-    --text-secondary: rgba(232,232,232,0.45);
-    --text-muted: rgba(232,232,232,0.28);
-    --dropdown-bg: #2b2b2b;
+    --border-strong: rgba(255,255,255,0.11);
+    --accent: #6c8fff;
+    --accent-glow: rgba(108,143,255,0.25);
+    --accent-dim: rgba(108,143,255,0.12);
+    --text-primary: #e8eaf4;
+    --text-secondary: rgba(232,234,244,0.42);
+    --text-muted: rgba(232,234,244,0.24);
+    --dropdown-bg: #16161f;
+    --chat-pattern: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%236c8fff' fill-opacity='0.03'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+}
+[data-theme="dark"] .messages {
+    background: radial-gradient(ellipse 80% 60% at 50% 100%, rgba(108,143,255,0.07) 0%, transparent 70%), var(--bg-gradient);
+    background-image: var(--chat-pattern), radial-gradient(ellipse 80% 60% at 50% 100%, rgba(108,143,255,0.07) 0%, transparent 70%);
 }
 
+/* ── 2. LIGHT ── */
 [data-theme="light"] {
-    --bg-gradient: #f0f4f8;
+    --bg-gradient: #eef1f8;
     --glass-sidebar: #ffffff;
-    --glass-header: #ffffff;
-    --glass-input: #f0f2f5;
-    --glass-message-own: #d1e8ff;
+    --glass-header: rgba(255,255,255,0.95);
+    --glass-input: #f2f4f8;
+    --glass-message-own: #ccdeff;
     --glass-message-other: #ffffff;
     --glass-card: #ffffff;
-    --glass-hover: rgba(0,0,0,0.05);
-    --border: rgba(0,0,0,0.08);
-    --border-strong: rgba(0,0,0,0.14);
-    --accent: #3d7ab5;
-    --accent-glow: rgba(61,122,181,0.2);
-    --accent-dim: rgba(61,122,181,0.12);
-    --text-primary: #222222;
-    --text-secondary: rgba(34,34,34,0.5);
-    --text-muted: rgba(34,34,34,0.32);
+    --glass-hover: rgba(0,0,0,0.04);
+    --border: rgba(0,0,0,0.07);
+    --border-strong: rgba(0,0,0,0.13);
+    --accent: #3b72e8;
+    --accent-glow: rgba(59,114,232,0.18);
+    --accent-dim: rgba(59,114,232,0.10);
+    --text-primary: #1a1d2e;
+    --text-secondary: rgba(26,29,46,0.48);
+    --text-muted: rgba(26,29,46,0.28);
     --dropdown-bg: #ffffff;
 }
-
-[data-theme="gray"] {
-    --bg-gradient: #17181a;
-    --glass-sidebar: #1e2025;
-    --glass-header: #1e2025;
-    --glass-input: #2a2c31;
-    --glass-message-own: #3a4a6b;
-    --glass-message-other: #252729;
-    --glass-card: #1e2025;
-    --glass-hover: rgba(255,255,255,0.06);
-    --border: rgba(255,255,255,0.07);
-    --border-strong: rgba(255,255,255,0.12);
-    --accent: #7b93ff;
-    --accent-glow: rgba(123,147,255,0.2);
-    --accent-dim: rgba(123,147,255,0.12);
-    --text-primary: #e8eaf0;
-    --text-secondary: rgba(232,234,240,0.45);
-    --text-muted: rgba(232,234,240,0.25);
-    --dropdown-bg: #1e2025;
+[data-theme="light"] .messages {
+    background: url("data:image/svg+xml,%3Csvg width='40' height='40' viewBox='0 0 40 40' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='%233b72e8' fill-opacity='0.04' fill-rule='evenodd'%3E%3Cpath d='M0 40L40 0H20L0 20M40 40V20L20 40'/%3E%3C/g%3E%3C/svg%3E"), #eef1f8;
 }
 
-[data-theme="green"] {
-    --bg-gradient: #0e1912;
-    --glass-sidebar: #162218;
-    --glass-header: #162218;
-    --glass-input: #1e2e22;
-    --glass-message-own: #1a4a2e;
-    --glass-message-other: #1a261e;
-    --glass-card: #162218;
-    --glass-hover: rgba(255,255,255,0.06);
-    --border: rgba(255,255,255,0.07);
-    --border-strong: rgba(255,255,255,0.12);
-    --accent: #00c87a;
-    --accent-glow: rgba(0,200,122,0.2);
-    --accent-dim: rgba(0,200,122,0.12);
-    --text-primary: #e8f0ec;
-    --text-secondary: rgba(232,240,236,0.45);
-    --text-muted: rgba(232,240,236,0.25);
-    --dropdown-bg: #162218;
+/* ── 3. AURORA (purple-teal) ── */
+[data-theme="aurora"] {
+    --bg-gradient: #0a0c18;
+    --glass-sidebar: #0f1020;
+    --glass-header: #0f1020;
+    --glass-input: #181a2e;
+    --glass-message-own: #1e1060;
+    --glass-message-other: #151726;
+    --glass-card: #12142a;
+    --glass-hover: rgba(255,255,255,0.05);
+    --border: rgba(150,120,255,0.10);
+    --border-strong: rgba(150,120,255,0.18);
+    --accent: #a78bfa;
+    --accent-glow: rgba(167,139,250,0.28);
+    --accent-dim: rgba(167,139,250,0.13);
+    --text-primary: #e8e2ff;
+    --text-secondary: rgba(232,226,255,0.42);
+    --text-muted: rgba(232,226,255,0.22);
+    --dropdown-bg: #12142a;
+}
+[data-theme="aurora"] .messages {
+    background: 
+        radial-gradient(ellipse 60% 40% at 20% 20%, rgba(167,139,250,0.10) 0%, transparent 60%),
+        radial-gradient(ellipse 50% 50% at 80% 80%, rgba(34,211,238,0.07) 0%, transparent 60%),
+        url("data:image/svg+xml,%3Csvg width='80' height='80' viewBox='0 0 80 80' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none'%3E%3Ccircle cx='40' cy='40' r='1' fill='%23a78bfa' fill-opacity='0.06'/%3E%3Ccircle cx='0' cy='0' r='1' fill='%23a78bfa' fill-opacity='0.04'/%3E%3Ccircle cx='80' cy='0' r='1' fill='%2322d3ee' fill-opacity='0.04'/%3E%3Ccircle cx='0' cy='80' r='1' fill='%2322d3ee' fill-opacity='0.04'/%3E%3Ccircle cx='80' cy='80' r='1' fill='%23a78bfa' fill-opacity='0.04'/%3E%3C/g%3E%3C/svg%3E"),
+        #0a0c18;
+}
+
+/* ── 4. EMBER (dark warm amber) ── */
+[data-theme="ember"] {
+    --bg-gradient: #100a04;
+    --glass-sidebar: #18100a;
+    --glass-header: #18100a;
+    --glass-input: #221508;
+    --glass-message-own: #3d1f05;
+    --glass-message-other: #1c120a;
+    --glass-card: #1c120a;
+    --glass-hover: rgba(255,180,60,0.06);
+    --border: rgba(255,150,30,0.10);
+    --border-strong: rgba(255,150,30,0.18);
+    --accent: #f59e0b;
+    --accent-glow: rgba(245,158,11,0.25);
+    --accent-dim: rgba(245,158,11,0.12);
+    --text-primary: #fef3c7;
+    --text-secondary: rgba(254,243,199,0.42);
+    --text-muted: rgba(254,243,199,0.22);
+    --dropdown-bg: #1c120a;
+}
+[data-theme="ember"] .messages {
+    background:
+        radial-gradient(ellipse 70% 50% at 50% 100%, rgba(245,158,11,0.10) 0%, transparent 65%),
+        url("data:image/svg+xml,%3Csvg width='52' height='26' viewBox='0 0 52 26' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23f59e0b' fill-opacity='0.04'%3E%3Cpath d='M10 10c0-2.21-1.79-4-4-4-3.314 0-6-2.686-6-6h2c0 2.21 1.79 4 4 4 3.314 0 6 2.686 6 6 0 2.21 1.79 4 4 4 3.314 0 6 2.686 6 6 0 2.21 1.79 4 4 4v2c-3.314 0-6-2.686-6-6 0-2.21-1.79-4-4-4-3.314 0-6-2.686-6-6zm25.464-1.95l8.486 8.486-1.414 1.414-8.486-8.486 1.414-1.414z' /%3E%3C/g%3E%3C/g%3E%3C/svg%3E"),
+        #100a04;
+}
+
+/* ── 5. FOREST (deep green) ── */
+[data-theme="forest"] {
+    --bg-gradient: #050e08;
+    --glass-sidebar: #091410;
+    --glass-header: #091410;
+    --glass-input: #0f1f18;
+    --glass-message-own: #0d3320;
+    --glass-message-other: #0d1a14;
+    --glass-card: #0d1a14;
+    --glass-hover: rgba(52,211,153,0.06);
+    --border: rgba(52,211,153,0.09);
+    --border-strong: rgba(52,211,153,0.16);
+    --accent: #34d399;
+    --accent-glow: rgba(52,211,153,0.25);
+    --accent-dim: rgba(52,211,153,0.11);
+    --text-primary: #d1fae5;
+    --text-secondary: rgba(209,250,229,0.42);
+    --text-muted: rgba(209,250,229,0.22);
+    --dropdown-bg: #0d1a14;
+}
+[data-theme="forest"] .messages {
+    background:
+        radial-gradient(ellipse 60% 50% at 30% 50%, rgba(52,211,153,0.07) 0%, transparent 65%),
+        url("data:image/svg+xml,%3Csvg width='20' height='20' viewBox='0 0 20 20' xmlns='http://www.w3.org/2000/svg'%3E%3Crect x='0' y='0' width='1' height='1' fill='%2334d399' fill-opacity='0.05'/%3E%3C/svg%3E"),
+        #050e08;
+}
+
+/* ── 6. ROSE (dark pink) ── */
+[data-theme="rose"] {
+    --bg-gradient: #110810;
+    --glass-sidebar: #1a0e18;
+    --glass-header: #1a0e18;
+    --glass-input: #241424;
+    --glass-message-own: #3d1030;
+    --glass-message-other: #1e1020;
+    --glass-card: #1e1020;
+    --glass-hover: rgba(244,114,182,0.06);
+    --border: rgba(244,114,182,0.09);
+    --border-strong: rgba(244,114,182,0.16);
+    --accent: #f472b6;
+    --accent-glow: rgba(244,114,182,0.25);
+    --accent-dim: rgba(244,114,182,0.11);
+    --text-primary: #fce7f3;
+    --text-secondary: rgba(252,231,243,0.42);
+    --text-muted: rgba(252,231,243,0.22);
+    --dropdown-bg: #1e1020;
+}
+[data-theme="rose"] .messages {
+    background:
+        radial-gradient(ellipse 70% 45% at 70% 0%, rgba(244,114,182,0.10) 0%, transparent 65%),
+        url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23f472b6' fill-opacity='0.04'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E"),
+        #110810;
 }
 
 body { background: var(--bg-gradient); }
