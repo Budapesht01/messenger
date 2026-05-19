@@ -593,7 +593,7 @@ app.post('/api/groups/join', authenticateJWT, async (req, res) => {
   const group = await Group.findOne({ inviteCode: inviteCode?.toUpperCase() });
   if (!group) return res.status(404).json({ error: 'Group not found' });
   if (group.members.includes(req.user.username)) return res.status(400).json({ error: 'Already a member' });
-  await Group.updateOne({ _id: group._id }, { $push: { members: req.user.username } });
+  await Group.updateOne({ _id: group._id }, { $addToSet: { members: req.user.username } });
   const updated = await Group.findById(group._id);
   for (const member of updated.members) {
     const u = await User.findOne({ username: member });
@@ -613,7 +613,7 @@ app.post('/api/groups/:id/join', authenticateJWT, async (req, res) => {
   if (!group) return res.status(404).json({ error: 'Not found' });
   if (group.type !== 'public') return res.status(403).json({ error: 'Private group' });
   if (group.members.includes(req.user.username)) return res.status(400).json({ error: 'Already a member' });
-  await Group.updateOne({ _id: group._id }, { $push: { members: req.user.username } });
+  await Group.updateOne({ _id: group._id }, { $addToSet: { members: req.user.username } });
   res.json({ group: await Group.findById(group._id) });
 });
 
@@ -912,6 +912,15 @@ io.on('connection', async (socket) => {
   });
 
   socket.on('join_group_room', (groupId) => socket.join(`group:${groupId}`));
+
+  socket.on('mark_group_read', async ({ groupId }) => {
+    if (!user || !groupId) return;
+    await Message.updateMany(
+      { groupId, from: { $ne: user.username }, readBy: { $ne: user.username } },
+      { $addToSet: { readBy: user.username } }
+    );
+    socket.to(`group:${groupId}`).emit('group_messages_read', { groupId, by: user.username });
+  });
 
   // ===== WebRTC Звонки =====
   socket.on('call_user', async (data) => {
