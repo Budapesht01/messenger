@@ -1656,19 +1656,21 @@ document.getElementById('imageUploadInput').addEventListener('change', (e) => {
 // ========== Старт ==========
 // ========== ТЕМЫ ==========
 const themes = [
-    { id: 'dark',  name: 'Тёмная',   sidebar: 'rgba(13,14,26,0.9)', main: '#0a0f1e',  own: 'rgba(99,160,255,0.3)',  other: 'rgba(255,255,255,0.1)' },
-    { id: 'light', name: 'Светлая',  sidebar: 'rgba(255,255,255,0.8)', main: '#f0f4fb', own: 'rgba(99,140,255,0.25)', other: 'rgba(255,255,255,0.8)' },
-    { id: 'gray',  name: 'Серая',    sidebar: 'rgba(21,22,24,0.9)', main: '#151618',  own: 'rgba(80,100,160,0.35)', other: 'rgba(255,255,255,0.08)' },
-    { id: 'green', name: 'Зелёная',  sidebar: 'rgba(6,13,15,0.9)',  main: '#091412',  own: 'rgba(0,168,100,0.35)', other: 'rgba(255,255,255,0.08)' },
+    { id: 'dark',   name: 'Полночь',  sidebar: '#13131a', main: '#0d0d12',  own: '#1a2f5e',  other: '#1a1a24' },
+    { id: 'light',  name: 'Светлая',  sidebar: '#ffffff', main: '#eef1f8',  own: '#ccdeff',  other: '#ffffff' },
+    { id: 'aurora', name: 'Аврора',   sidebar: '#0f1020', main: '#0a0c18',  own: '#1e1060',  other: '#151726' },
+    { id: 'ember',  name: 'Ember',    sidebar: '#18100a', main: '#100a04',  own: '#3d1f05',  other: '#1c120a' },
+    { id: 'forest', name: 'Лес',      sidebar: '#091410', main: '#050e08',  own: '#0d3320',  other: '#0d1a14' },
+    { id: 'rose',   name: 'Розовая',  sidebar: '#1a0e18', main: '#110810',  own: '#3d1030',  other: '#1e1020' },
 ];
 
-const themeColors = { dark: '#0a0f1e', light: '#f0f4fb', gray: '#151618', green: '#091412' };
+const themeColors = { dark: '#0d0d12', light: '#eef1f8', aurora: '#0a0c18', ember: '#100a04', forest: '#050e08', rose: '#110810' };
 
 function applyTheme(themeId) {
     document.documentElement.setAttribute('data-theme', themeId);
     localStorage.setItem('theme', themeId);
     const meta = document.getElementById('themeColorMeta');
-    if (meta) meta.setAttribute('content', themeColors[themeId] || '#0a0f1e');
+    if (meta) meta.setAttribute('content', themeColors[themeId] || '#0d0d12');
     document.querySelectorAll('.theme-card').forEach(card => {
         card.classList.toggle('active', card.dataset.theme === themeId);
     });
@@ -1678,22 +1680,28 @@ function initThemePanel() {
     if (window.innerWidth <= 768) sidebar.classList.add('open');
     const grid = document.getElementById('themeGrid');
     if (!grid) return;
-    grid.innerHTML = ''; // guard против дублирования
+    grid.innerHTML = '';
     const currentTheme = localStorage.getItem('theme') || 'dark';
+    const accents = { dark: '#6c8fff', light: '#3b72e8', aurora: '#a78bfa', ember: '#f59e0b', forest: '#34d399', rose: '#f472b6' };
     themes.forEach(t => {
         const card = document.createElement('div');
         card.className = 'theme-card' + (t.id === currentTheme ? ' active' : '');
         card.dataset.theme = t.id;
         card.onclick = () => applyTheme(t.id);
+        const accent = accents[t.id] || '#6c8fff';
         card.innerHTML = `
-            <div class="theme-preview">
-                <div class="theme-preview-sidebar" style="background:${t.sidebar}"></div>
+            <div class="theme-preview" style="border-color:${t.id === currentTheme ? accent : 'transparent'}">
+                <div class="theme-preview-sidebar" style="background:${t.sidebar}">
+                    <div style="width:70%;height:5px;border-radius:3px;background:${accent};opacity:0.7;margin:4px auto 2px;"></div>
+                    <div style="width:55%;height:3px;border-radius:2px;background:rgba(255,255,255,0.1);margin:2px auto;"></div>
+                    <div style="width:65%;height:3px;border-radius:2px;background:rgba(255,255,255,0.1);margin:2px auto;"></div>
+                </div>
                 <div class="theme-preview-main" style="background:${t.main}">
-                    <div class="theme-preview-msg other" style="background:${t.other}"></div>
-                    <div class="theme-preview-msg own" style="background:${t.own}"></div>
+                    <div class="theme-preview-msg other" style="background:${t.other};border:1px solid rgba(255,255,255,0.06);"></div>
+                    <div class="theme-preview-msg own" style="background:${accent};opacity:0.85;"></div>
                 </div>
             </div>
-            <div class="theme-name">${t.name}</div>
+            <div class="theme-name" style="color:${t.id === currentTheme ? accent : ''}">${t.name}</div>
         `;
         grid.appendChild(card);
     });
