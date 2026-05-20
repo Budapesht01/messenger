@@ -3406,3 +3406,179 @@ function registerGroupUpdatedHandler() {
         }
     });
 }
+
+// ═══════════════════════════════════════════════
+// NOTIFICATIONS
+// ═══════════════════════════════════════════════
+function requestNotifPermission() {
+    if (!('Notification' in window)) return;
+    Notification.requestPermission().then(p => {
+        const btn = document.getElementById('notifPermBtn');
+        if (btn) btn.textContent = p === 'granted' ? '✅ Уведомления включены' : '🔕 Доступ запрещён';
+    });
+}
+
+// Sound notification
+const _notifAudioCtx = { ctx: null };
+function playNotifSound() {
+    if (!document.getElementById('soundToggle')?.checked) return;
+    try {
+        if (!_notifAudioCtx.ctx) _notifAudioCtx.ctx = new (window.AudioContext || window.webkitAudioContext)();
+        const ctx = _notifAudioCtx.ctx;
+        const o1 = ctx.createOscillator();
+        const o2 = ctx.createOscillator();
+        const gain = ctx.createGain();
+        o1.connect(gain); o2.connect(gain); gain.connect(ctx.destination);
+        o1.type = 'sine'; o2.type = 'sine';
+        o1.frequency.setValueAtTime(880, ctx.currentTime);
+        o1.frequency.exponentialRampToValueAtTime(660, ctx.currentTime + 0.12);
+        o2.frequency.setValueAtTime(1100, ctx.currentTime + 0.08);
+        o2.frequency.exponentialRampToValueAtTime(880, ctx.currentTime + 0.2);
+        gain.gain.setValueAtTime(0, ctx.currentTime);
+        gain.gain.linearRampToValueAtTime(0.18, ctx.currentTime + 0.01);
+        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.28);
+        o1.start(ctx.currentTime); o1.stop(ctx.currentTime + 0.28);
+        o2.start(ctx.currentTime + 0.08); o2.stop(ctx.currentTime + 0.28);
+    } catch(e) {}
+}
+
+function saveSoundPref(val) { localStorage.setItem('soundEnabled', val ? '1' : '0'); }
+
+// Override showNotification to also play sound
+const _origShowNotif = window.showNotification;
+window.showNotification = function(text, opts = {}) {
+    playNotifSound();
+    if (Notification.permission === 'granted' && document.hidden) {
+        const n = new Notification('Mesht', { body: text, icon: '/logo.png', ...opts });
+        setTimeout(() => n.close(), 5000);
+    }
+    // In-app toast
+    showToast(text);
+};
+
+function showToast(text) {
+    let toast = document.getElementById('appToast');
+    if (!toast) {
+        toast = document.createElement('div');
+        toast.id = 'appToast';
+        toast.style.cssText = 'position:fixed;bottom:80px;left:50%;transform:translateX(-50%) translateY(20px);background:#1e1e2e;border:1px solid rgba(255,255,255,0.12);color:#e8e8e8;padding:10px 18px;border-radius:12px;font-size:13px;z-index:9990;opacity:0;transition:all 0.25s ease;pointer-events:none;max-width:320px;text-align:center;box-shadow:0 8px 24px rgba(0,0,0,0.4);';
+        document.body.appendChild(toast);
+    }
+    toast.textContent = text;
+    toast.style.opacity = '1';
+    toast.style.transform = 'translateX(-50%) translateY(0)';
+    clearTimeout(toast._t);
+    toast._t = setTimeout(() => {
+        toast.style.opacity = '0';
+        toast.style.transform = 'translateX(-50%) translateY(20px)';
+    }, 3000);
+}
+
+// ═══════════════════════════════════════════════
+// DELETE ACCOUNT
+// ═══════════════════════════════════════════════
+function confirmDeleteAccount() {
+    showConfirm(
+        'Удалить аккаунт',
+        'Все ваши сообщения, группы и каналы будут удалены безвозвратно. Это действие нельзя отменить.',
+        async () => {
+            const token = localStorage.getItem('token');
+            const res = await fetch('/api/me', {
+                method: 'DELETE',
+                headers: { Authorization: 'Bearer ' + token }
+            });
+            if (res.ok) {
+                localStorage.clear();
+                location.reload();
+            }
+        },
+        true
+    );
+}
+
+// ═══════════════════════════════════════════════
+// ONBOARDING
+// ═══════════════════════════════════════════════
+let _onboardStep = 1;
+const _onboardTotal = 4;
+
+function showOnboarding() {
+    if (localStorage.getItem('onboardingDone')) return;
+    _onboardStep = 1;
+    const overlay = document.getElementById('onboardingOverlay');
+    if (!overlay) return;
+    overlay.style.display = 'flex';
+    const card = document.getElementById('onboardingCard');
+    requestAnimationFrame(() => requestAnimationFrame(() => { card.style.opacity = '1'; card.style.transform = 'scale(1) translateY(0)'; }));
+    _renderOnboardDots();
+    _renderOnboardStep();
+}
+
+function _renderOnboardStep() {
+    document.querySelectorAll('.onboarding-step').forEach(s => s.classList.remove('active'));
+    const step = document.querySelector(`.onboarding-step[data-step="${_onboardStep}"]`);
+    if (step) step.classList.add('active');
+    const btn = document.getElementById('onboardingNextBtn');
+    if (btn) btn.textContent = _onboardStep === _onboardTotal ? 'Начать' : 'Далее';
+    _renderOnboardDots();
+}
+
+function _renderOnboardDots() {
+    const dots = document.getElementById('onboardingDots');
+    if (!dots) return;
+    dots.innerHTML = Array.from({length: _onboardTotal}, (_, i) =>
+        `<span class="onboarding-dot ${i + 1 === _onboardStep ? 'active' : ''}"></span>`
+    ).join('');
+}
+
+function onboardingNext() {
+    if (_onboardStep >= _onboardTotal) { onboardingSkip(); return; }
+    _onboardStep++;
+    _renderOnboardStep();
+}
+
+function onboardingSkip() {
+    localStorage.setItem('onboardingDone', '1');
+    const overlay = document.getElementById('onboardingOverlay');
+    const card = document.getElementById('onboardingCard');
+    if (card) { card.style.opacity = '0'; card.style.transform = 'scale(0.92) translateY(20px)'; }
+    setTimeout(() => { if (overlay) overlay.style.display = 'none'; }, 250);
+}
+
+// ═══════════════════════════════════════════════
+// SKELETON LOADING
+// ═══════════════════════════════════════════════
+function showSkeletons(containerId, count = 4) {
+    const container = document.getElementById(containerId);
+    if (!container) return;
+    const tmpl = document.getElementById('skeletonFriend');
+    if (!tmpl) return;
+    container.innerHTML = '';
+    for (let i = 0; i < count; i++) {
+        container.appendChild(tmpl.content.cloneNode(true));
+    }
+}
+
+// Patch loadFriends to show skeletons first
+const _origLoadFriends = window.loadFriends;
+window.loadFriends = async function() {
+    showSkeletons('friendsList', 5);
+    return _origLoadFriends ? _origLoadFriends.apply(this, arguments) : undefined;
+};
+
+// Init on login success
+const _origLoginSuccess = window.loginSuccess;
+window.loginSuccess = function(token, user) {
+    if (_origLoginSuccess) _origLoginSuccess.apply(this, arguments);
+    // Init sound pref
+    const saved = localStorage.getItem('soundEnabled');
+    const tog = document.getElementById('soundToggle');
+    if (tog && saved !== null) tog.checked = saved === '1';
+    // Show onboarding for new users
+    setTimeout(showOnboarding, 1200);
+    // Update notif button
+    setTimeout(() => {
+        const btn = document.getElementById('notifPermBtn');
+        if (btn && Notification.permission === 'granted') btn.textContent = '✅ Уведомления включены';
+    }, 500);
+};
