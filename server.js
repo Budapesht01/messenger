@@ -349,6 +349,23 @@ app.post('/api/password/reset', async (req, res) => {
 });
 
 // Смена пароля для авторизованного пользователя
+app.delete('/api/me', authenticateJWT, async (req, res) => {
+  const username = req.user.username;
+  await Message.deleteMany({ $or: [{ from: username }, { to: username }] });
+  const groups = await Group.find({ members: username });
+  for (const g of groups) {
+    if (g.owner === username) { await Group.findByIdAndDelete(g._id); }
+    else { g.members = g.members.filter(m => m !== username); await g.save(); }
+  }
+  const channels = await Channel.find({ owner: username });
+  for (const ch of channels) {
+    await Post.deleteMany({ channelId: ch._id });
+    await Channel.findByIdAndDelete(ch._id);
+  }
+  await User.findOneAndDelete({ username });
+  res.json({ ok: true });
+});
+
 app.post('/api/change-password', authenticateJWT, async (req, res) => {
   const { oldPassword, newPassword } = req.body;
   if (!oldPassword || !newPassword) return res.status(400).json({ error: 'All fields required' });
