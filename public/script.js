@@ -161,6 +161,10 @@ function loginSuccess(token, user) {
     loadUnread();
     document.querySelector('.chat-title').innerText = 'Выберите чат';
     document.getElementById('messageInput').placeholder = 'Выберите чат...';
+    document.getElementById('messages').innerHTML = '';
+    currentChat = null;
+    currentGroupId = null;
+    currentChannelId = null;
 }
 
 function logout() {
@@ -308,7 +312,7 @@ function initSocket(token) {
     socket.on('new_channel_post', (data) => {
         if (currentChannelId && String(data.channelId) === String(currentChannelId)) {
             const list = document.getElementById('channelPostsList');
-            if (list) renderPost(data.post, list);
+            if (list) { renderPost(data.post, list); list.scrollTop = list.scrollHeight; }
         }
         // Badge + notification if not in this channel
         if (!currentChannelId || String(data.channelId) !== String(currentChannelId)) {
@@ -627,12 +631,19 @@ function addMessageToChat(msg) {
     if (isOwn) {
         if (currentGroupId) {
             // Group: show read if anyone other than sender has read
-            const readByOthers = msg.readBy && msg.readBy.filter(u => u !== currentUser.username);
+            const readByOthers = msg.readBy && msg.readBy.filter(u => u !== currentUser?.username);
             const isRead = readByOthers && readByOthers.length > 0;
-            readStatusHtml = `<span class="read-status ${isRead ? 'read' : ''}">✓</span>`;
+            readStatusHtml = `<span class="read-status ${isRead ? 'read' : 'delivered'}">✓✓</span>`;
         } else {
             const isRead = msg.readBy && msg.readBy.includes(currentChat || '');
-            readStatusHtml = `<span class="read-status ${isRead ? 'read' : ''}">✓</span>`;
+            const isDelivered = msg.readBy && msg.readBy.length > 0;
+            if (isRead) {
+                readStatusHtml = `<span class="read-status read">✓✓</span>`;
+            } else if (isDelivered) {
+                readStatusHtml = `<span class="read-status delivered">✓✓</span>`;
+            } else {
+                readStatusHtml = `<span class="read-status">✓</span>`;
+            }
         }
     }
 
@@ -981,7 +992,8 @@ function startInlineEdit(msg) {
 
     // Подменяем sendMessage на сохранение правки
     document.getElementById('sendBtn').onclick = saveInlineEdit;
-    input.onkeypress = (e) => { if (e.key === 'Enter') saveInlineEdit(); };
+    input._editHandler = (e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); saveInlineEdit(); } };
+    input.addEventListener('keydown', input._editHandler);
 }
 
 function saveInlineEdit() {
@@ -995,11 +1007,11 @@ function saveInlineEdit() {
 
 function cancelInlineEdit() {
     editingMsgId = null;
-    document.getElementById('messageInput').value = '';
+    const input = document.getElementById('messageInput');
+    input.value = '';
+    if (input._editHandler) { input.removeEventListener('keydown', input._editHandler); input._editHandler = null; }
     clearReply();
-    // Восстанавливаем обычный sendMessage
     document.getElementById('sendBtn').onclick = sendMessage;
-    document.getElementById('messageInput').onkeypress = (e) => { if (e.key === 'Enter') sendMessage(); };
 }
 
 // Удаление с подтверждением
@@ -1888,7 +1900,9 @@ if (isAdmin) {
 };
 
 document.getElementById('sendBtn').onclick = sendMessage;
-document.getElementById('messageInput').onkeypress = (e) => { if (e.key === 'Enter') sendMessage(); };
+document.getElementById('messageInput').addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' && !e.shiftKey && !editingMsgId) { e.preventDefault(); sendMessage(); }
+});
 document.getElementById('logoutBtn').onclick = logout;
 
 // ========== WebRTC Звонки ==========
@@ -2708,7 +2722,8 @@ async function loadChannelPosts() {
         list.innerHTML = '<div style="padding:30px; text-align:center; color:var(--text-secondary); font-size:13px;">Постов пока нет</div>';
         return;
     }
-    posts.forEach(post => renderPost(post, list));
+    [...posts].reverse().forEach(post => renderPost(post, list));
+    list.scrollTop = list.scrollHeight;
 }
 
 const REACTION_EMOJIS = ['❤️','🔥','👍','😂','😮','😢','👏','🎉'];
