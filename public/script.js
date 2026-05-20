@@ -204,8 +204,8 @@ function initSocket(token) {
             // Add unread badge to group item
             const groupEl = document.querySelector(`[data-chat-key="group_${msg.groupId}"]`);
             if (groupEl) {
-                let badge = groupEl.querySelector('.unread-count');
-                if (!badge) { badge = document.createElement('span'); badge.className = 'unread-count'; groupEl.appendChild(badge); }
+                let badge = groupEl.querySelector('.unread-badge');
+                if (!badge) { badge = document.createElement('span'); badge.className = 'unread-badge'; groupEl.appendChild(badge); }
                 badge.innerText = (parseInt(badge.innerText) || 0) + 1;
             }
             showNotification(`💬 Сообщение в группе`);
@@ -310,9 +310,15 @@ function initSocket(token) {
             const list = document.getElementById('channelPostsList');
             if (list) renderPost(data.post, list);
         }
-        // Уведомление если не в этом канале
+        // Badge + notification if not in this channel
         if (!currentChannelId || String(data.channelId) !== String(currentChannelId)) {
             showNotification(`📢 ${data.channelName}: новый пост`);
+            const chEl = document.querySelector(`.channel-item[data-id="${data.channelId}"]`);
+            if (chEl) {
+                let badge = chEl.querySelector('.unread-badge');
+                if (!badge) { badge = document.createElement('span'); badge.className = 'unread-badge'; chEl.appendChild(badge); }
+                badge.innerText = (parseInt(badge.innerText) || 0) + 1;
+            }
         }
     });
 socket.on('post_reaction_updated', (data) => {
@@ -339,6 +345,13 @@ socket.on('post_reaction_updated', (data) => {
             else document.getElementById('noChatSelected').style.display = 'flex';
         }
         loadGroups();
+    });
+    socket.on('group_messages_read', (data) => {
+        if (currentGroupId && currentGroupId === String(data.groupId)) {
+            document.querySelectorAll('.message.own .read-status').forEach(el => {
+                el.innerHTML = '✓✓'; el.classList.add('read');
+            });
+        }
     });
     socket.on('group_member_joined', () => loadGroups());
     socket.on('group_member_left', () => loadGroups());
@@ -486,10 +499,25 @@ async function apiFetch(url, options = {}) {
 
 async function loadUnread() {
     const token = localStorage.getItem('token');
+    // DM unread
     const res = await fetch('/api/unread', { headers: { 'Authorization': `Bearer ${token}` } });
     if (res.ok) {
         unreadCounts = await res.json();
         Object.entries(unreadCounts).forEach(([user, count]) => updateUnreadBadge(user));
+    }
+    // Group unread
+    const gRes = await fetch('/api/unread/groups', { headers: { 'Authorization': `Bearer ${token}` } });
+    if (gRes.ok) {
+        const groupCounts = await gRes.json();
+        Object.entries(groupCounts).forEach(([groupId, count]) => {
+            const el = document.querySelector(`[data-chat-key="group_${groupId}"]`);
+            if (!el) return;
+            let badge = el.querySelector('.unread-badge');
+            if (count > 0) {
+                if (!badge) { badge = document.createElement('span'); badge.className = 'unread-badge'; el.appendChild(badge); }
+                badge.innerText = count > 99 ? '99+' : count;
+            } else if (badge) badge.remove();
+        });
     }
 }
 
@@ -593,9 +621,20 @@ function addMessageToChat(msg) {
         textHtml = `<div class="message-text">${formatText(msg.text)}</div>`;
     }
 
-    // Read status (only for own)
-    const isRead = msg.readBy && msg.readBy.includes(currentChat || '');
-    const readStatusHtml = isOwn ? `<span class="read-status ${isRead ? 'read' : ''}">✓</span>` : '';
+    // Read status (only for own messages)
+    // In DM: check if currentChat read it; in group: show ✓ always, ✓✓ if anyone read it
+    let readStatusHtml = '';
+    if (isOwn) {
+        if (currentGroupId) {
+            // Group: show read if anyone other than sender has read
+            const readByOthers = msg.readBy && msg.readBy.filter(u => u !== currentUser.username);
+            const isRead = readByOthers && readByOthers.length > 0;
+            readStatusHtml = `<span class="read-status ${isRead ? 'read' : ''}">✓</span>`;
+        } else {
+            const isRead = msg.readBy && msg.readBy.includes(currentChat || '');
+            readStatusHtml = `<span class="read-status ${isRead ? 'read' : ''}">✓</span>`;
+        }
+    }
 
     // Аватарка: берём из DOM текущих друзей для актуальности
     const senderAvatar = msg.avatar || '😀';
@@ -1032,6 +1071,15 @@ function restoreDraft(key) {
     input.value = chatDrafts[key] || '';
 }
 
+function triggerChatOpenAnim() {
+    const main = document.querySelector('.main');
+    if (!main) return;
+    main.classList.remove('chat-opening');
+    void main.offsetWidth; // reflow
+    main.classList.add('chat-opening');
+    setTimeout(() => main.classList.remove('chat-opening'), 300);
+}
+
 function switchChat(username) {
     saveDraft();
     currentChat = username; currentGroupId = null;
@@ -1047,6 +1095,7 @@ function switchChat(username) {
     restoreDraft('dm_' + username);
     // Set subtitle from friend list
     setChatSubtitle(username);
+    triggerChatOpenAnim();
     fetchHistoryForUser(username);
     markRead(username);
     sidebar.classList.remove('open');
@@ -1113,6 +1162,7 @@ async function switchGroupChat(groupId, groupName) {
     restoreDraft('group_' + groupId);
     sidebar.classList.remove('open');
     setActiveChatItem('group_' + groupId);
+    triggerChatOpenAnim();
     const token = localStorage.getItem('token');
     const res = await fetch(`/api/groups/${groupId}/messages`, { headers: { 'Authorization': `Bearer ${token}` } });
     if (res.ok) renderMessages(await res.json());
@@ -1120,7 +1170,7 @@ async function switchGroupChat(groupId, groupName) {
     if (socket) socket.emit('mark_group_read', { groupId });
     // Clear unread badge on this group item
     const groupEl = document.querySelector(`[data-chat-key="group_${groupId}"]`);
-    if (groupEl) { const badge = groupEl.querySelector('.unread-count'); if (badge) badge.remove(); }
+    if (groupEl) { const badge = groupEl.querySelector('.unread-badge'); if (badge) badge.remove(); }
     if (window.innerWidth <= 768) document.getElementById('backBtn').style.display = 'flex';
 }
 
@@ -2606,7 +2656,11 @@ async function openChannel(ch) {
     // Mark active
     document.querySelectorAll('.channel-item').forEach(el => el.classList.remove('active-channel'));
     const activeEl = document.querySelector(`.channel-item[data-id="${ch._id}"]`);
-    if (activeEl) activeEl.classList.add('active-channel');
+    if (activeEl) {
+        activeEl.classList.add('active-channel');
+        const badge = activeEl.querySelector('.unread-badge');
+        if (badge) badge.remove();
+    }
 
     document.getElementById('channelViewAvatar').textContent = ch.avatar || '📢';
     document.getElementById('channelViewName').textContent = ch.name;
@@ -2639,6 +2693,7 @@ async function openChannel(ch) {
         const chBack = document.getElementById('channelBackBtn');
         if (chBack) chBack.style.display = 'flex';
     }
+    triggerChatOpenAnim();
     await loadChannelPosts();
 }
 
