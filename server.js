@@ -1141,7 +1141,7 @@ app.post('/api/channels/:id/subscribe', authenticateJWT, async (req, res) => {
   res.json({ subscribed: idx === -1, count: ch.subscribers.length });
 });
 app.get('/api/channels/:id/posts', authenticateJWT, async (req, res) => {
-  const posts = await Post.find({ channelId: req.params.id }).sort({ createdAt: -1 }).limit(50);
+  const posts = await Post.find({ channelId: req.params.id }).sort({ createdAt: 1 }).limit(50);
   res.json(posts);
 });
 app.post('/api/channels/:id/posts', authenticateJWT, async (req, res) => {
