@@ -3595,3 +3595,271 @@ body::before, body::after { display: none !important; }
 .channel-posts-area {
     background: var(--bg-gradient);
 }
+
+/* ═══════════════════════════════════════════════════
+   TYPOGRAPHY PREMIUM OVERHAUL
+═══════════════════════════════════════════════════ */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+:root {
+    --font: 'Inter', 'DM Sans', -apple-system, sans-serif;
+    --fs-xs:   11px;
+    --fs-sm:   12px;
+    --fs-base: 13.5px;
+    --fs-md:   14px;
+    --fs-lg:   16px;
+    --fs-xl:   18px;
+    --fs-2xl:  22px;
+    --fw-regular: 400;
+    --fw-medium:  500;
+    --fw-semi:    600;
+    --fw-bold:    700;
+    --lh-tight:  1.3;
+    --lh-normal: 1.5;
+    --lh-loose:  1.65;
+}
+
+body { font-size: var(--fs-base); line-height: var(--lh-normal); letter-spacing: -0.01em; }
+
+/* Message text */
+.message-text { font-size: var(--fs-md); line-height: var(--lh-loose); }
+
+/* Chat title */
+.chat-title { font-size: var(--fs-lg); font-weight: var(--fw-semi); letter-spacing: -0.02em; }
+
+/* Sidebar names */
+.user-item-name, .group-name, .channel-name { font-weight: var(--fw-medium); font-size: var(--fs-base); }
+
+/* Timestamps */
+.msg-time, .post-meta-time, .post-bubble-time { font-size: var(--fs-xs); letter-spacing: 0.02em; }
+
+/* Section headers */
+.settings-section-title, .group-profile-section-title, .cp-section-title {
+    font-size: var(--fs-xs);
+    font-weight: var(--fw-bold);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+/* Input fields */
+input, textarea, .modal-input {
+    font-size: var(--fs-md) !important;
+    letter-spacing: -0.01em;
+}
+
+/* Buttons */
+.primary-btn, .secondary-btn {
+    font-size: var(--fs-sm);
+    font-weight: var(--fw-semi);
+    letter-spacing: 0.01em;
+}
+
+/* ═══════════════════════════════════════════════════
+   PREMIUM ANIMATIONS
+═══════════════════════════════════════════════════ */
+@keyframes fadeSlideUp {
+    from { opacity: 0; transform: translateY(10px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes fadeIn {
+    from { opacity: 0; } to { opacity: 1; }
+}
+@keyframes scaleIn {
+    from { opacity: 0; transform: scale(0.94); }
+    to   { opacity: 1; transform: scale(1); }
+}
+@keyframes shimmer {
+    0%   { background-position: -400px 0; }
+    100% { background-position: 400px 0; }
+}
+
+/* Chat open animation */
+.chat-area-animate { animation: fadeSlideUp 0.22s ease forwards; }
+
+/* Message appear */
+.message { animation: fadeSlideUp 0.18s ease forwards; }
+
+/* Modal cards */
+.modal-card { animation: scaleIn 0.2s cubic-bezier(0.34,1.2,0.64,1) forwards; }
+
+/* Sidebar items */
+.friend-item, .group-item, .channel-item {
+    transition: background 0.15s ease, transform 0.1s ease;
+}
+.friend-item:hover, .group-item:hover, .channel-item:hover {
+    transform: translateX(2px);
+}
+
+/* Send button pulse on active */
+.send-btn:active { transform: scale(0.9); }
+
+/* Primary button */
+.primary-btn {
+    transition: background 0.15s, transform 0.1s, box-shadow 0.15s;
+}
+.primary-btn:hover { transform: translateY(-1px); box-shadow: 0 4px 16px rgba(85,136,204,0.35); }
+.primary-btn:active { transform: translateY(0) scale(0.97); }
+
+/* ═══════════════════════════════════════════════════
+   SKELETON LOADING
+═══════════════════════════════════════════════════ */
+.skeleton-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 14px;
+    animation: fadeIn 0.3s ease;
+}
+.skeleton-avatar {
+    width: 42px;
+    height: 42px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    background: linear-gradient(90deg, rgba(255,255,255,0.05) 25%, rgba(255,255,255,0.1) 50%, rgba(255,255,255,0.05) 75%);
+    background-size: 400px 100%;
+    animation: shimmer 1.4s infinite linear;
+}
+.skeleton-lines {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+.skeleton-line {
+    height: 10px;
+    border-radius: 6px;
+    background: linear-gradient(90deg, rgba(255,255,255,0.05) 25%, rgba(255,255,255,0.1) 50%, rgba(255,255,255,0.05) 75%);
+    background-size: 400px 100%;
+    animation: shimmer 1.4s infinite linear;
+}
+.skeleton-line.w70 { width: 70%; }
+.skeleton-line.w45 { width: 45%; animation-delay: 0.15s; }
+.skeleton-line.w55 { width: 55%; }
+.skeleton-line.w30 { width: 30%; animation-delay: 0.1s; }
+
+/* ═══════════════════════════════════════════════════
+   ONBOARDING
+═══════════════════════════════════════════════════ */
+.onboarding-card {
+    background: var(--glass-card);
+    border: 1px solid var(--border-strong);
+    border-radius: 24px;
+    width: 380px;
+    max-width: 92vw;
+    padding: 36px 32px 28px;
+    box-shadow: 0 32px 80px rgba(0,0,0,0.6);
+    opacity: 0;
+    transform: scale(0.92) translateY(20px);
+    transition: opacity 0.3s ease, transform 0.3s cubic-bezier(0.34,1.2,0.64,1);
+}
+.onboarding-steps { position: relative; min-height: 180px; }
+.onboarding-step {
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    animation: fadeSlideUp 0.25s ease forwards;
+}
+.onboarding-step.active { display: flex; }
+.onboarding-icon {
+    font-size: 56px;
+    margin-bottom: 20px;
+    filter: drop-shadow(0 4px 12px rgba(0,0,0,0.4));
+}
+.onboarding-title {
+    font-size: var(--fs-xl);
+    font-weight: var(--fw-bold);
+    color: var(--text-primary);
+    margin: 0 0 10px;
+    letter-spacing: -0.03em;
+}
+.onboarding-desc {
+    font-size: var(--fs-base);
+    color: var(--text-secondary);
+    line-height: var(--lh-loose);
+    margin: 0;
+}
+.onboarding-dots {
+    display: flex;
+    justify-content: center;
+    gap: 6px;
+    margin: 24px 0 20px;
+}
+.onboarding-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--border-strong);
+    transition: all 0.2s ease;
+}
+.onboarding-dot.active {
+    width: 20px;
+    border-radius: 3px;
+    background: var(--accent);
+}
+.onboarding-footer {
+    display: flex;
+    gap: 10px;
+}
+.onboarding-footer .secondary-btn { flex: 1; }
+.onboarding-footer .primary-btn { flex: 2; }
+
+/* ═══════════════════════════════════════════════════
+   TOGGLE SWITCH
+═══════════════════════════════════════════════════ */
+.toggle-switch {
+    position: relative;
+    display: inline-block;
+    width: 44px;
+    height: 24px;
+    flex-shrink: 0;
+}
+.toggle-switch input { opacity: 0; width: 0; height: 0; }
+.toggle-slider {
+    position: absolute;
+    inset: 0;
+    background: var(--glass-input);
+    border-radius: 12px;
+    border: 1px solid var(--border);
+    cursor: pointer;
+    transition: background 0.2s;
+}
+.toggle-slider::before {
+    content: '';
+    position: absolute;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: #fff;
+    top: 2px;
+    left: 2px;
+    transition: transform 0.2s cubic-bezier(0.34,1.5,0.64,1);
+    box-shadow: 0 1px 4px rgba(0,0,0,0.3);
+}
+.toggle-switch input:checked + .toggle-slider { background: var(--accent); border-color: var(--accent); }
+.toggle-switch input:checked + .toggle-slider::before { transform: translateX(20px); }
+
+/* ═══════════════════════════════════════════════════
+   EMPTY STATES (убрать унылые надписи)
+═══════════════════════════════════════════════════ */
+.empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    padding: 40px 20px;
+    color: var(--text-muted);
+    text-align: center;
+}
+.empty-state-icon { font-size: 42px; opacity: 0.6; }
+.empty-state-text { font-size: var(--fs-sm); line-height: var(--lh-loose); max-width: 200px; }
+
+/* ═══════════════════════════════════════════════════
+   PREMIUM SCROLLBAR
+═══════════════════════════════════════════════════ */
+* { scrollbar-width: thin; scrollbar-color: rgba(255,255,255,0.1) transparent; }
+::-webkit-scrollbar { width: 4px; height: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 2px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.18); }
