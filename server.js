@@ -521,6 +521,23 @@ app.get('/api/unread', authenticateJWT, async (req, res) => {
   res.json(counts);
 });
 
+app.get('/api/unread/groups', authenticateJWT, async (req, res) => {
+  const user = await User.findOne({ username: req.user.username });
+  if (!user) return res.json({});
+  const groups = await Group.find({ members: req.user.username });
+  const counts = {};
+  for (const group of groups) {
+    const count = await Message.countDocuments({
+      groupId: group._id,
+      from: { $ne: req.user.username },
+      readBy: { $ne: req.user.username },
+      deleted: false
+    });
+    if (count > 0) counts[String(group._id)] = count;
+  }
+  res.json(counts);
+});
+
 // Реакция на сообщение
 app.post('/api/messages/:id/react', authenticateJWT, async (req, res) => {
   const { emoji } = req.body;
