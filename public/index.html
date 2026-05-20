@@ -753,6 +753,25 @@
                     Сменить пароль
                 </button>
                 <hr class="settings-divider">
+                <div class="settings-section-title">Уведомления</div>
+                <button class="secondary-btn settings-full-btn" id="notifPermBtn" onclick="requestNotifPermission()">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/></svg>
+                    Включить уведомления
+                </button>
+                <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 0;">
+                    <span style="font-size:13px;color:var(--text-secondary);">Звук уведомлений</span>
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="soundToggle" onchange="saveSoundPref(this.checked)" checked>
+                        <span class="toggle-slider"></span>
+                    </label>
+                </div>
+                <hr class="settings-divider">
+                <div class="settings-section-title">Опасная зона</div>
+                <button class="settings-full-btn" style="background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.25);color:#f87171;border-radius:10px;padding:10px 14px;cursor:pointer;font-family:inherit;font-size:13px;display:flex;align-items:center;gap:8px;width:100%;" onclick="confirmDeleteAccount()">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/></svg>
+                    Удалить аккаунт
+                </button>
+                <hr class="settings-divider">
                 <div class="settings-section-title">Поддержка</div>
                 <a href="https://t.me/Maksimkamolodec" target="_blank" class="secondary-btn settings-full-btn settings-tg-btn">
                     <svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16"><path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.562 8.248l-2.04 9.61c-.152.67-.548.835-1.11.52l-3.063-2.257-1.478 1.42c-.164.164-.3.3-.613.3l.218-3.1 5.636-5.092c.245-.218-.054-.34-.38-.122L7.26 14.41l-3.018-.944c-.656-.205-.67-.656.137-.97l11.79-4.55c.545-.2 1.022.133.393.302z"/></svg>
@@ -762,6 +781,55 @@
         </div>
     </div>
 </div>
+    <!-- Onboarding overlay -->
+    <div id="onboardingOverlay" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.85);align-items:center;justify-content:center;backdrop-filter:blur(8px);">
+        <div class="onboarding-card" id="onboardingCard">
+            <div class="onboarding-steps">
+                <!-- Step 1 -->
+                <div class="onboarding-step active" data-step="1">
+                    <div class="onboarding-icon">👋</div>
+                    <h2 class="onboarding-title">Добро пожаловать в Mesht</h2>
+                    <p class="onboarding-desc">Мессенджер для общения с друзьями, группами и каналами. Быстро, удобно, красиво.</p>
+                </div>
+                <!-- Step 2 -->
+                <div class="onboarding-step" data-step="2">
+                    <div class="onboarding-icon">💬</div>
+                    <h2 class="onboarding-title">Личные сообщения</h2>
+                    <p class="onboarding-desc">Найди друзей через поиск, отправь запрос — и начни общаться. Поддержка голосовых сообщений, фото и реакций.</p>
+                </div>
+                <!-- Step 3 -->
+                <div class="onboarding-step" data-step="3">
+                    <div class="onboarding-icon">👥</div>
+                    <h2 class="onboarding-title">Группы и каналы</h2>
+                    <p class="onboarding-desc">Создавай группы для общения или каналы для публикаций. Приглашай людей по ссылке.</p>
+                </div>
+                <!-- Step 4 -->
+                <div class="onboarding-step" data-step="4">
+                    <div class="onboarding-icon">🔔</div>
+                    <h2 class="onboarding-title">Включи уведомления</h2>
+                    <p class="onboarding-desc">Не пропускай сообщения — разреши уведомления браузера чтобы получать их даже когда вкладка свёрнута.</p>
+                    <button class="primary-btn" style="margin-top:12px;width:100%;" onclick="requestNotifPermission();onboardingNext()">Включить уведомления</button>
+                </div>
+            </div>
+            <div class="onboarding-dots" id="onboardingDots"></div>
+            <div class="onboarding-footer">
+                <button class="secondary-btn" onclick="onboardingSkip()">Пропустить</button>
+                <button class="primary-btn" id="onboardingNextBtn" onclick="onboardingNext()">Далее</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Skeleton screens -->
+    <template id="skeletonFriend">
+        <div class="skeleton-item">
+            <div class="skeleton-avatar"></div>
+            <div class="skeleton-lines">
+                <div class="skeleton-line w70"></div>
+                <div class="skeleton-line w45"></div>
+            </div>
+        </div>
+    </template>
+
     <script src="/socket.io/socket.io.js"></script>
     <script src="script.js?v=glass1"></script>
     <script>
