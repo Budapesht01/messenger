@@ -3550,14 +3550,29 @@ body::before, body::after { display: none !important; }
     box-shadow: 0 0 0 1px var(--accent-dim);
 }
 
-/* ========== Mobile theme backgrounds (force apply) ========== */
+/* ========== Mobile theme backgrounds (force apply on ALL screen sizes) ========== */
 @media (max-width: 768px) {
-    [data-theme="dark"] .messages { background: radial-gradient(ellipse 80% 60% at 50% 100%, rgba(108,143,255,0.07) 0%, transparent 70%), url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%236c8fff' fill-opacity='0.03'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E"), #0d0d12 !important; }
-    [data-theme="aurora"] .messages { background: radial-gradient(ellipse 90% 60% at 50% 0%, rgba(167,139,250,0.13) 0%, transparent 55%), radial-gradient(ellipse 70% 50% at 100% 100%, rgba(34,211,238,0.09) 0%, transparent 55%), #0a0c18 !important; }
-    [data-theme="ember"] .messages { background: radial-gradient(ellipse 70% 50% at 50% 100%, rgba(245,158,11,0.10) 0%, transparent 65%), #100a04 !important; }
-    [data-theme="forest"] .messages { background: radial-gradient(ellipse 80% 55% at 20% 80%, rgba(52,211,153,0.10) 0%, transparent 60%), radial-gradient(ellipse 60% 40% at 80% 20%, rgba(52,211,153,0.07) 0%, transparent 55%), #050e08 !important; }
-    [data-theme="rose"] .messages { background: radial-gradient(ellipse 70% 45% at 70% 0%, rgba(244,114,182,0.10) 0%, transparent 60%), #110810 !important; }
-    [data-theme="light"] .messages { background: url("data:image/svg+xml,%3Csvg width='40' height='40' viewBox='0 0 40 40' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='%233b72e8' fill-opacity='0.04' fill-rule='evenodd'%3E%3Cpath d='M0 40L40 0H20L0 20M40 40V20L20 40'/%3E%3C/g%3E%3C/svg%3E"), #eef1f8 !important; }
+    /* Apply theme bg to .main itself so fixed positioning doesn't break it */
+    [data-theme="dark"] .main,
+    [data-theme="dark"] .messages { background: #0d0d12 !important; }
+    [data-theme="aurora"] .main,
+    [data-theme="aurora"] .messages { background: #0a0c18 !important; }
+    [data-theme="ember"] .main,
+    [data-theme="ember"] .messages { background: #100a04 !important; }
+    [data-theme="forest"] .main,
+    [data-theme="forest"] .messages { background: #050e08 !important; }
+    [data-theme="rose"] .main,
+    [data-theme="rose"] .messages { background: #110810 !important; }
+    [data-theme="light"] .main,
+    [data-theme="light"] .messages { background: #eef1f8 !important; }
+
+    /* Gradient overlays only on messages */
+    [data-theme="dark"] .messages { background: radial-gradient(ellipse 100% 60% at 50% 100%, rgba(108,143,255,0.10) 0%, transparent 65%), #0d0d12 !important; }
+    [data-theme="aurora"] .messages { background: radial-gradient(ellipse 100% 60% at 50% 0%, rgba(167,139,250,0.18) 0%, transparent 55%), radial-gradient(ellipse 80% 50% at 100% 100%, rgba(34,211,238,0.12) 0%, transparent 55%), #0a0c18 !important; }
+    [data-theme="ember"] .messages { background: radial-gradient(ellipse 100% 60% at 50% 100%, rgba(245,158,11,0.15) 0%, transparent 60%), #100a04 !important; }
+    [data-theme="forest"] .messages { background: radial-gradient(ellipse 100% 60% at 20% 80%, rgba(52,211,153,0.15) 0%, transparent 55%), radial-gradient(ellipse 80% 40% at 80% 20%, rgba(52,211,153,0.10) 0%, transparent 50%), #050e08 !important; }
+    [data-theme="rose"] .messages { background: radial-gradient(ellipse 100% 60% at 70% 0%, rgba(244,114,182,0.16) 0%, transparent 55%), #110810 !important; }
+    [data-theme="light"] .messages { background: #eef1f8 !important; }
     
     [data-theme="dark"] .channel-posts-area { background: radial-gradient(ellipse 80% 50% at 50% 100%, rgba(108,143,255,0.06) 0%, transparent 65%), #0d0d12 !important; }
     [data-theme="aurora"] .channel-posts-area { background: radial-gradient(ellipse 80% 55% at 50% 0%, rgba(167,139,250,0.12) 0%, transparent 55%), #0a0c18 !important; }
