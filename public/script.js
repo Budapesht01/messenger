@@ -3597,3 +3597,15 @@ window.loginSuccess = function(token, user) {
         if (btn && Notification.permission === 'granted') btn.textContent = '✅ Уведомления включены';
     }, 500);
 };
+
+// Mouse wheel horizontal scroll on tabs
+document.addEventListener('DOMContentLoaded', () => {
+    const tabs = document.querySelector('.tabs');
+    if (!tabs) return;
+    tabs.addEventListener('wheel', (e) => {
+        if (e.deltaY !== 0) {
+            e.preventDefault();
+            tabs.scrollLeft += e.deltaY * 0.8;
+        }
+    }, { passive: false });
+});
