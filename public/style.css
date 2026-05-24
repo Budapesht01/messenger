@@ -216,10 +216,16 @@ body {
     border-bottom: 1px solid var(--border);
     padding: 0 4px;
     gap: 2px;
+    overflow-x: auto;
+    overflow-y: hidden;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+    scroll-behavior: smooth;
 }
+.tabs::-webkit-scrollbar { display: none; }
 .tab-btn {
-    flex: 1;
-    padding: 10px 4px;
+    flex-shrink: 0;
+    padding: 10px 12px;
     background: none;
     border: none;
     cursor: pointer;
