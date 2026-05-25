@@ -1833,21 +1833,63 @@ function initAvatarPicker() {
     const avatarPreview = document.getElementById('avatarPreview');
     const pickerBtn = document.getElementById('pickAvatarBtn');
     const panel = document.getElementById('avatarEmojiPanel');
-    const grid = document.getElementById('avatarEmojiGrid');
     const catsContainer = document.getElementById('avatarEmojiCategories');
+    const grid = document.getElementById('avatarEmojiGrid');
     if (!avatarPreview || !pickerBtn) return;
+
+    // Rebuild avatar emoji panel TG-style
+    panel.innerHTML = `
+        <div class="ep-cats" id="avEpCats"></div>
+        <div class="ep-body" id="avEpBody"></div>
+    `;
+    const avCats = document.getElementById('avEpCats');
+    const avBody = document.getElementById('avEpBody');
     emojiCategories.forEach((cat, i) => {
         const btn = document.createElement('button');
-        btn.className = 'emoji-cat-btn' + (i === 0 ? ' active' : '');
-        btn.innerText = cat.icon;
-        btn.addEventListener('click', () => { document.querySelectorAll('#avatarEmojiCategories .emoji-cat-btn').forEach(b => b.classList.remove('active')); btn.classList.add('active'); renderGrid(cat.emojis); });
-        catsContainer.appendChild(btn);
+        btn.className = 'ep-cat-btn' + (i === 0 ? ' active' : '');
+        btn.title = cat.name; btn.innerText = cat.icon;
+        btn.onclick = () => {
+            document.querySelectorAll('#avEpCats .ep-cat-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            avBody.querySelector(`[data-acat="${i}"]`)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        };
+        avCats.appendChild(btn);
     });
-    function renderGrid(emojis) { grid.innerHTML = ''; emojis.forEach(e => { const span = document.createElement('span'); span.innerText = e; span.addEventListener('click', () => { avatarPreview.innerText = e; panel.classList.remove('open'); }); grid.appendChild(span); }); }
-    renderGrid(emojiCategories[0].emojis);
-    pickerBtn.addEventListener('click', (e) => { e.stopPropagation(); panel.classList.toggle('open'); });
-    document.addEventListener('click', (e) => { if (!panel.contains(e.target) && e.target !== pickerBtn) panel.classList.remove('open'); });
+    emojiCategories.forEach((cat, i) => {
+        const sec = document.createElement('div');
+        sec.dataset.acat = i;
+        if (cat.emojis.length === 0) { sec.innerHTML = '<div class="ep-empty">Нет недавних</div>'; avBody.appendChild(sec); return; }
+        const lbl = document.createElement('div'); lbl.className = 'ep-section-label'; lbl.innerText = cat.name;
+        const g = document.createElement('div'); g.className = 'ep-grid';
+        cat.emojis.forEach(e => {
+            const span = document.createElement('span'); span.innerText = e;
+            span.onclick = () => {
+                avatarPreview.innerHTML = '';
+                avatarPreview.innerText = e;
+                delete avatarPreview.dataset.photoUrl;
+                panel.classList.remove('open');
+            };
+            g.appendChild(span);
+        });
+        sec.appendChild(lbl); sec.appendChild(g); avBody.appendChild(sec);
+    });
+    avBody.addEventListener('scroll', () => {
+        const secs = avBody.querySelectorAll('[data-acat]');
+        let cur = 0;
+        secs.forEach((s, i) => { if (s.offsetTop <= avBody.scrollTop + 10) cur = i; });
+        document.querySelectorAll('#avEpCats .ep-cat-btn').forEach((b, i) => b.classList.toggle('active', i === cur));
+    }, { passive: true });
 
+    pickerBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const isOpen = panel.style.display === 'flex';
+        panel.style.display = isOpen ? 'none' : 'flex';
+    });
+    document.addEventListener('click', (e) => {
+        if (!panel.contains(e.target) && e.target !== pickerBtn) panel.style.display = 'none';
+    });
+
+    // Color picker
     const colorInput = document.getElementById('colorInput');
     const colorPreview = document.getElementById('colorPreview');
     const colorHex = document.getElementById('colorHex');
@@ -1858,31 +1900,20 @@ function initAvatarPicker() {
     colorInput.addEventListener('input', () => updateColor(colorInput.value));
     document.querySelectorAll('.color-preset').forEach(p => p.addEventListener('click', () => updateColor(p.dataset.color)));
 
-    // Photo upload handler
+    // Photo upload - open file dialog via JS, no label wrapper
+    const photoBtn = document.getElementById('uploadPhotoBtn');
     const photoInput = document.getElementById('avatarPhotoInput');
-    if (photoInput) {
+    if (photoBtn && photoInput) {
+        photoBtn.addEventListener('click', () => photoInput.click());
         photoInput.addEventListener('change', (e) => {
             const file = e.target.files[0];
             if (!file) return;
+            photoInput.value = ''; // reset so same file can be re-selected
             const reader = new FileReader();
-            reader.onload = (ev) => {
-                const img = new Image();
-                img.onload = () => {
-                    // Crop & resize to 128x128
-                    const canvas = document.createElement('canvas');
-                    canvas.width = 128; canvas.height = 128;
-                    const ctx = canvas.getContext('2d');
-                    const size = Math.min(img.width, img.height);
-                    const ox = (img.width - size) / 2;
-                    const oy = (img.height - size) / 2;
-                    ctx.drawImage(img, ox, oy, size, size, 0, 0, 128, 128);
-                    const dataUrl = canvas.toDataURL('image/jpeg', 0.85);
-                    // Show photo in preview
-                    avatarPreview.innerHTML = `<img src="${dataUrl}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">`;
-                    avatarPreview.dataset.photoUrl = dataUrl;
-                };
-                img.src = ev.target.result;
-            };
+            reader.onload = (ev) => openAvatarCropper(ev.target.result, (dataUrl) => {
+                avatarPreview.innerHTML = `<img src="${dataUrl}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">`;
+                avatarPreview.dataset.photoUrl = dataUrl;
+            });
             reader.readAsDataURL(file);
         });
     }
@@ -1893,6 +1924,99 @@ function escapeHtml(str) {
     if (!str) return '';
     return String(str).replace(/[&<>"]/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m]));
 }
+// ===== Photo Cropper (TG-style) =====
+function openAvatarCropper(src, onDone) {
+    // Remove existing cropper
+    document.getElementById('avatarCropperOverlay')?.remove();
+
+    const overlay = document.createElement('div');
+    overlay.id = 'avatarCropperOverlay';
+    overlay.style.cssText = 'position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.85);display:flex;flex-direction:column;align-items:center;justify-content:center;animation:fadeIn 0.2s ease;';
+
+    overlay.innerHTML = `
+        <div style="background:#1e1e2a;border-radius:20px;padding:20px;width:min(360px,90vw);display:flex;flex-direction:column;gap:16px;animation:slideUp 0.25s cubic-bezier(0.34,1.26,0.64,1);">
+            <div style="font-size:16px;font-weight:700;color:#fff;text-align:center;">Выбрать фото профиля</div>
+            <div style="position:relative;width:100%;aspect-ratio:1;border-radius:16px;overflow:hidden;background:#111;cursor:grab;touch-action:none;" id="cropCanvas">
+                <img id="cropImg" src="${src}" style="position:absolute;transform-origin:center;user-select:none;pointer-events:none;max-width:none;">
+                <div style="position:absolute;inset:0;border-radius:50%;box-shadow:0 0 0 9999px rgba(0,0,0,0.55);pointer-events:none;"></div>
+            </div>
+            <div style="display:flex;align-items:center;gap:10px;">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.5)" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                <input type="range" id="cropZoom" min="100" max="300" value="100" style="flex:1;accent-color:var(--accent,#6c8fff);">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.5)" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/><line x1="11" y1="8" x2="11" y2="14"/><line x1="8" y1="11" x2="14" y2="11"/></svg>
+            </div>
+            <div style="display:flex;gap:10px;">
+                <button id="cropCancel" style="flex:1;padding:11px;border-radius:12px;border:1px solid rgba(255,255,255,0.1);background:rgba(255,255,255,0.06);color:#fff;font-size:14px;font-weight:600;cursor:pointer;">Отмена</button>
+                <button id="cropApply" style="flex:1;padding:11px;border-radius:12px;border:none;background:var(--accent,#6c8fff);color:#fff;font-size:14px;font-weight:600;cursor:pointer;">Применить</button>
+            </div>
+        </div>
+    `;
+    document.body.appendChild(overlay);
+
+    const img = document.getElementById('cropImg');
+    const canvas = document.getElementById('cropCanvas');
+    const zoomSlider = document.getElementById('cropZoom');
+
+    let scale = 1, ox = 0, oy = 0, dragging = false, startX, startY, startOx, startOy;
+    let cw, ch; // canvas display size
+
+    img.onload = () => {
+        cw = canvas.offsetWidth; ch = canvas.offsetHeight;
+        const iw = img.naturalWidth, ih = img.naturalHeight;
+        const baseScale = Math.max(cw / iw, ch / ih);
+        img.style.width = iw + 'px'; img.style.height = ih + 'px';
+        scale = baseScale;
+        clampAndApply();
+    };
+
+    function clampAndApply() {
+        cw = canvas.offsetWidth; ch = canvas.offsetHeight;
+        const iw = img.naturalWidth * scale, ih = img.naturalHeight * scale;
+        ox = Math.min(0, Math.max(ox, cw - iw));
+        oy = Math.min(0, Math.max(oy, ch - ih));
+        img.style.transform = `translate(${ox}px,${oy}px) scale(${scale / (img.naturalWidth / img.offsetWidth || 1)})`;
+        // simpler: use left/top
+        img.style.transform = '';
+        img.style.left = ox + 'px';
+        img.style.top = oy + 'px';
+        img.style.width = (img.naturalWidth * scale) + 'px';
+        img.style.height = (img.naturalHeight * scale) + 'px';
+    }
+
+    zoomSlider.addEventListener('input', () => {
+        const baseScale = Math.max(cw / img.naturalWidth, ch / img.naturalHeight);
+        const newScale = baseScale * (zoomSlider.value / 100);
+        const ratio = newScale / scale;
+        ox = cw/2 + (ox - cw/2) * ratio;
+        oy = ch/2 + (oy - ch/2) * ratio;
+        scale = newScale;
+        clampAndApply();
+    });
+
+    function getXY(e) { return e.touches ? [e.touches[0].clientX, e.touches[0].clientY] : [e.clientX, e.clientY]; }
+    canvas.addEventListener('mousedown', (e) => { dragging = true; [startX, startY] = getXY(e); startOx = ox; startOy = oy; canvas.style.cursor = 'grabbing'; });
+    canvas.addEventListener('touchstart', (e) => { dragging = true; [startX, startY] = getXY(e); startOx = ox; startOy = oy; }, { passive: true });
+    window.addEventListener('mousemove', (e) => { if (!dragging) return; const [x, y] = getXY(e); ox = startOx + (x - startX); oy = startOy + (y - startY); clampAndApply(); });
+    window.addEventListener('touchmove', (e) => { if (!dragging) return; const [x, y] = getXY(e); ox = startOx + (x - startX); oy = startOy + (y - startY); clampAndApply(); }, { passive: true });
+    window.addEventListener('mouseup', () => { dragging = false; canvas.style.cursor = 'grab'; });
+    window.addEventListener('touchend', () => { dragging = false; });
+
+    document.getElementById('cropCancel').onclick = () => overlay.remove();
+    document.getElementById('cropApply').onclick = () => {
+        cw = canvas.offsetWidth;
+        const out = document.createElement('canvas');
+        out.width = 256; out.height = 256;
+        const ctx = out.getContext('2d');
+        const dispW = img.naturalWidth * scale;
+        const dispH = img.naturalHeight * scale;
+        const scaleToOut = 256 / cw;
+        ctx.drawImage(img, -ox * scaleToOut, -oy * scaleToOut, dispW * scaleToOut, dispH * scaleToOut);
+        const dataUrl = out.toDataURL('image/jpeg', 0.88);
+        overlay.style.animation = 'fadeOut 0.15s ease forwards';
+        setTimeout(() => { overlay.remove(); onDone(dataUrl); }, 150);
+    };
+}
+
 function isImgAvatar(avatar) {
     return avatar && (avatar.startsWith('data:') || avatar.startsWith('http') || avatar.startsWith('/'));
 }
