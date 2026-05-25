@@ -652,7 +652,7 @@ function addMessageToChat(msg) {
 
     div.innerHTML = `
         <div class="msg-avatar-wrap">
-            ${!isOwn ? `<span class="msg-avatar">${escapeHtml(senderAvatar)}</span>` : ''}
+            ${!isOwn ? renderAvatar(senderAvatar, 34) : ''}
         </div>
         <div class="msg-body">
             <div class="message-bubble">
@@ -701,10 +701,34 @@ function addMessageToChat(msg) {
 function renderMessages(messages) {
     messagesContainer = document.getElementById('messages');
     messagesContainer.innerHTML = '';
+    let lastDate = null;
     messages.forEach(msg => {
-        const el = addMessageToChat(msg);
-        // Mark as history so no slide-in animation
+        // Date separator
+        const msgDate = new Date(msg.createdAt || msg.timestamp || Date.now());
+        const dateKey = msgDate.toDateString();
+        if (dateKey !== lastDate) {
+            lastDate = dateKey;
+            const sep = document.createElement('div');
+            sep.className = 'date-separator';
+            sep.innerHTML = `<span>${formatDateLabel(msgDate)}</span>`;
+            messagesContainer.appendChild(sep);
+        }
+        addMessageToChat(msg);
     });
+}
+
+function formatDateLabel(date) {
+    const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const yesterday = new Date(today); yesterday.setDate(today.getDate() - 1);
+    const d = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+    if (d.getTime() === today.getTime()) return 'Сегодня';
+    if (d.getTime() === yesterday.getTime()) return 'Вчера';
+    const months = ['января','февраля','марта','апреля','мая','июня','июля','августа','сентября','октября','ноября','декабря'];
+    const day = date.getDate();
+    const month = months[date.getMonth()];
+    if (date.getFullYear() === now.getFullYear()) return `${day} ${month}`;
+    return `${day} ${month} ${date.getFullYear()}`;
 }
 
 function scrollToMessage(id) {
@@ -1248,7 +1272,7 @@ async function loadFriends() {
 
         div.innerHTML = `
             <div class="friend-avatar-wrap">
-                <span class="user-avatar">${escapeHtml(friend.avatar || '😀')}</span>
+                ${renderAvatar(friend.avatar || '😀', 42)}
                 ${friend.online ? '<span class="friend-online-dot"></span>' : ''}
             </div>
             <div class="friend-info">
@@ -1597,7 +1621,7 @@ async function showGroupInfo() {
         const online = u.online;
         const isM = m === group.owner;
         return `<div class="gp-member-item">
-            <div class="gp-member-avatar${online ? ' online' : ''}">${escapeHtml(avatar)}</div>
+            <div class="gp-member-avatar${online ? ' online' : ''}">${renderAvatar(avatar, 36)}</div>
             <div class="gp-member-info">
                 <span class="gp-member-name" style="color:${u.color || 'var(--text-primary)'};">${escapeHtml(m)}</span>
                 <span class="gp-member-status">${online ? 'в сети' : 'не в сети'}</span>
@@ -1648,7 +1672,16 @@ async function leaveGroup() {
 async function loadProfile() {
     const token = localStorage.getItem('token');
     const data = await (await fetch('/api/me', { headers: { 'Authorization': `Bearer ${token}` } })).json();
-    document.getElementById('avatarPreview').innerText = data.avatar || '😀';
+    const preview = document.getElementById('avatarPreview');
+    if (preview) {
+        if (isImgAvatar(data.avatar)) {
+            preview.innerHTML = `<img src="${data.avatar}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">`;
+            preview.dataset.photoUrl = data.avatar;
+        } else {
+            preview.innerText = data.avatar || '😀';
+            delete preview.dataset.photoUrl;
+        }
+    }
     document.getElementById('colorInput').value = data.color || '#6ab0f3';
 }
 
@@ -1670,34 +1703,130 @@ async function updateProfile(avatar, color) {
 
 // ========== Emoji ==========
 const emojiCategories = [
-    { icon: '😀', emojis: ['😀','😃','😄','😁','😆','😅','😂','🤣','😊','😇','🙂','😉','😌','😍','🥰','😘','😋','😛','😜','🤪','😎','🥳','😏','😒','😔','😟','😣','😖','😫','😩','🥺','😢','😭','😤','😠','😡','🤬','🤯','😳','🥵','🥶','😱','😨','😰','🤗','🤔','🤫','🤥','😶','😐','😑','😬','🙄','😯','😲','🥱','😴','🤤','😵','🤢','🤮','🤧','😷','🤒','🤕','🤑','🤠','😈','👿','👹','👺','🤡','💩','👻','💀','👽','🤖'] },
-    { icon: '👍', emojis: ['👍','👎','👌','✌️','🤞','🤟','🤘','🤙','👈','👉','👆','👇','☝️','✋','🤚','🖐️','🖖','👋','🤏','✍️','💅','💪','🙌','👏','🤝','🙏'] },
-    { icon: '🐶', emojis: ['🐶','🐱','🐭','🐹','🐰','🦊','🐻','🐼','🐨','🐯','🦁','🐮','🐷','🐸','🐵','🙈','🙉','🙊','🐔','🐧','🐦','🐤','🦆','🦅','🦉','🦇','🐺','🐗','🐴','🦄','🐝','🐛','🦋','🐌','🐞','🐜','🐢','🐍','🦎','🐙','🦑','🦐','🦞','🦀','🐟','🐬','🐳','🦈'] },
-    { icon: '🍎', emojis: ['🍎','🍐','🍊','🍋','🍌','🍉','🍇','🍓','🍒','🍑','🥭','🍍','🥥','🥝','🍅','🍆','🥑','🥦','🥬','🥒','🌶️','🌽','🥕','🧄','🥔','🍔','🍟','🍕','🌭','🥪','🌮','🌯','🍜','🍝','🍣','🍱','🍛','🍲','🍰','🎂','🧁','🍩','🍪','☕','🍵','🧃','🥤','🧋','🍺','🍷'] },
-    { icon: '⚽', emojis: ['⚽','🏀','🏈','⚾','🥎','🎾','🏐','🏉','🎱','🏓','🏸','🥊','🥋','🎽','🛹','⛸️','🎿','🏆','🥇','🥈','🥉','🏅','🎮','🕹️','🎲','♟️','🎯','🎳'] },
-    { icon: '❤️', emojis: ['❤️','🧡','💛','💚','💙','💜','🖤','🤍','🤎','💔','❣️','💕','💞','💓','💗','💖','💘','💝','✨','🌟','⭐','🔥','💫','🌈','☀️','🌙','⚡','❄️','🌊','🎉','🎊','🎈','🎁','🏆','🌺','🌸','🌹','💐','🍀','🌴'] },
+    { icon: '🕐', name: 'Недавние', emojis: [] }, // filled dynamically
+    { icon: '😀', name: 'Смайлы', emojis: ['😀','😃','😄','😁','😆','😅','😂','🤣','🥲','😊','😇','🙂','🙃','😉','😌','😍','🥰','😘','😗','😙','😚','😋','😛','😜','🤪','😝','🤑','🤗','🤭','🤫','🤔','🤐','🤨','😐','😑','😶','😏','😒','🙄','😬','🤥','😔','😪','🤤','😴','😷','🤒','🤕','🤢','🤮','🤧','🥵','🥶','🥴','😵','🤯','🤠','🥳','🥸','😎','🤓','🧐','😕','🫤','😟','🙁','☹️','😮','😯','😲','😳','🥺','🫣','😦','😧','😨','😰','😥','😢','😭','😱','😖','😣','😞','😓','😩','😫','🥱','😤','😡','😠','🤬','😈','👿','💀','☠️','💩','🤡','👹','👺','👻','👽','👾','🤖'] },
+    { icon: '👋', name: 'Жесты', emojis: ['👋','🤚','🖐️','✋','🖖','🤙','💪','🦾','🖕','✌️','🤞','🤟','🤘','🤙','👈','👉','👆','🖕','👇','☝️','👍','👎','✊','👊','🤛','🤜','👏','🙌','👐','🤲','🤝','🙏','✍️','💅','🤳','💪','🦵','🦶','👂','🦻','👃','🫀','🫁','🧠','🦷','🦴','👀','👁️','👅','👄'] },
+    { icon: '🐶', name: 'Животные', emojis: ['🐶','🐱','🐭','🐹','🐰','🦊','🐻','🐼','🐨','🐯','🦁','🐮','🐷','🐽','🐸','🐵','🙈','🙉','🙊','🐒','🦆','🐔','🐧','🐦','🐤','🦅','🦉','🦇','🐺','🐗','🐴','🦄','🐝','🐛','🦋','🐌','🐞','🐜','🦟','🦗','🦂','🐢','🐍','🦎','🦖','🦕','🐙','🦑','🦐','🦞','🦀','🐡','🐟','🐬','🐳','🦈','🐊','🐅','🐆','🦓','🦍','🐘','🦛','🦏','🐪','🐫','🦒','🦘','🦬','🐃','🐂','🐄','🐎','🐖','🐏','🐑','🦙','🐐','🦌','🐕','🐩','🦮','🐈','🐓','🦃','🦤','🦚','🦜','🦢','🦩','🕊️','🐇','🦝','🦨','🦡','🦦','🦥','🐁','🐀','🐿️','🦔'] },
+    { icon: '🍎', name: 'Еда', emojis: ['🍎','🍐','🍊','🍋','🍌','🍉','🍇','🍓','🫐','🍈','🍒','🍑','🥭','🍍','🥥','🥝','🍅','🍆','🥑','🥦','🥬','🥒','🌶️','🫑','🌽','🥕','🧄','🧅','🥔','🍠','🥐','🥯','🍞','🥖','🥨','🧀','🥚','🍳','🧈','🥞','🧇','🥓','🥩','🍗','🍖','🌭','🍔','🍟','🍕','🫓','🥙','🥗','🥘','🫕','🍝','🍜','🍲','🍛','🍣','🍱','🥟','🦪','🍤','🍙','🍚','🍘','🍥','🥮','🍢','🧆','🥜','🫘','🌰','🍡','🧁','🎂','🍰','🍮','🍭','🍬','🍫','🍿','🍩','🍪','🌰','🍯','🧃','🥤','🧋','☕','🍵','🧉','🍺','🍻','🥂','🍷','🥃','🍸','🍹','🍾'] },
+    { icon: '⚽', name: 'Спорт', emojis: ['⚽','🏀','🏈','⚾','🥎','🎾','🏐','🏉','🥏','🎱','🪀','🏓','🏸','🏒','🥊','🥋','🎽','🛹','🛼','🛷','⛸️','🏂','🪂','🏋️','🤸','🤺','🏇','⛷️','🏊','🚴','🏆','🥇','🥈','🥉','🏅','🎗️','🎟️','🎫','🎮','🕹️','🎲','♟️','🎯','🎳','🎰','🎪'] },
+    { icon: '🚗', name: 'Транспорт', emojis: ['🚗','🚕','🚙','🚌','🚎','🏎️','🚓','🚑','🚒','🚐','🛻','🚚','🚛','🚜','🏍️','🛵','🚲','🛴','🛺','🚨','🚔','🚍','🚘','🚖','✈️','🚀','🛸','🚁','🛶','⛵','🚤','🛥️','🛳️','⛴️','🚢','🚂','🚃','🚄','🚅','🚆','🚇','🚈','🚉','🚊','🚝','🚞','🚋','🚌','🚍','🚎','🏁','🚏','🛣️','🛤️'] },
+    { icon: '💡', name: 'Объекты', emojis: ['💡','🔦','🕯️','🪔','💰','💴','💵','💶','💷','💸','💳','🪙','💹','✉️','📧','📨','📩','📪','📫','📬','📭','📮','🗳️','✏️','✒️','🖋️','🖊️','📝','📁','📂','🗂️','📅','📆','🗒️','🗓️','📇','📈','📉','📊','📋','📌','📍','🗺️','📎','🖇️','📏','📐','✂️','🗃️','🗄️','🗑️','🔒','🔓','🔏','🔐','🔑','🗝️','🔨','🪓','⛏️','🔧','🔩','🪛','🔫','🛡️','🪚','🔬','🔭','📡','💊','💉','🩺','🩹','🩻','🩼','🪜','🧲','🔮','🧿','🪬','🪄','🎩','🎭','🎨','🖼️','🎰','🎯','🎳','🎮','🕹️'] },
+    { icon: '❤️', name: 'Символы', emojis: ['❤️','🧡','💛','💚','💙','💜','🖤','🤍','🤎','💔','❣️','💕','💞','💓','💗','💖','💘','💝','💟','☮️','✝️','☪️','🕉️','✡️','🔯','🕎','☯️','☦️','🛐','⛎','♈','♉','♊','♋','♌','♍','♎','♏','♐','♑','♒','♓','🆔','⚛️','🉑','☢️','☣️','📴','📳','🈶','🈚','🈸','🈺','🈷️','✴️','🆚','💮','🉐','㊙️','㊗️','🈴','🈵','🈹','🈲','🅰️','🅱️','🆎','🆑','🅾️','🆘','❌','⭕','🛑','⛔','📛','🚫','💯','❗','❕','❓','❔','‼️','⁉️','🔅','🔆','〽️','⚠️','🚸','🔱','⚜️','🔰','♻️','✅','🈯','💹','❎','🌐','💠','Ⓜ️','🌀','💤','🏧','🚾','♿','🅿️','🛗','🈳','🈹','🚳','🚭','🚯','🚱','🚷','📵','🔞','🔕','🔇','🔈','🔉','🔊','📣','📢','💬','💭','🗯️','♐','🔔','🔕','🎵','🎶','✨','🌟','⭐','🔥','💫','🌈'] },
 ];
+
+const recentEmojis = JSON.parse(localStorage.getItem('recentEmojis') || '[]');
+
+function addRecentEmoji(emoji) {
+    const idx = recentEmojis.indexOf(emoji);
+    if (idx > -1) recentEmojis.splice(idx, 1);
+    recentEmojis.unshift(emoji);
+    if (recentEmojis.length > 24) recentEmojis.pop();
+    localStorage.setItem('recentEmojis', JSON.stringify(recentEmojis));
+    emojiCategories[0].emojis = recentEmojis;
+}
 
 function initEmojiPicker() {
     const panel = document.getElementById('emojiPickerPanel');
     const toggleBtn = document.getElementById('emojiToggleBtn');
-    const grid = document.getElementById('emojiGrid');
-    const catsContainer = document.getElementById('emojiCategories');
     const input = document.getElementById('messageInput');
+
+    // Rebuild panel HTML for TG-style
+    panel.innerHTML = `
+        <div class="ep-cats" id="epCats"></div>
+        <div class="ep-body" id="epBody"></div>
+    `;
+
+    emojiCategories[0].emojis = recentEmojis;
+
+    const catsEl = document.getElementById('epCats');
+    const bodyEl = document.getElementById('epBody');
+
+    // Build category buttons
     emojiCategories.forEach((cat, i) => {
         const btn = document.createElement('button');
-        btn.className = 'emoji-cat-btn' + (i === 0 ? ' active' : '');
+        btn.className = 'ep-cat-btn' + (i === 0 ? ' active' : '');
+        btn.title = cat.name;
         btn.innerText = cat.icon;
-        btn.addEventListener('click', () => { document.querySelectorAll('#emojiCategories .emoji-cat-btn').forEach(b => b.classList.remove('active')); btn.classList.add('active'); renderEmojiGrid(cat.emojis); });
-        catsContainer.appendChild(btn);
+        btn.onclick = () => {
+            const section = bodyEl.querySelector(`[data-cat="${i}"]`);
+            if (section) section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            document.querySelectorAll('.ep-cat-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+        };
+        catsEl.appendChild(btn);
     });
-    renderEmojiGrid(emojiCategories[0].emojis);
-    function renderEmojiGrid(emojis) {
-        grid.innerHTML = '';
-        emojis.forEach(emoji => { const span = document.createElement('span'); span.innerText = emoji; span.addEventListener('click', () => { input.value += emoji; input.focus(); }); grid.appendChild(span); });
-    }
-    toggleBtn.addEventListener('click', (e) => { e.stopPropagation(); panel.classList.toggle('open'); });
+
+    // Build scrollable body with sections
+    emojiCategories.forEach((cat, i) => {
+        const section = document.createElement('div');
+        section.className = 'ep-section';
+        section.dataset.cat = i;
+
+        if (cat.emojis.length === 0 && i === 0) {
+            section.innerHTML = '<div class="ep-empty">Нет недавних</div>';
+        } else {
+            const label = document.createElement('div');
+            label.className = 'ep-section-label';
+            label.innerText = cat.name;
+            section.appendChild(label);
+
+            const grid = document.createElement('div');
+            grid.className = 'ep-grid';
+            cat.emojis.forEach(emoji => {
+                const span = document.createElement('span');
+                span.innerText = emoji;
+                span.onclick = () => {
+                    input.value += emoji;
+                    input.focus();
+                    addRecentEmoji(emoji);
+                };
+                grid.appendChild(span);
+            });
+            section.appendChild(grid);
+        }
+        bodyEl.appendChild(section);
+    });
+
+    // Scroll spy - update active cat button
+    bodyEl.addEventListener('scroll', () => {
+        const sections = bodyEl.querySelectorAll('.ep-section');
+        let current = 0;
+        sections.forEach((s, i) => {
+            if (s.offsetTop <= bodyEl.scrollTop + 10) current = i;
+        });
+        document.querySelectorAll('.ep-cat-btn').forEach((b, i) => b.classList.toggle('active', i === current));
+    }, { passive: true });
+
+    // Toggle
+    toggleBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        panel.classList.toggle('open');
+        if (panel.classList.contains('open')) {
+            // Refresh recent
+            emojiCategories[0].emojis = recentEmojis;
+            const firstSection = bodyEl.querySelector('[data-cat="0"]');
+            if (firstSection) {
+                const grid = firstSection.querySelector('.ep-grid');
+                if (grid) {
+                    grid.innerHTML = '';
+                    recentEmojis.forEach(emoji => {
+                        const span = document.createElement('span');
+                        span.innerText = emoji;
+                        span.onclick = () => { input.value += emoji; input.focus(); addRecentEmoji(emoji); };
+                        grid.appendChild(span);
+                    });
+                } else if (recentEmojis.length > 0) {
+                    firstSection.innerHTML = '';
+                    const label = document.createElement('div'); label.className = 'ep-section-label'; label.innerText = emojiCategories[0].name;
+                    const grid2 = document.createElement('div'); grid2.className = 'ep-grid';
+                    recentEmojis.forEach(emoji => { const span = document.createElement('span'); span.innerText = emoji; span.onclick = () => { input.value += emoji; input.focus(); addRecentEmoji(emoji); }; grid2.appendChild(span); });
+                    firstSection.appendChild(label); firstSection.appendChild(grid2);
+                }
+            }
+        }
+    });
     document.addEventListener('click', (e) => { if (!panel.contains(e.target) && e.target !== toggleBtn) panel.classList.remove('open'); });
+}
 }
 
 function initAvatarPicker() {
@@ -1728,6 +1857,35 @@ function initAvatarPicker() {
     colorHex.addEventListener('click', () => colorInput.click());
     colorInput.addEventListener('input', () => updateColor(colorInput.value));
     document.querySelectorAll('.color-preset').forEach(p => p.addEventListener('click', () => updateColor(p.dataset.color)));
+
+    // Photo upload handler
+    const photoInput = document.getElementById('avatarPhotoInput');
+    if (photoInput) {
+        photoInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = (ev) => {
+                const img = new Image();
+                img.onload = () => {
+                    // Crop & resize to 128x128
+                    const canvas = document.createElement('canvas');
+                    canvas.width = 128; canvas.height = 128;
+                    const ctx = canvas.getContext('2d');
+                    const size = Math.min(img.width, img.height);
+                    const ox = (img.width - size) / 2;
+                    const oy = (img.height - size) / 2;
+                    ctx.drawImage(img, ox, oy, size, size, 0, 0, 128, 128);
+                    const dataUrl = canvas.toDataURL('image/jpeg', 0.85);
+                    // Show photo in preview
+                    avatarPreview.innerHTML = `<img src="${dataUrl}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">`;
+                    avatarPreview.dataset.photoUrl = dataUrl;
+                };
+                img.src = ev.target.result;
+            };
+            reader.readAsDataURL(file);
+        });
+    }
 }
 
 // ========== Утилиты ==========
@@ -1735,6 +1893,16 @@ function escapeHtml(str) {
     if (!str) return '';
     return String(str).replace(/[&<>"]/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m]));
 }
+function isImgAvatar(avatar) {
+    return avatar && (avatar.startsWith('data:') || avatar.startsWith('http') || avatar.startsWith('/'));
+}
+function renderAvatar(avatar, size = 40) {
+    if (isImgAvatar(avatar)) {
+        return `<img src="${avatar}" style="width:${size}px;height:${size}px;border-radius:50%;object-fit:cover;flex-shrink:0;" alt="">`;
+    }
+    return `<span class="user-avatar" style="font-size:${Math.round(size*0.5)}px;width:${size}px;height:${size}px;">${escapeHtml(avatar || '😀')}</span>`;
+}
+
 function notify() { document.title = '✉️ Новое'; setTimeout(() => document.title = 'Мессенджер', 2000); }
 function showNotification(text) {
     if (Notification.permission === 'granted') new Notification(text);
@@ -1780,7 +1948,11 @@ function showToast(text, isError = false) {
     document.body.appendChild(t);
     setTimeout(() => t.remove(), 2500);
 }
-document.getElementById('saveProfileBtn').addEventListener('click', () => updateProfile(document.getElementById('avatarPreview').innerText, document.getElementById('colorInput').value));
+document.getElementById('saveProfileBtn').addEventListener('click', () => {
+    const preview = document.getElementById('avatarPreview');
+    const avatar = preview.dataset.photoUrl || preview.innerText || preview.textContent;
+    updateProfile(avatar, document.getElementById('colorInput').value);
+});
 
 // ========== Загрузка файла ==========
 document.getElementById('imageUploadInput').addEventListener('change', (e) => {
