@@ -1827,7 +1827,7 @@ function initEmojiPicker() {
     });
     document.addEventListener('click', (e) => { if (!panel.contains(e.target) && e.target !== toggleBtn) panel.classList.remove('open'); });
 }
-}
+
 
 function initAvatarPicker() {
     const avatarPreview = document.getElementById('avatarPreview');
