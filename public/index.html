@@ -717,7 +717,13 @@
             <div class="settings-panel" style="padding:0;">
                 <div class="avatar-selector">
                     <div class="avatar-preview" id="avatarPreview">😀</div>
-                    <button id="pickAvatarBtn" class="secondary-btn">Выбрать эмодзи</button>
+                    <div style="display:flex;flex-direction:column;gap:6px;">
+                        <button id="pickAvatarBtn" class="secondary-btn">Выбрать эмодзи</button>
+                        <label style="cursor:pointer;">
+                            <input type="file" id="avatarPhotoInput" accept="image/*" style="display:none;">
+                            <span class="secondary-btn" style="display:block;text-align:center;font-size:13px;">📷 Загрузить фото</span>
+                        </label>
+                    </div>
                 </div>
                 <div class="avatar-emoji-panel" id="avatarEmojiPanel">
                     <div class="emoji-categories" id="avatarEmojiCategories"></div>
