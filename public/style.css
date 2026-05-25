@@ -4333,3 +4333,17 @@ body { font-family: var(--font); font-size: 13.5px; -webkit-font-smoothing: anti
     }
     .ep-grid { grid-template-columns: repeat(9, 1fr); }
 }
+
+/* ===== Avatar Cropper animations ===== */
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+@keyframes fadeOut { from { opacity: 1; } to { opacity: 0; } }
+@keyframes slideUp { from { opacity: 0; transform: translateY(24px) scale(0.97); } to { opacity: 1; transform: translateY(0) scale(1); } }
+
+/* Avatar emoji panel inside settings */
+#avatarEmojiPanel {
+    transition: max-height 0.2s ease, opacity 0.15s ease;
+}
+#avatarEmojiPanel .ep-body {
+    max-height: 160px;
+    overflow-y: auto;
+}
