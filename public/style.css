@@ -2665,6 +2665,7 @@ body::before, body::after { display: none !important; }
     justify-content: center;
     font-size: 36px;
     flex-shrink: 0;
+    overflow: hidden;
 }
 .settings-profile-name {
     font-size: 18px;
