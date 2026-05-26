@@ -1926,93 +1926,118 @@ function escapeHtml(str) {
 }
 // ===== Photo Cropper (TG-style) =====
 function openAvatarCropper(src, onDone) {
-    // Remove existing cropper
     document.getElementById('avatarCropperOverlay')?.remove();
 
     const overlay = document.createElement('div');
     overlay.id = 'avatarCropperOverlay';
-    overlay.style.cssText = 'position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.85);display:flex;flex-direction:column;align-items:center;justify-content:center;animation:fadeIn 0.2s ease;';
-
+    overlay.style.cssText = 'position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.88);display:flex;align-items:center;justify-content:center;animation:fadeIn 0.18s ease;';
     overlay.innerHTML = `
-        <div style="background:#1e1e2a;border-radius:20px;padding:20px;width:min(360px,90vw);display:flex;flex-direction:column;gap:16px;animation:slideUp 0.25s cubic-bezier(0.34,1.26,0.64,1);">
-            <div style="font-size:16px;font-weight:700;color:#fff;text-align:center;">Выбрать фото профиля</div>
-            <div style="position:relative;width:100%;aspect-ratio:1;border-radius:16px;overflow:hidden;background:#111;cursor:grab;touch-action:none;" id="cropCanvas">
-                <img id="cropImg" src="${src}" style="position:absolute;transform-origin:center;user-select:none;pointer-events:none;max-width:none;">
-                <div style="position:absolute;inset:0;border-radius:50%;box-shadow:0 0 0 9999px rgba(0,0,0,0.55);pointer-events:none;"></div>
+        <div style="background:#1e1e2a;border-radius:20px;padding:20px;width:min(340px,92vw);display:flex;flex-direction:column;gap:14px;animation:slideUp 0.22s cubic-bezier(0.34,1.2,0.64,1);">
+            <div style="font-size:15px;font-weight:700;color:#fff;text-align:center;">Выбрать фото профиля</div>
+            <div id="cropViewport" style="position:relative;width:100%;aspect-ratio:1/1;border-radius:14px;overflow:hidden;background:#000;cursor:grab;touch-action:none;user-select:none;">
+                <canvas id="cropCanvas" style="position:absolute;inset:0;width:100%;height:100%;"></canvas>
+                <div style="position:absolute;inset:0;box-shadow:inset 0 0 0 9999px rgba(0,0,0,0.45);clip-path:path('M0 0 L0 999 L999 999 L999 0 Z');pointer-events:none;"></div>
+                <div style="position:absolute;inset:0;border-radius:50%;box-shadow:0 0 0 9999px rgba(0,0,0,0.48);pointer-events:none;"></div>
             </div>
             <div style="display:flex;align-items:center;gap:10px;">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.5)" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-                <input type="range" id="cropZoom" min="100" max="300" value="100" style="flex:1;accent-color:var(--accent,#6c8fff);">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.5)" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/><line x1="11" y1="8" x2="11" y2="14"/><line x1="8" y1="11" x2="14" y2="11"/></svg>
+                <span style="font-size:12px;opacity:0.4;">−</span>
+                <input type="range" id="cropZoom" min="0" max="100" value="0" style="flex:1;accent-color:#6c8fff;">
+                <span style="font-size:16px;opacity:0.4;">+</span>
             </div>
             <div style="display:flex;gap:10px;">
                 <button id="cropCancel" style="flex:1;padding:11px;border-radius:12px;border:1px solid rgba(255,255,255,0.1);background:rgba(255,255,255,0.06);color:#fff;font-size:14px;font-weight:600;cursor:pointer;">Отмена</button>
-                <button id="cropApply" style="flex:1;padding:11px;border-radius:12px;border:none;background:var(--accent,#6c8fff);color:#fff;font-size:14px;font-weight:600;cursor:pointer;">Применить</button>
+                <button id="cropApply" style="flex:1;padding:11px;border-radius:12px;border:none;background:#6c8fff;color:#fff;font-size:14px;font-weight:600;cursor:pointer;">Применить</button>
             </div>
         </div>
     `;
     document.body.appendChild(overlay);
 
-    const img = document.getElementById('cropImg');
+    const viewport = document.getElementById('cropViewport');
     const canvas = document.getElementById('cropCanvas');
     const zoomSlider = document.getElementById('cropZoom');
+    const ctx = canvas.getContext('2d');
 
-    let scale = 1, ox = 0, oy = 0, dragging = false, startX, startY, startOx, startOy;
-    let cw, ch; // canvas display size
+    const imgEl = new Image();
+    imgEl.onload = () => init();
+    imgEl.src = src;
 
-    img.onload = () => {
-        cw = canvas.offsetWidth; ch = canvas.offsetHeight;
-        const iw = img.naturalWidth, ih = img.naturalHeight;
-        const baseScale = Math.max(cw / iw, ch / ih);
-        img.style.width = iw + 'px'; img.style.height = ih + 'px';
-        scale = baseScale;
-        clampAndApply();
-    };
+    // State — all in "canvas pixel" space (canvas is square, 512x512)
+    const OUT = 512;
+    canvas.width = OUT; canvas.height = OUT;
 
-    function clampAndApply() {
-        cw = canvas.offsetWidth; ch = canvas.offsetHeight;
-        const iw = img.naturalWidth * scale, ih = img.naturalHeight * scale;
-        ox = Math.min(0, Math.max(ox, cw - iw));
-        oy = Math.min(0, Math.max(oy, ch - ih));
-        img.style.transform = `translate(${ox}px,${oy}px) scale(${scale / (img.naturalWidth / img.offsetWidth || 1)})`;
-        // simpler: use left/top
-        img.style.transform = '';
-        img.style.left = ox + 'px';
-        img.style.top = oy + 'px';
-        img.style.width = (img.naturalWidth * scale) + 'px';
-        img.style.height = (img.naturalHeight * scale) + 'px';
+    let iw, ih, minScale, scale, tx, ty;
+    let dragging = false, lastX, lastY;
+
+    function init() {
+        iw = imgEl.naturalWidth; ih = imgEl.naturalHeight;
+        // minScale: image fills the square
+        minScale = Math.max(OUT / iw, OUT / ih);
+        scale = minScale;
+        // center
+        tx = (OUT - iw * scale) / 2;
+        ty = (OUT - ih * scale) / 2;
+        draw();
+    }
+
+    function clamp() {
+        const dw = iw * scale, dh = ih * scale;
+        tx = Math.min(0, Math.max(tx, OUT - dw));
+        ty = Math.min(0, Math.max(ty, OUT - dh));
+    }
+
+    function draw() {
+        clamp();
+        ctx.clearRect(0, 0, OUT, OUT);
+        ctx.drawImage(imgEl, tx, ty, iw * scale, ih * scale);
     }
 
     zoomSlider.addEventListener('input', () => {
-        const baseScale = Math.max(cw / img.naturalWidth, ch / img.naturalHeight);
-        const newScale = baseScale * (zoomSlider.value / 100);
-        const ratio = newScale / scale;
-        ox = cw/2 + (ox - cw/2) * ratio;
-        oy = ch/2 + (oy - ch/2) * ratio;
+        const maxScale = minScale * 3;
+        const t = zoomSlider.value / 100;
+        const newScale = minScale + (maxScale - minScale) * t;
+        // zoom towards center
+        const cx = OUT / 2, cy = OUT / 2;
+        tx = cx - (cx - tx) * (newScale / scale);
+        ty = cy - (cy - ty) * (newScale / scale);
         scale = newScale;
-        clampAndApply();
+        draw();
     });
 
-    function getXY(e) { return e.touches ? [e.touches[0].clientX, e.touches[0].clientY] : [e.clientX, e.clientY]; }
-    canvas.addEventListener('mousedown', (e) => { dragging = true; [startX, startY] = getXY(e); startOx = ox; startOy = oy; canvas.style.cursor = 'grabbing'; });
-    canvas.addEventListener('touchstart', (e) => { dragging = true; [startX, startY] = getXY(e); startOx = ox; startOy = oy; }, { passive: true });
-    window.addEventListener('mousemove', (e) => { if (!dragging) return; const [x, y] = getXY(e); ox = startOx + (x - startX); oy = startOy + (y - startY); clampAndApply(); });
-    window.addEventListener('touchmove', (e) => { if (!dragging) return; const [x, y] = getXY(e); ox = startOx + (x - startX); oy = startOy + (y - startY); clampAndApply(); }, { passive: true });
-    window.addEventListener('mouseup', () => { dragging = false; canvas.style.cursor = 'grab'; });
+    function getPos(e) {
+        const r = viewport.getBoundingClientRect();
+        const ratio = OUT / r.width;
+        const src = e.touches ? e.touches[0] : e;
+        return [(src.clientX - r.left) * ratio, (src.clientY - r.top) * ratio];
+    }
+
+    viewport.addEventListener('mousedown', (e) => { e.preventDefault(); dragging = true; [lastX, lastY] = getPos(e); viewport.style.cursor = 'grabbing'; });
+    viewport.addEventListener('touchstart', (e) => { dragging = true; [lastX, lastY] = getPos(e); }, { passive: true });
+    window.addEventListener('mousemove', (e) => {
+        if (!dragging) return;
+        const [x, y] = getPos(e);
+        tx += x - lastX; ty += y - lastY;
+        lastX = x; lastY = y; draw();
+    });
+    window.addEventListener('touchmove', (e) => {
+        if (!dragging) return;
+        const [x, y] = getPos(e);
+        tx += x - lastX; ty += y - lastY;
+        lastX = x; lastY = y; draw();
+    }, { passive: true });
+    window.addEventListener('mouseup', () => { dragging = false; viewport.style.cursor = 'grab'; });
     window.addEventListener('touchend', () => { dragging = false; });
 
     document.getElementById('cropCancel').onclick = () => overlay.remove();
     document.getElementById('cropApply').onclick = () => {
-        cw = canvas.offsetWidth;
+        // Output 256x256
         const out = document.createElement('canvas');
         out.width = 256; out.height = 256;
-        const ctx = out.getContext('2d');
-        const dispW = img.naturalWidth * scale;
-        const dispH = img.naturalHeight * scale;
-        const scaleToOut = 256 / cw;
-        ctx.drawImage(img, -ox * scaleToOut, -oy * scaleToOut, dispW * scaleToOut, dispH * scaleToOut);
-        const dataUrl = out.toDataURL('image/jpeg', 0.88);
-        overlay.style.animation = 'fadeOut 0.15s ease forwards';
+        const octx = out.getContext('2d');
+        // Draw from our main canvas (already cropped square)
+        octx.drawImage(canvas, 0, 0, 256, 256);
+        const dataUrl = out.toDataURL('image/jpeg', 0.9);
+        overlay.style.opacity = '0';
+        overlay.style.transition = 'opacity 0.15s';
         setTimeout(() => { overlay.remove(); onDone(dataUrl); }, 150);
     };
 }
@@ -2786,7 +2811,14 @@ function toggleBurgerMenu() {
     d.style.display = d.style.display === 'none' ? 'block' : 'none';
     if (d.style.display === 'block') {
         if (currentUser) {
-            document.getElementById('burgerAvatar').textContent = currentUser.avatar || '😀';
+            const burgerAv = document.getElementById('burgerAvatar');
+            if (burgerAv) {
+                if (isImgAvatar(currentUser.avatar)) {
+                    burgerAv.innerHTML = `<img src="${currentUser.avatar}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">`;
+                } else {
+                    burgerAv.textContent = currentUser.avatar || '😀';
+                }
+            }
             document.getElementById('burgerUsername').textContent = currentUser.username;
             document.getElementById('burgerStatus').textContent = 'онлайн';
         }
@@ -2879,7 +2911,14 @@ function openSettingsPanel() {
     panel.style.display = 'block';
     setTimeout(() => panel.classList.add('open'), 10);
     if (currentUser) {
-        document.getElementById('settingsAvatar').textContent = currentUser.avatar || '😀';
+        const settingsAv = document.getElementById('settingsAvatar');
+        if (settingsAv) {
+            if (isImgAvatar(currentUser.avatar)) {
+                settingsAv.innerHTML = `<img src="${currentUser.avatar}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">`;
+            } else {
+                settingsAv.textContent = currentUser.avatar || '😀';
+            }
+        }
         document.getElementById('settingsUsername').textContent = currentUser.username;
     }
     initThemePanel();
