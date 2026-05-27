@@ -106,6 +106,10 @@ mongoose.connect(process.env.MONGODB_URI)
 // ========== Модели ==========
 const UserSchema = new mongoose.Schema({
   username: { type: String, unique: true, sparse: true, default: null },
+  displayName: { type: String, default: '' },
+  bio: { type: String, default: '' },
+  birthdate: { type: String, default: '' },
+  birthdateVisible: { type: Boolean, default: false },
   email: { type: String, unique: true, required: true },
   password: { type: String, default: null },
   emailVerified: { type: Boolean, default: false },
@@ -296,14 +300,18 @@ app.post('/api/login', async (req, res) => {
 
 app.get('/api/me', authenticateJWT, async (req, res) => {
   const user = await User.findOne({ username: req.user.username });
-  res.json({ username: user.username, avatar: user.avatar, color: user.color, email: user.email });
+  res.json({ username: user.username, displayName: user.displayName || '', bio: user.bio || '', birthdate: user.birthdate || '', birthdateVisible: !!user.birthdateVisible, avatar: user.avatar, color: user.color, email: user.email });
 });
 
 app.post('/api/me/update', authenticateJWT, async (req, res) => {
-  const { avatar, color } = req.body;
+  const { avatar, color, displayName, bio, birthdate, birthdateVisible } = req.body;
   const update = {};
-  if (avatar) update.avatar = avatar;
+  if (avatar !== undefined) update.avatar = avatar;
   if (color) update.color = color;
+  if (displayName !== undefined) update.displayName = displayName;
+  if (bio !== undefined) update.bio = bio;
+  if (birthdate !== undefined) update.birthdate = birthdate;
+  if (birthdateVisible !== undefined) update.birthdateVisible = birthdateVisible;
   await User.updateOne({ username: req.user.username }, update);
   if (color || avatar) {
     const msgUpdate = {};
@@ -312,6 +320,12 @@ app.post('/api/me/update', authenticateJWT, async (req, res) => {
     await Message.updateMany({ from: req.user.username }, msgUpdate);
   }
   res.json({ message: 'Profile updated' });
+});
+
+app.get('/api/users/:username/profile', authenticateJWT, async (req, res) => {
+  const user = await User.findOne({ username: req.params.username });
+  if (!user) return res.status(404).json({ error: 'Not found' });
+  res.json({ username: user.username, displayName: user.displayName || '', bio: user.bio || '', birthdate: user.birthdateVisible ? (user.birthdate || '') : '', avatar: user.avatar, color: user.color, online: user.online, lastSeen: user.lastSeen });
 });
 
 // Сброс пароля — шаг 1: отправить код
@@ -400,7 +414,7 @@ app.get('/api/users/all', authenticateJWT, async (req, res) => {
 
 app.get('/api/friends', authenticateJWT, async (req, res) => {
   const user = await User.findOne({ username: req.user.username });
-  const friends = await User.find({ username: { $in: user.friends } }, 'username avatar color online lastSeen');
+  const friends = await User.find({ username: { $in: user.friends } }, 'username displayName avatar color online lastSeen');
 
   // Для каждого друга находим последнее сообщение
   const friendsWithLastMsg = await Promise.all(friends.map(async (friend) => {
