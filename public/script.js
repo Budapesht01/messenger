@@ -3096,7 +3096,7 @@ async function loadChannelPosts() {
         list.innerHTML = '<div style="padding:30px; text-align:center; color:var(--text-secondary); font-size:13px;">Постов пока нет</div>';
         return;
     }
-    [...posts].reverse().forEach(post => renderPost(post, list));
+    posts.forEach(post => renderPost(post, list));
     list.scrollTop = list.scrollHeight;
 }
 
@@ -3499,7 +3499,18 @@ async function loadComments() {
         list.innerHTML = '<div style="text-align:center;color:var(--text-muted);font-size:13px;padding:32px 16px;">Комментариев пока нет.<br>Будьте первым!</div>';
         return;
     }
+    let lastDate = null;
     comments.forEach(c => {
+        // Date separator
+        const cDate = new Date(c.createdAt);
+        const dateKey = cDate.toDateString();
+        if (dateKey !== lastDate) {
+            lastDate = dateKey;
+            const sep = document.createElement('div');
+            sep.className = 'date-separator';
+            sep.innerHTML = `<span>${formatDateLabel(cDate)}</span>`;
+            list.appendChild(sep);
+        }
         const div = document.createElement('div');
         div.className = 'cmt-item';
         const cachedC = window._friendsCache?.find(f => f.username === c.from);
@@ -3569,14 +3580,173 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 // ===== Own Profile (burger click) =====
-function openOwnProfile() {
+const OP_BANNER_COLORS = [
+    '', 'linear-gradient(135deg,#5588cc,#7c6eaf)', 'linear-gradient(135deg,#cc5588,#af6e7c)',
+    'linear-gradient(135deg,#22c55e,#16a34a)', 'linear-gradient(135deg,#f59e0b,#d97706)',
+    'linear-gradient(135deg,#ef4444,#b91c1c)', 'linear-gradient(135deg,#8b5cf6,#6d28d9)',
+    'linear-gradient(135deg,#06b6d4,#0284c7)', 'linear-gradient(135deg,#111,#333)',
+];
+const OP_EMOJIS = ['😀','😎','🤩','🥰','😜','🤗','🦊','🐯','🦁','🐉','🌟','🔥','💎','🚀','🎯','🎮','🎵','🏆','🌈','🌊','🤖','🎨','🦄','🐺','🐼'];
+
+async function openOwnProfile() {
     if (!currentUser) return;
-    openSettingsPanel();
-    // Scroll to top of settings
-    setTimeout(() => {
-        const content = document.querySelector('.settings-overlay-content');
-        if (content) content.scrollTop = 0;
-    }, 100);
+    const modal = document.getElementById('ownProfileModal');
+    const card = document.getElementById('ownProfileCard');
+    if (!modal) return;
+
+    modal.style.display = 'flex';
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+        card.style.transform = 'scale(1)';
+        card.style.opacity = '1';
+    }));
+
+    // Load fresh data
+    const token = localStorage.getItem('token');
+    const data = await (await fetch('/api/me', { headers: { Authorization: 'Bearer ' + token } })).json();
+
+    // Avatar
+    const avEl = document.getElementById('opAvatar');
+    if (isImgAvatar(data.avatar)) {
+        avEl.innerHTML = `<img src="${data.avatar}" style="width:100%;height:100%;object-fit:cover;">`;
+    } else {
+        avEl.textContent = data.avatar || '😀';
+    }
+
+    // Banner color
+    const savedBanner = localStorage.getItem('ownBanner') || '';
+    const banner = document.getElementById('opBanner');
+    if (savedBanner) banner.style.background = savedBanner;
+
+    // Name
+    document.getElementById('opDisplayName').textContent = data.displayName || data.username;
+    document.getElementById('opUsername').textContent = '@' + data.username;
+
+    // Bio
+    document.getElementById('opBioText').textContent = data.bio || 'Нажмите карандаш чтобы добавить';
+
+    // Birthdate
+    document.getElementById('opBdInput').value = data.birthdate || '';
+    document.getElementById('opBdVisible').checked = !!data.birthdateVisible;
+
+    // Banner picker
+    const picker = document.getElementById('opBannerPicker');
+    if (!picker.children.length) {
+        OP_BANNER_COLORS.forEach(c => {
+            const btn = document.createElement('button');
+            btn.style.cssText = `width:32px;height:32px;border-radius:50%;border:3px solid ${savedBanner===c?'var(--accent)':'transparent'};cursor:pointer;background:${c||'rgba(255,255,255,0.15)'};flex-shrink:0;`;
+            btn.onclick = () => {
+                localStorage.setItem('ownBanner', c);
+                banner.style.background = c || 'linear-gradient(135deg,#5588cc,#7c6eaf)';
+                picker.querySelectorAll('button').forEach(b => b.style.borderColor='transparent');
+                btn.style.borderColor = 'var(--accent)';
+            };
+            picker.appendChild(btn);
+        });
+    }
+
+    // Avatar picker panel
+    const avPanel = document.getElementById('opAvatarPickerPanel');
+    if (!avPanel.querySelector('.ep-cats')) {
+        avPanel.innerHTML = '';
+        const catsEl = document.createElement('div'); catsEl.className = 'ep-cats';
+        const bodyEl = document.createElement('div'); catsEl.className = 'ep-cats';
+        // Simple emoji grid for avatar
+        const g = document.createElement('div'); g.className = 'ep-grid'; g.style.padding='10px';
+        OP_EMOJIS.forEach(e => {
+            const span = document.createElement('span'); span.innerText = e;
+            span.onclick = () => { avEl.textContent = e; avPanel.style.display='none'; saveOpAvatar(e); };
+            g.appendChild(span);
+        });
+        const uploadBtn = document.createElement('button');
+        uploadBtn.className = 'secondary-btn';
+        uploadBtn.style.cssText = 'margin:0 10px 10px;font-size:13px;';
+        uploadBtn.textContent = '📷 Загрузить фото';
+        uploadBtn.onclick = () => { document.getElementById('avatarPhotoInput').click(); };
+        document.getElementById('avatarPhotoInput').onchange = (e) => {
+            const file = e.target.files[0]; if (!file) return;
+            e.target.value='';
+            const reader = new FileReader();
+            reader.onload = (ev) => openAvatarCropper(ev.target.result, (url) => {
+                avEl.innerHTML = `<img src="${url}" style="width:100%;height:100%;object-fit:cover;">`;
+                saveOpAvatar(url);
+            });
+            reader.readAsDataURL(file);
+        };
+        avPanel.appendChild(g); avPanel.appendChild(uploadBtn);
+    }
+}
+
+function closeOwnProfile() {
+    const modal = document.getElementById('ownProfileModal');
+    const card = document.getElementById('ownProfileCard');
+    card.style.transform = 'scale(0.94)'; card.style.opacity = '0';
+    setTimeout(() => { modal.style.display = 'none'; }, 200);
+}
+
+function toggleOpBannerPicker() {
+    const p = document.getElementById('opBannerPicker');
+    p.style.display = p.style.display === 'flex' ? 'none' : 'flex';
+}
+
+function openOpAvatarPicker() {
+    const p = document.getElementById('opAvatarPickerPanel');
+    p.style.display = p.style.display === 'none' ? 'flex' : 'none';
+    p.style.flexDirection = 'column';
+}
+
+async function saveOpAvatar(avatar) {
+    const token = localStorage.getItem('token');
+    await fetch('/api/me/update', { method:'POST', headers:{'Content-Type':'application/json','Authorization':'Bearer '+token}, body: JSON.stringify({ avatar }) });
+    currentUser.avatar = avatar;
+    // Update everywhere
+    const burgerAv = document.getElementById('burgerAvatar');
+    if (burgerAv) { if (isImgAvatar(avatar)) { burgerAv.innerHTML=`<img src="${avatar}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">`; } else { burgerAv.textContent=avatar; } }
+}
+
+// Name editing
+function startEditOpName() {
+    document.getElementById('opNameView').style.display='none';
+    const edit = document.getElementById('opNameEdit'); edit.style.display='flex';
+    document.getElementById('opNameInput').value = document.getElementById('opDisplayName').textContent;
+    document.getElementById('opNameInput').focus();
+}
+function cancelOpName() { document.getElementById('opNameView').style.display='flex'; document.getElementById('opNameEdit').style.display='none'; }
+async function saveOpName() {
+    const val = document.getElementById('opNameInput').value.trim();
+    if (!val) return;
+    const token = localStorage.getItem('token');
+    await fetch('/api/me/update', { method:'POST', headers:{'Content-Type':'application/json','Authorization':'Bearer '+token}, body: JSON.stringify({ displayName: val }) });
+    document.getElementById('opDisplayName').textContent = val;
+    currentUser.displayName = val;
+    document.querySelector('.chat-title') && (document.querySelector('.chat-title').innerText !== 'Выберите чат') && (document.querySelector('.chat-title').innerText = val);
+    cancelOpName();
+    showToast('Имя обновлено');
+}
+
+// Bio editing
+function startEditOpBio() {
+    document.getElementById('opBioView').style.display='none';
+    const edit = document.getElementById('opBioEdit'); edit.style.display='flex';
+    document.getElementById('opBioInput').value = document.getElementById('opBioText').textContent === 'Нажмите карандаш чтобы добавить' ? '' : document.getElementById('opBioText').textContent;
+    document.getElementById('opBioInput').focus();
+}
+function cancelOpBio() { document.getElementById('opBioView').style.display='block'; document.getElementById('opBioEdit').style.display='none'; }
+async function saveOpBio() {
+    const val = document.getElementById('opBioInput').value.trim();
+    const token = localStorage.getItem('token');
+    await fetch('/api/me/update', { method:'POST', headers:{'Content-Type':'application/json','Authorization':'Bearer '+token}, body: JSON.stringify({ bio: val }) });
+    document.getElementById('opBioText').textContent = val || 'Нажмите карандаш чтобы добавить';
+    cancelOpBio();
+    showToast('Описание обновлено');
+}
+
+// Birthdate
+async function saveOpBirthdate() {
+    const birthdate = document.getElementById('opBdInput').value;
+    const birthdateVisible = document.getElementById('opBdVisible').checked;
+    const token = localStorage.getItem('token');
+    await fetch('/api/me/update', { method:'POST', headers:{'Content-Type':'application/json','Authorization':'Bearer '+token}, body: JSON.stringify({ birthdate, birthdateVisible }) });
+    showToast('Дата рождения сохранена');
 }
 
 // ===== Channel Profile Panel =====
