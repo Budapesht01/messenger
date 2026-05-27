@@ -193,7 +193,8 @@ function initSocket(token) {
         } else if (!isOwn) {
             unreadCounts[msg.from] = (unreadCounts[msg.from] || 0) + 1;
             updateUnreadBadge(msg.from);
-            showNotification(`💬 ${msg.from}: ${msg.audioUrl ? 'Голосовое сообщение' : msg.text || '📷 Фото'}`);
+            const senderName = window._friendsCache?.find(f => f.username === msg.from)?.displayName || msg.from;
+            showNotification(`💬 ${senderName}: ...`);
         }
         notify();
         updateFriendPreview(chatPartner, msg);
@@ -1123,7 +1124,8 @@ function switchChat(username) {
     document.getElementById('inputArea').style.display = 'flex';
     const ch1 = document.getElementById('chatHeader'); if (ch1) ch1.style.display = '';
     const cvp1 = document.getElementById('channelViewPanel'); if (cvp1) cvp1.style.display = 'none';
-    document.querySelector('.chat-title').innerText = username;
+    const friendData = window._friendsCache?.find(f => f.username === username);
+    document.querySelector('.chat-title').innerText = friendData?.displayName || username;
     document.getElementById('groupInfoBtn').style.display = 'none';
     document.getElementById('chatMenuWrap').style.display = 'flex';
     document.getElementById('groupMenuWrap').style.display = 'none';
@@ -1250,6 +1252,8 @@ async function loadFriends() {
         const div = document.createElement('div');
         div.className = 'user-item';
         div.setAttribute('data-chat-key', 'dm_' + friend.username);
+        // После loadFriends получает данные — добавить в начало функции loadFriends:
+        window._friendsCache = data.friends || data;
         div.onclick = () => switchChat(friend.username);
         const count = unreadCounts[friend.username] || 0;
 
@@ -1277,7 +1281,7 @@ async function loadFriends() {
             </div>
             <div class="friend-info">
                 <div class="friend-name-row">
-                    <span class="${friend.username === 'Budapesht' ? 'user-name creator-name' : 'user-name'}">${escapeHtml(friend.username)}${friend.username === 'Budapesht' ? '<span class="creator-crown">👑<span class="creator-tooltip">Creator</span></span>' : ''}</span>
+                    <span class="${friend.username === 'Budapesht' ? 'user-name creator-name' : 'user-name'}">${escapeHtml(friend.displayName || friend.username)}${friend.username === 'Budapesht' ? '<span class="creator-crown">👑<span class="creator-tooltip">Creator</span></span>' : ''}</span>
                     ${count > 0 ? `<span class="unread-badge">${count > 99 ? '99+' : count}</span>` : ''}
                 </div>
                 ${lastMsgHtml}
@@ -2220,7 +2224,7 @@ if (splash) {
 const userInfoEl = document.getElementById('userInfo');
 if (userInfoEl) userInfoEl.innerHTML = `👤 ${currentUser.username}`;
 if (isAdmin) {
-    document.getElementById('burgerUsername').textContent = currentUser.username + ' ⚙️';
+    document.getElementById('burgerUsername').textContent = (currentUser.displayName || currentUser.username) + ' ⚙️';
 }        document.querySelector('.chat-title').innerText = 'Выберите чат';
         document.getElementById('messageInput').placeholder = 'Выберите чат...';
         initAvatarPicker();
@@ -2840,7 +2844,7 @@ function toggleBurgerMenu() {
                     burgerAv.textContent = currentUser.avatar || '😀';
                 }
             }
-            document.getElementById('burgerUsername').textContent = currentUser.username;
+            document.getElementById('burgerUsername').textContent = currentUser.displayName || currentUser.username;
             document.getElementById('burgerStatus').textContent = 'онлайн';
         }
         document.addEventListener('click', closeBurgerOnOutside);
