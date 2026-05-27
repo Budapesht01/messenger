@@ -1521,21 +1521,24 @@ body { background: var(--bg-gradient); }
 .message.own { flex-direction: row-reverse; }
 
 .msg-avatar-wrap {
-    width: 28px;
+    width: 36px;
     flex-shrink: 0;
     display: flex;
     align-items: flex-end;
+    margin-right: 8px;
 }
+.message.own .msg-avatar-wrap { display: none; }
 .msg-avatar {
     font-size: 20px;
-    width: 28px;
-    height: 28px;
+    width: 34px;
+    height: 34px;
     display: flex;
     align-items: center;
     justify-content: center;
     flex-shrink: 0;
+    border-radius: 50%;
+    overflow: hidden;
 }
-.message.own .msg-avatar-wrap { display: none; }
 
 .msg-body {
     display: flex;
