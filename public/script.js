@@ -1632,10 +1632,11 @@ async function showGroupInfo() {
         const avatar = u.avatar || '😀';
         const online = u.online;
         const isM = m === group.owner;
-        return `<div class="gp-member-item">
+        const displayName = u.displayName || m;
+        return `<div class="gp-member-item" style="cursor:pointer;" onclick="closeGroupInfoModal();openUserProfile('${escapeHtml(m)}')">
             <div class="gp-member-avatar${online ? ' online' : ''}">${renderAvatar(avatar, 36)}</div>
             <div class="gp-member-info">
-                <span class="gp-member-name" style="color:${u.color || 'var(--text-primary)'};">${escapeHtml(m)}</span>
+                <span class="gp-member-name" style="color:${u.color || 'var(--text-primary)'};">${escapeHtml(displayName)}</span>
                 <span class="gp-member-status">${online ? 'в сети' : 'не в сети'}</span>
             </div>
             ${isM ? '<span class="gp-member-role owner">владелец</span>' : ''}
@@ -3414,9 +3415,75 @@ async function submitPost() {
 
 async function openComments(postId) {
     currentPostId = postId;
+    const panel = document.getElementById('commentsPanel');
+    const inner = document.getElementById('commentsPanelInner');
     document.getElementById('commentInput').value = '';
-    document.getElementById('commentsModal').classList.add('open');
+    panel.style.display = 'flex';
+    requestAnimationFrame(() => { inner.style.transform = 'translateX(0)'; });
+    // Setup Enter key (only once)
+    const input = document.getElementById('commentInput');
+    if (!input._commentHandler) {
+        input._commentHandler = (e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); submitComment(); } };
+        input.addEventListener('keydown', input._commentHandler);
+    }
+    // Setup emoji picker
+    initCommentsEmojiPicker();
     await loadComments();
+}
+
+function closeComments() {
+    const panel = document.getElementById('commentsPanel');
+    const inner = document.getElementById('commentsPanelInner');
+    inner.style.transform = 'translateX(100%)';
+    setTimeout(() => { panel.style.display = 'none'; }, 250);
+}
+
+function toggleCommentsEmoji() {
+    const p = document.getElementById('commentsEmojiPickerPanel');
+    p.classList.toggle('open');
+}
+
+function initCommentsEmojiPicker() {
+    const panel = document.getElementById('commentsEmojiPickerPanel');
+    if (panel._init) return;
+    panel._init = true;
+    const catsContainer = document.createElement('div');
+    catsContainer.className = 'emoji-categories';
+    const grid = document.createElement('div');
+    grid.className = 'emoji-grid';
+    panel.appendChild(catsContainer);
+    panel.appendChild(grid);
+    const input = document.getElementById('commentInput');
+    emojiCategories.forEach((cat, i) => {
+        const btn = document.createElement('button');
+        btn.className = 'emoji-cat-btn' + (i === 0 ? ' active' : '');
+        btn.innerText = cat.icon;
+        btn.onclick = () => {
+            catsContainer.querySelectorAll('.emoji-cat-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            renderGrid(cat.emojis);
+        };
+        catsContainer.appendChild(btn);
+    });
+    function renderGrid(emojis) {
+        grid.innerHTML = '';
+        emojis.forEach(e => {
+            const span = document.createElement('span');
+            span.innerText = e;
+            span.onclick = () => {
+                const pos = input.selectionStart || input.value.length;
+                input.value = input.value.slice(0, pos) + e + input.value.slice(pos);
+                input.focus();
+                panel.classList.remove('open');
+            };
+            grid.appendChild(span);
+        });
+    }
+    renderGrid(emojiCategories[0].emojis);
+    document.addEventListener('click', (ev) => {
+        const btn = document.getElementById('commentsEmojiBtn');
+        if (!panel.contains(ev.target) && ev.target !== btn) panel.classList.remove('open');
+    });
 }
 
 async function loadComments() {
@@ -3425,23 +3492,28 @@ async function loadComments() {
     if (!res.ok) return;
     const comments = await res.json();
     const list = document.getElementById('commentsList');
+    const countEl = document.getElementById('commentsCount');
+    if (countEl) countEl.textContent = comments.length > 0 ? comments.length + ' коммент.' : '';
     list.innerHTML = '';
     if (comments.length === 0) {
-        list.innerHTML = '<div style="text-align:center; color:var(--text-secondary); font-size:13px; padding:16px;">Комментариев пока нет</div>';
+        list.innerHTML = '<div style="text-align:center;color:var(--text-muted);font-size:13px;padding:32px 16px;">Комментариев пока нет.<br>Будьте первым!</div>';
         return;
     }
     comments.forEach(c => {
         const div = document.createElement('div');
-        div.className = 'comment-item';
-        // Try to get fresh avatar from friends cache
-        const cachedCommenter = window._friendsCache?.find(f => f.username === c.from);
-        const commentAvatar = cachedCommenter?.avatar || c.avatar || '😀';
-        const commentName = cachedCommenter?.displayName || c.displayName || c.from;
+        div.className = 'cmt-item';
+        const cachedC = window._friendsCache?.find(f => f.username === c.from);
+        const cAvatar = cachedC?.avatar || c.avatar || '😀';
+        const cName = cachedC?.displayName || c.displayName || c.from;
+        const time = new Date(c.createdAt).toLocaleTimeString('ru', {hour:'2-digit',minute:'2-digit'});
         div.innerHTML = `
-            <span class="comment-avatar" style="cursor:pointer;" onclick="openUserProfile('${escapeHtml(c.from)}')">${renderAvatar(commentAvatar, 30)}</span>
-            <div class="comment-body">
-                <span class="comment-author" style="color:${c.color}">${escapeHtml(commentName)}</span>
-                <span class="comment-text">${escapeHtml(c.text)}</span>
+            <div class="cmt-avatar" onclick="closeComments();openUserProfile('${escapeHtml(c.from)}')" style="cursor:pointer;">${renderAvatar(cAvatar, 36)}</div>
+            <div class="cmt-body">
+                <div class="cmt-header">
+                    <span class="cmt-name" style="color:${c.color||'var(--accent)'}">${escapeHtml(cName)}</span>
+                    <span class="cmt-time">${time}</span>
+                </div>
+                <div class="cmt-text">${escapeHtml(c.text)}</div>
             </div>`;
         list.appendChild(div);
     });
@@ -3450,17 +3522,16 @@ async function loadComments() {
 
 async function submitComment() {
     const token = localStorage.getItem('token');
-    const text = document.getElementById('commentInput').value.trim();
+    const input = document.getElementById('commentInput');
+    const text = input.value.trim();
     if (!text) return;
+    input.value = '';
     const res = await fetch(`/api/posts/${currentPostId}/comments`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token },
         body: JSON.stringify({ text })
     });
-    if (res.ok) {
-        document.getElementById('commentInput').value = '';
-        await loadComments();
-    }
+    if (res.ok) await loadComments();
 }
 
 // Подгружаем каналы при переключении на таб
@@ -3496,6 +3567,17 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 });
+
+// ===== Own Profile (burger click) =====
+function openOwnProfile() {
+    if (!currentUser) return;
+    openSettingsPanel();
+    // Scroll to top of settings
+    setTimeout(() => {
+        const content = document.querySelector('.settings-overlay-content');
+        if (content) content.scrollTop = 0;
+    }, 100);
+}
 
 // ===== Channel Profile Panel =====
 function openChannelProfile() {
