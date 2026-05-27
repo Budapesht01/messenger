@@ -652,13 +652,13 @@ function addMessageToChat(msg) {
 
     div.innerHTML = `
         <div class="msg-avatar-wrap">
-            ${!isOwn ? renderAvatar(senderAvatar, 34) : ''}
+            ${!isOwn ? `<span onclick="openUserProfile('${escapeHtml(msg.from)}')" style="cursor:pointer;">${renderAvatar(senderAvatar, 34)}</span>` : ''}
         </div>
         <div class="msg-body">
             <div class="message-bubble">
                 ${forwardedHtml}
                 ${replyHtml}
-                <div class="msg-sender" style="color:${color}">${isOwn ? '' : escapeHtml(msg.from)}</div>
+                <div class="msg-sender" style="color:${color};${!isOwn?'cursor:pointer;':''}" ${!isOwn?`onclick="openUserProfile('${escapeHtml(msg.from)}')"`:''} >${isOwn ? '' : escapeHtml(msg.displayName || msg.from)}</div>
                 ${imageHtml}
                 ${textHtml}
                 <div class="msg-meta">
@@ -1683,17 +1683,38 @@ async function loadProfile() {
         }
     }
     document.getElementById('colorInput').value = data.color || '#6ab0f3';
+    const dn = document.getElementById('displayNameInput');
+    if (dn) dn.value = data.displayName || '';
+    const bio = document.getElementById('bioInput');
+    if (bio) { bio.value = data.bio || ''; document.getElementById('bioCounter').textContent = `${(data.bio||'').length}/200`; }
+    const bd = document.getElementById('birthdateInput');
+    if (bd) bd.value = data.birthdate || '';
+    const bdv = document.getElementById('birthdateVisible');
+    if (bdv) bdv.checked = !!data.birthdateVisible;
 }
 
 async function updateProfile(avatar, color) {
     const token = localStorage.getItem('token');
-    const res = await fetch('/api/me/update', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` }, body: JSON.stringify({ avatar, color }) });
+    const displayName = document.getElementById('displayNameInput')?.value.trim() || '';
+    const bio = document.getElementById('bioInput')?.value.trim() || '';
+    const birthdate = document.getElementById('birthdateInput')?.value || '';
+    const birthdateVisible = document.getElementById('birthdateVisible')?.checked || false;
+    const res = await fetch('/api/me/update', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        body: JSON.stringify({ avatar, color, displayName, bio, birthdate, birthdateVisible })
+    });
     if (res.ok) {
         currentUser.avatar = avatar;
         currentUser.color = color;
-        // Обновить цвет ника у всех своих сообщений в DOM
-        document.querySelectorAll('.message.own .msg-sender').forEach(el => {
-            el.style.color = color;
+        currentUser.displayName = displayName;
+        document.querySelectorAll('.message.own .msg-sender').forEach(el => el.style.color = color);
+        // Update friend list display names
+        document.querySelectorAll('[data-chat-key]').forEach(el => {
+            if (el.dataset.chatKey === `dm_${currentUser.username}`) {
+                const nameEl = el.querySelector('.user-item-name');
+                if (nameEl) nameEl.textContent = displayName || currentUser.username;
+            }
         });
         showToast('Профиль обновлён');
     } else {
@@ -3943,4 +3964,108 @@ document.addEventListener('DOMContentLoaded', () => {
             tabs.scrollLeft += e.deltaY * 0.8;
         }
     }, { passive: false });
+});
+
+// ========== User Profile Modal ==========
+async function openUserProfile(username) {
+    if (!username) return;
+    const token = localStorage.getItem('token');
+    const modal = document.getElementById('userProfileModal');
+    const card = document.getElementById('userProfileCard');
+    if (!modal) return;
+
+    modal.style.display = 'flex';
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+        card.style.transform = 'scale(1)';
+        card.style.opacity = '1';
+    }));
+
+    try {
+        const data = await (await fetch(`/api/users/${encodeURIComponent(username)}/profile`, {
+            headers: { Authorization: 'Bearer ' + token }
+        })).json();
+
+        // Avatar
+        const avEl = document.getElementById('upAvatar');
+        if (isImgAvatar(data.avatar)) {
+            avEl.innerHTML = `<img src="${data.avatar}" style="width:100%;height:100%;object-fit:cover;">`;
+        } else {
+            avEl.textContent = data.avatar || '😀';
+        }
+
+        // Name & username
+        document.getElementById('upDisplayName').textContent = data.displayName || data.username;
+        document.getElementById('upUsername').textContent = `@${data.username}`;
+
+        // Online
+        const onlineEl = document.getElementById('upOnlineStatus');
+        if (data.online) {
+            onlineEl.innerHTML = `<span style="color:var(--accent);">● в сети</span>`;
+        } else if (data.lastSeen) {
+            onlineEl.textContent = formatLastSeen(data.lastSeen);
+            onlineEl.style.color = 'var(--text-secondary)';
+        } else {
+            onlineEl.textContent = '';
+        }
+
+        // Bio
+        const bioWrap = document.getElementById('upBioWrap');
+        if (data.bio) {
+            document.getElementById('upBio').textContent = data.bio;
+            bioWrap.style.display = 'block';
+        } else {
+            bioWrap.style.display = 'none';
+        }
+
+        // Birthdate
+        const bdWrap = document.getElementById('upBdWrap');
+        if (data.birthdate) {
+            document.getElementById('upBirthdate').textContent = formatBirthdate(data.birthdate);
+            bdWrap.style.display = 'block';
+        } else {
+            bdWrap.style.display = 'none';
+        }
+
+        // Actions
+        const actions = document.getElementById('upActions');
+        actions.innerHTML = '';
+        if (username !== currentUser?.username) {
+            const msgBtn = document.createElement('button');
+            msgBtn.className = 'primary-btn';
+            msgBtn.style.cssText = 'flex:1;margin-bottom:0;padding:10px;';
+            msgBtn.textContent = 'Написать';
+            msgBtn.onclick = () => { closeUserProfile(); switchChat(username); };
+            actions.appendChild(msgBtn);
+        }
+    } catch(e) {
+        console.error('Profile load error', e);
+    }
+}
+
+function closeUserProfile() {
+    const modal = document.getElementById('userProfileModal');
+    const card = document.getElementById('userProfileCard');
+    if (!modal) return;
+    card.style.transform = 'scale(0.94)';
+    card.style.opacity = '0';
+    setTimeout(() => { modal.style.display = 'none'; }, 200);
+}
+
+function formatBirthdate(str) {
+    if (!str) return '';
+    const d = new Date(str);
+    if (isNaN(d)) return str;
+    const months = ['января','февраля','марта','апреля','мая','июня','июля','августа','сентября','октября','ноября','декабря'];
+    const now = new Date();
+    const age = now.getFullYear() - d.getFullYear() - (now < new Date(now.getFullYear(), d.getMonth(), d.getDate()) ? 1 : 0);
+    return `${d.getDate()} ${months[d.getMonth()]} ${d.getFullYear()} (${age} лет)`;
+}
+
+// Bio counter
+document.addEventListener('DOMContentLoaded', () => {
+    const bio = document.getElementById('bioInput');
+    const counter = document.getElementById('bioCounter');
+    if (bio && counter) {
+        bio.addEventListener('input', () => { counter.textContent = `${bio.value.length}/200`; });
+    }
 });
