@@ -429,6 +429,7 @@ app.get('/api/friends', authenticateJWT, async (req, res) => {
 
     return {
       username: friend.username,
+      displayName: friend.displayName || '',
       avatar: friend.avatar,
       color: friend.color,
       online: friend.online,
