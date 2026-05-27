@@ -253,7 +253,7 @@
 <button id="backBtn" class="menu-toggle mobile-only" onclick="closeChat()" style="display:none;">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
                 </button>
-                <div class="chat-title-wrap">
+                <div class="chat-title-wrap" onclick="if(currentChat)openUserProfile(currentChat)" style="cursor:pointer;">
                     <span class="chat-title">Выберите чат</span>
                     <span class="chat-subtitle" id="chatSubtitle"></span>
                 </div>
@@ -727,6 +727,24 @@
                     <div class="emoji-categories" id="avatarEmojiCategories"></div>
                     <div class="emoji-grid" id="avatarEmojiGrid"></div>
                 </div>
+                <div class="settings-field">
+                    <label class="settings-field-label">Имя</label>
+                    <input type="text" id="displayNameInput" class="modal-input" placeholder="Ваше имя" maxlength="64" style="width:100%;box-sizing:border-box;">
+                    <div style="font-size:11px;color:var(--text-secondary);margin-top:4px;">Отображается вместо @юзернейма</div>
+                </div>
+                <div class="settings-field">
+                    <label class="settings-field-label">О себе</label>
+                    <textarea id="bioInput" class="modal-input" placeholder="Расскажите о себе..." maxlength="200" rows="3" style="width:100%;box-sizing:border-box;resize:none;font-family:inherit;font-size:14px;"></textarea>
+                    <div id="bioCounter" style="font-size:11px;color:var(--text-secondary);margin-top:4px;text-align:right;">0/200</div>
+                </div>
+                <div class="settings-field">
+                    <label class="settings-field-label">Дата рождения</label>
+                    <input type="date" id="birthdateInput" class="modal-input" style="width:100%;box-sizing:border-box;">
+                    <label style="display:flex;align-items:center;gap:8px;margin-top:8px;cursor:pointer;font-size:13px;color:var(--text-secondary);">
+                        <input type="checkbox" id="birthdateVisible" style="width:16px;height:16px;accent-color:var(--accent);">
+                        Показывать дату рождения в профиле
+                    </label>
+                </div>
                 <div class="color-selector">
                     <label>Цвет ника:</label>
                     <div class="color-picker-wrapper">
@@ -1006,6 +1024,32 @@
         </div>
     </div>
 </div>
-    
+
+<!-- User Profile Modal -->
+<div id="userProfileModal" style="display:none;position:fixed;inset:0;z-index:3000;background:rgba(0,0,0,0.7);align-items:center;justify-content:center;" onclick="if(event.target===this)closeUserProfile()">
+    <div id="userProfileCard" style="width:340px;max-width:92vw;max-height:88vh;border-radius:20px;overflow:hidden;display:flex;flex-direction:column;background:var(--glass-sidebar);border:1px solid var(--border);transform:scale(0.94);opacity:0;transition:transform 0.22s cubic-bezier(0.34,1.1,0.64,1),opacity 0.18s ease;">
+        <div id="upBanner" style="height:80px;background:linear-gradient(135deg,#5588cc,#7c6eaf);position:relative;flex-shrink:0;overflow:visible;">
+            <button onclick="closeUserProfile()" style="position:absolute;top:10px;right:12px;background:rgba(0,0,0,0.35);border:none;color:#fff;width:28px;height:28px;border-radius:50%;cursor:pointer;font-size:15px;display:flex;align-items:center;justify-content:center;z-index:2;">✕</button>
+            <div style="position:absolute;bottom:-38px;left:20px;z-index:2;">
+                <div id="upAvatar" style="width:76px;height:76px;border-radius:50%;font-size:38px;display:flex;align-items:center;justify-content:center;background:var(--glass-sidebar);border:4px solid var(--glass-sidebar);box-shadow:0 2px 12px rgba(0,0,0,0.4);overflow:hidden;">😀</div>
+            </div>
+        </div>
+        <div style="overflow-y:auto;flex:1;padding:52px 20px 20px;display:flex;flex-direction:column;gap:10px;">
+            <div id="upDisplayName" style="font-size:20px;font-weight:700;color:var(--text-primary);line-height:1.2;"></div>
+            <div id="upUsername" style="font-size:13px;color:var(--text-secondary);"></div>
+            <div id="upOnlineStatus" style="font-size:12px;"></div>
+            <div id="upBioWrap" style="display:none;background:var(--glass-input);border-radius:12px;padding:12px 14px;">
+                <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;color:var(--text-secondary);margin-bottom:5px;">О себе</div>
+                <div id="upBio" style="font-size:14px;color:var(--text-primary);line-height:1.5;white-space:pre-wrap;word-break:break-word;"></div>
+            </div>
+            <div id="upBdWrap" style="display:none;background:var(--glass-input);border-radius:12px;padding:12px 14px;">
+                <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;color:var(--text-secondary);margin-bottom:5px;">Дата рождения</div>
+                <div id="upBirthdate" style="font-size:14px;color:var(--text-primary);"></div>
+            </div>
+            <div id="upActions" style="display:flex;gap:8px;margin-top:4px;"></div>
+        </div>
+    </div>
+</div>
+
 </body>
 </html>
