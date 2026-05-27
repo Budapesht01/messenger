@@ -1126,6 +1126,7 @@ const PostSchema = new mongoose.Schema({
 const CommentSchema = new mongoose.Schema({
   postId: { type: mongoose.Schema.Types.ObjectId, required: true },
   from: { type: String, required: true },
+  displayName: { type: String, default: '' },
   avatar: { type: String, default: '😀' },
   color: { type: String, default: '#6ab0f3' },
   text: { type: String, required: true },
@@ -1189,7 +1190,7 @@ app.post('/api/posts/:id/comments', authenticateJWT, async (req, res) => {
   const { text } = req.body;
   if (!text) return res.status(400).json({ error: 'Text required' });
   const user = await User.findOne({ username: req.user.username });
-  const comment = new Comment({ postId: req.params.id, from: req.user.username, avatar: user.avatar||'😀', color: user.color||'#6ab0f3', text });
+  const comment = new Comment({ postId: req.params.id, from: req.user.username, displayName: user.displayName||'', avatar: user.avatar||'😀', color: user.color||'#6ab0f3', text });
   await comment.save();
   res.json(comment);
 });
