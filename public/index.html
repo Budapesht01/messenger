@@ -716,36 +716,6 @@
         <!-- Содержимое (берём то что было) -->
         <div class="settings-overlay-content">
             <div class="settings-panel" style="padding:0;">
-                <div class="avatar-selector">
-                    <div class="avatar-preview" id="avatarPreview">😀</div>
-                    <div style="display:flex;flex-direction:column;gap:6px;">
-                        <button id="pickAvatarBtn" class="secondary-btn">Выбрать эмодзи</button>
-                        <input type="file" id="avatarPhotoInput" accept="image/*" style="display:none;">
-                        <button id="uploadPhotoBtn" class="secondary-btn" style="font-size:13px;">📷 Загрузить фото</button>
-                    </div>
-                </div>
-                <div class="avatar-emoji-panel" id="avatarEmojiPanel" style="display:none;flex-direction:column;max-height:220px;border-radius:14px;border:1px solid rgba(255,255,255,0.08);background:var(--glass-card);overflow:hidden;margin-top:8px;">
-                    <div class="emoji-categories" id="avatarEmojiCategories"></div>
-                    <div class="emoji-grid" id="avatarEmojiGrid"></div>
-                </div>
-                <div class="settings-field">
-                    <label class="settings-field-label">Имя</label>
-                    <input type="text" id="displayNameInput" class="modal-input" placeholder="Ваше имя" maxlength="64" style="width:100%;box-sizing:border-box;">
-                    <div style="font-size:11px;color:var(--text-secondary);margin-top:4px;">Отображается вместо @юзернейма</div>
-                </div>
-                <div class="settings-field">
-                    <label class="settings-field-label">О себе</label>
-                    <textarea id="bioInput" class="modal-input" placeholder="Расскажите о себе..." maxlength="200" rows="3" style="width:100%;box-sizing:border-box;resize:none;font-family:inherit;font-size:14px;"></textarea>
-                    <div id="bioCounter" style="font-size:11px;color:var(--text-secondary);margin-top:4px;text-align:right;">0/200</div>
-                </div>
-                <div class="settings-field">
-                    <label class="settings-field-label">Дата рождения</label>
-                    <input type="date" id="birthdateInput" class="modal-input" style="width:100%;box-sizing:border-box;">
-                    <label style="display:flex;align-items:center;gap:8px;margin-top:8px;cursor:pointer;font-size:13px;color:var(--text-secondary);">
-                        <input type="checkbox" id="birthdateVisible" style="width:16px;height:16px;accent-color:var(--accent);">
-                        Показывать дату рождения в профиле
-                    </label>
-                </div>
                 <div class="color-selector">
                     <label>Цвет ника:</label>
                     <div class="color-picker-wrapper">
@@ -1066,6 +1036,85 @@
         </div>
     </div>
 </div>
+
+<!-- Own Profile Modal -->
+<div id="ownProfileModal" style="display:none;position:fixed;inset:0;z-index:3000;background:rgba(0,0,0,0.7);align-items:center;justify-content:center;" onclick="if(event.target===this)closeOwnProfile()">
+    <div id="ownProfileCard" style="width:360px;max-width:92vw;max-height:90vh;border-radius:20px;overflow:hidden;display:flex;flex-direction:column;background:var(--glass-sidebar);border:1px solid var(--border);transform:scale(0.94);opacity:0;transition:transform 0.22s cubic-bezier(0.34,1.1,0.64,1),opacity 0.18s ease;">
+        <!-- Banner -->
+        <div id="opBanner" style="height:90px;background:linear-gradient(135deg,#5588cc,#7c6eaf);position:relative;flex-shrink:0;">
+            <button onclick="closeOwnProfile()" style="position:absolute;top:10px;right:12px;background:rgba(0,0,0,0.35);border:none;color:#fff;width:28px;height:28px;border-radius:50%;cursor:pointer;font-size:15px;display:flex;align-items:center;justify-content:center;z-index:3;">✕</button>
+            <!-- Banner color picker -->
+            <button onclick="toggleOpBannerPicker()" style="position:absolute;top:10px;right:50px;background:rgba(0,0,0,0.35);border:none;color:#fff;width:28px;height:28px;border-radius:50%;cursor:pointer;font-size:13px;display:flex;align-items:center;justify-content:center;z-index:3;" title="Цвет баннера">🎨</button>
+            <div id="opBannerPicker" style="display:none;position:absolute;top:46px;right:10px;background:var(--glass-card);border:1px solid var(--border);border-radius:14px;padding:10px;z-index:10;display:none;flex-wrap:wrap;gap:8px;width:220px;">
+                <!-- filled by JS -->
+            </div>
+            <!-- Avatar -->
+            <div style="position:absolute;bottom:-40px;left:20px;z-index:2;">
+                <div style="position:relative;display:inline-block;">
+                    <div id="opAvatar" style="width:80px;height:80px;border-radius:50%;font-size:40px;display:flex;align-items:center;justify-content:center;background:var(--glass-sidebar);border:4px solid var(--glass-sidebar);box-shadow:0 2px 12px rgba(0,0,0,0.4);overflow:hidden;cursor:pointer;" onclick="openOpAvatarPicker()">😀</div>
+                    <div onclick="openOpAvatarPicker()" style="position:absolute;bottom:2px;right:2px;width:22px;height:22px;background:var(--accent);border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer;border:2px solid var(--glass-sidebar);">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" width="12" height="12"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!-- Scrollable content -->
+        <div style="overflow-y:auto;flex:1;padding:52px 20px 20px;display:flex;flex-direction:column;gap:14px;">
+            <!-- Display name -->
+            <div id="opNameView" style="display:flex;align-items:center;gap:8px;">
+                <div id="opDisplayName" style="font-size:20px;font-weight:700;color:var(--text-primary);flex:1;"></div>
+                <button onclick="startEditOpName()" style="background:none;border:none;cursor:pointer;color:var(--text-secondary);padding:4px;" title="Редактировать имя">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                </button>
+            </div>
+            <div id="opNameEdit" style="display:none;flex-direction:column;gap:6px;">
+                <input id="opNameInput" class="modal-input" style="width:100%;box-sizing:border-box;" maxlength="64">
+                <div style="display:flex;gap:8px;">
+                    <button onclick="saveOpName()" class="primary-btn" style="flex:1;margin-bottom:0;padding:8px;">Сохранить</button>
+                    <button onclick="cancelOpName()" class="secondary-btn" style="flex:1;padding:8px;">Отмена</button>
+                </div>
+            </div>
+            <div id="opUsername" style="font-size:13px;color:var(--text-secondary);margin-top:-10px;"></div>
+            <!-- Bio -->
+            <div id="opBioView" style="background:var(--glass-input);border-radius:12px;padding:12px 14px;">
+                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:5px;">
+                    <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;color:var(--text-secondary);">О себе</div>
+                    <button onclick="startEditOpBio()" style="background:none;border:none;cursor:pointer;color:var(--text-secondary);padding:2px;" title="Редактировать">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                    </button>
+                </div>
+                <div id="opBioText" style="font-size:14px;color:var(--text-primary);line-height:1.5;white-space:pre-wrap;min-height:20px;"></div>
+            </div>
+            <div id="opBioEdit" style="display:none;flex-direction:column;gap:6px;">
+                <textarea id="opBioInput" class="modal-input" maxlength="200" rows="3" style="width:100%;box-sizing:border-box;resize:none;font-family:inherit;font-size:14px;" placeholder="Расскажите о себе..."></textarea>
+                <div style="display:flex;gap:8px;">
+                    <button onclick="saveOpBio()" class="primary-btn" style="flex:1;margin-bottom:0;padding:8px;">Сохранить</button>
+                    <button onclick="cancelOpBio()" class="secondary-btn" style="flex:1;padding:8px;">Отмена</button>
+                </div>
+            </div>
+            <!-- Birthdate -->
+            <div id="opBdBlock" style="background:var(--glass-input);border-radius:12px;padding:12px 14px;">
+                <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;color:var(--text-secondary);margin-bottom:5px;">Дата рождения</div>
+                <div style="display:flex;align-items:center;gap:8px;">
+                    <input type="date" id="opBdInput" class="modal-input" style="flex:1;box-sizing:border-box;">
+                    <label style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text-secondary);cursor:pointer;white-space:nowrap;">
+                        <input type="checkbox" id="opBdVisible" style="accent-color:var(--accent);">
+                        Показывать
+                    </label>
+                </div>
+                <button onclick="saveOpBirthdate()" class="secondary-btn" style="margin-top:8px;width:100%;padding:7px;font-size:13px;">Сохранить</button>
+            </div>
+            <!-- Avatar picker panel -->
+            <div id="opAvatarPickerPanel" style="display:none;background:var(--glass-input);border-radius:14px;overflow:hidden;flex-direction:column;">
+                <!-- filled by JS -->
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Hidden inputs for profile editing (used by settings saveBtn) -->
+<input type="file" id="avatarPhotoInput" accept="image/*" style="display:none;">
+<div id="avatarEmojiPanel" style="display:none;"></div>
 
 </body>
 </html>
