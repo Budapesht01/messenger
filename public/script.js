@@ -1242,6 +1242,7 @@ function updateReadStatusInCurrentChat() {
 
 // ========== Друзья ==========
 async function loadFriends() {
+    window._friendsCache = data.friends || data;
     const token = localStorage.getItem('token');
     const res = await fetch('/api/friends', { headers: { 'Authorization': `Bearer ${token}` } });
     const friends = await res.json();
@@ -1252,8 +1253,6 @@ async function loadFriends() {
         const div = document.createElement('div');
         div.className = 'user-item';
         div.setAttribute('data-chat-key', 'dm_' + friend.username);
-        // После loadFriends получает данные — добавить в начало функции loadFriends:
-        window._friendsCache = data.friends || data;
         div.onclick = () => switchChat(friend.username);
         const count = unreadCounts[friend.username] || 0;
 
