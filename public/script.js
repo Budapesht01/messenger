@@ -1242,7 +1242,6 @@ function updateReadStatusInCurrentChat() {
 
 // ========== Друзья ==========
 async function loadFriends() {
-    window._friendsCache = data.friends || data;
     const token = localStorage.getItem('token');
     const res = await fetch('/api/friends', { headers: { 'Authorization': `Bearer ${token}` } });
     const friends = await res.json();
