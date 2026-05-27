@@ -648,8 +648,9 @@ function addMessageToChat(msg) {
         }
     }
 
-    // Аватарка: берём из DOM текущих друзей для актуальности
-    const senderAvatar = msg.avatar || '😀';
+    // Аватарка: берём из кэша друзей для актуальности
+    const cachedSender = window._friendsCache?.find(f => f.username === msg.from);
+    const senderAvatar = cachedSender?.avatar || msg.avatar || '😀';
 
     div.innerHTML = `
         <div class="msg-avatar-wrap">
@@ -659,7 +660,7 @@ function addMessageToChat(msg) {
             <div class="message-bubble">
                 ${forwardedHtml}
                 ${replyHtml}
-                <div class="msg-sender" style="color:${color};${!isOwn?'cursor:pointer;':''}" ${!isOwn?`onclick="openUserProfile('${escapeHtml(msg.from)}')"`:''} >${isOwn ? '' : escapeHtml(msg.displayName || msg.from)}</div>
+                <div class="msg-sender" style="color:${color};${!isOwn?'cursor:pointer;':''}" ${!isOwn?`onclick="openUserProfile('${escapeHtml(msg.from)}')"`:''} >${isOwn ? '' : escapeHtml(msg.displayName || window._friendsCache?.find(f=>f.username===msg.from)?.displayName || msg.from)}</div>
                 ${imageHtml}
                 ${textHtml}
                 <div class="msg-meta">
@@ -1245,6 +1246,15 @@ async function loadFriends() {
     const token = localStorage.getItem('token');
     const res = await fetch('/api/friends', { headers: { 'Authorization': `Bearer ${token}` } });
     const friends = await res.json();
+    window._friendsCache = Array.isArray(friends) ? friends : [];
+    // Refresh DM title if open
+    if (currentChat) {
+        const fd = window._friendsCache.find(f => f.username === currentChat);
+        if (fd?.displayName) {
+            const titleEl = document.querySelector('.chat-title');
+            if (titleEl && !currentGroupId) titleEl.innerText = fd.displayName;
+        }
+    }
     const container = document.getElementById('friendsList');
     container.innerHTML = '';
     if (friends.length === 0) { container.innerHTML = '<div class="empty-hint">Найдите друзей во вкладке Поиск</div>'; return; }
@@ -1710,6 +1720,11 @@ async function updateProfile(avatar, color) {
         currentUser.avatar = avatar;
         currentUser.color = color;
         currentUser.displayName = displayName;
+        // Update own entry in friends cache too
+        if (window._friendsCache) {
+            const self = window._friendsCache.find(f => f.username === currentUser.username);
+            if (self) { self.displayName = displayName; self.avatar = avatar; }
+        }
         document.querySelectorAll('.message.own .msg-sender').forEach(el => el.style.color = color);
         // Update friend list display names
         document.querySelectorAll('[data-chat-key]').forEach(el => {
@@ -3418,10 +3433,14 @@ async function loadComments() {
     comments.forEach(c => {
         const div = document.createElement('div');
         div.className = 'comment-item';
+        // Try to get fresh avatar from friends cache
+        const cachedCommenter = window._friendsCache?.find(f => f.username === c.from);
+        const commentAvatar = cachedCommenter?.avatar || c.avatar || '😀';
+        const commentName = cachedCommenter?.displayName || c.displayName || c.from;
         div.innerHTML = `
-            <span class="comment-avatar">${c.avatar || '😀'}</span>
+            <span class="comment-avatar" style="cursor:pointer;" onclick="openUserProfile('${escapeHtml(c.from)}')">${renderAvatar(commentAvatar, 30)}</span>
             <div class="comment-body">
-                <span class="comment-author" style="color:${c.color}">${escapeHtml(c.from)}</span>
+                <span class="comment-author" style="color:${c.color}">${escapeHtml(commentName)}</span>
                 <span class="comment-text">${escapeHtml(c.text)}</span>
             </div>`;
         list.appendChild(div);
