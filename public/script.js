@@ -1382,8 +1382,12 @@ document.getElementById('searchUserInput').addEventListener('input', async (e) =
         data.users.forEach(u => {
             const div = document.createElement('div');
             div.className = 'user-item search-result-item';
-            div.innerHTML = `<span style="font-size:22px;">${u.avatar||'😀'}</span><div class="user-item-info"><span class="user-item-name" style="color:${u.color}">${escapeHtml(u.username)}</span><span class="user-item-status">${u.online ? 'онлайн' : 'оффлайн'}</span></div>`;
-            div.onclick = () => sendFriendRequest(u.username);
+            const isFriend = window._friendsCache?.some(f => f.username === u.username);
+            const btnHtml = isFriend
+                ? `<span style="font-size:11px;color:var(--text-secondary);padding:4px 8px;">Друг</span>`
+                : `<button class="friend-request-btn" onclick="event.stopPropagation();sendFriendRequest('${escapeHtml(u.username)}')" style="font-size:12px;padding:4px 10px;">+ Добавить</button>`;
+            div.innerHTML = `${renderAvatar(u.avatar||'😀',40)}<div class="user-item-info"><span class="user-item-name" style="color:${u.color}">${escapeHtml(u.displayName||u.username)}</span><span class="user-item-status">@${escapeHtml(u.username)} · ${u.online ? 'онлайн' : 'оффлайн'}</span></div>${btnHtml}`;
+            div.onclick = () => openUserProfile(u.username);
             results.appendChild(div);
         });
     }
@@ -3612,10 +3616,11 @@ async function openOwnProfile() {
         avEl.textContent = data.avatar || '😀';
     }
 
-    // Banner color
-    const savedBanner = localStorage.getItem('ownBanner') || '';
+    // Banner color - load from DB first, fallback to localStorage
+    const savedBanner = data.bannerColor || localStorage.getItem('ownBanner') || '';
     const banner = document.getElementById('opBanner');
     if (savedBanner) banner.style.background = savedBanner;
+    if (savedBanner) localStorage.setItem('ownBanner', savedBanner);
 
     // Name
     document.getElementById('opDisplayName').textContent = data.displayName || data.username;
@@ -3628,21 +3633,22 @@ async function openOwnProfile() {
     document.getElementById('opBdInput').value = data.birthdate || '';
     document.getElementById('opBdVisible').checked = !!data.birthdateVisible;
 
-    // Banner picker
+    // Banner picker - rebuild each time to reflect current selection
     const picker = document.getElementById('opBannerPicker');
-    if (!picker.children.length) {
-        OP_BANNER_COLORS.forEach(c => {
-            const btn = document.createElement('button');
-            btn.style.cssText = `width:32px;height:32px;border-radius:50%;border:3px solid ${savedBanner===c?'var(--accent)':'transparent'};cursor:pointer;background:${c||'rgba(255,255,255,0.15)'};flex-shrink:0;`;
-            btn.onclick = () => {
-                localStorage.setItem('ownBanner', c);
-                banner.style.background = c || 'linear-gradient(135deg,#5588cc,#7c6eaf)';
-                picker.querySelectorAll('button').forEach(b => b.style.borderColor='transparent');
-                btn.style.borderColor = 'var(--accent)';
-            };
-            picker.appendChild(btn);
-        });
-    }
+    picker.innerHTML = '';
+    OP_BANNER_COLORS.forEach(c => {
+        const btn = document.createElement('button');
+        btn.style.cssText = `width:32px;height:32px;border-radius:50%;border:3px solid ${savedBanner===c?'var(--accent)':'transparent'};cursor:pointer;background:${c||'rgba(255,255,255,0.15)'};flex-shrink:0;`;
+        btn.onclick = async () => {
+            banner.style.background = c || 'linear-gradient(135deg,#5588cc,#7c6eaf)';
+            picker.querySelectorAll('button').forEach(b => b.style.borderColor='transparent');
+            btn.style.borderColor = 'var(--accent)';
+            localStorage.setItem('ownBanner', c);
+            const token = localStorage.getItem('token');
+            await fetch('/api/me/update', { method:'POST', headers:{'Content-Type':'application/json','Authorization':'Bearer '+token}, body: JSON.stringify({ bannerColor: c }) });
+        };
+        picker.appendChild(btn);
+    });
 
     // Avatar picker panel
     const avPanel = document.getElementById('opAvatarPickerPanel');
@@ -4258,6 +4264,11 @@ async function openUserProfile(username) {
             headers: { Authorization: 'Bearer ' + token }
         })).json();
 
+        // Apply banner color
+        const upBanner = document.getElementById('upBanner');
+        if (upBanner && data.bannerColor) upBanner.style.background = data.bannerColor;
+        else if (upBanner) upBanner.style.background = 'linear-gradient(135deg,#5588cc,#7c6eaf)';
+
         // Avatar
         const avEl = document.getElementById('upAvatar');
         if (isImgAvatar(data.avatar)) {
@@ -4342,3 +4353,86 @@ document.addEventListener('DOMContentLoaded', () => {
         bio.addEventListener('input', () => { counter.textContent = `${bio.value.length}/200`; });
     }
 });
+
+// ========== @Mention autocomplete ==========
+(function() {
+    const input = document.getElementById('messageInput');
+    if (!input) return;
+
+    let mentionBox = null;
+    let mentionQuery = '';
+    let mentionStart = -1;
+
+    function getMentionMembers() {
+        // Friends + group members
+        const names = new Set();
+        (window._friendsCache || []).forEach(f => names.add({ username: f.username, displayName: f.displayName || f.username, avatar: f.avatar }));
+        // If in group, also group members from last loaded messages
+        document.querySelectorAll('.msg-sender[onclick]').forEach(el => {
+            const m = el.getAttribute('onclick')?.match(/openUserProfile\('([^']+)'\)/);
+            if (m) names.add({ username: m[1], displayName: m[1], avatar: '😀' });
+        });
+        return [...names];
+    }
+
+    function showMentions(query) {
+        hideMentions();
+        const members = getMentionMembers().filter(m =>
+            m.username.toLowerCase().includes(query.toLowerCase()) ||
+            m.displayName.toLowerCase().includes(query.toLowerCase())
+        ).slice(0, 6);
+        if (!members.length) return;
+
+        mentionBox = document.createElement('div');
+        mentionBox.id = 'mentionSuggest';
+        mentionBox.style.cssText = 'position:absolute;bottom:100%;left:8px;right:8px;background:var(--glass-card);border:1px solid var(--border);border-radius:14px;overflow:hidden;z-index:500;box-shadow:0 8px 24px rgba(0,0,0,0.4);margin-bottom:4px;';
+        members.forEach(m => {
+            const item = document.createElement('div');
+            item.style.cssText = 'display:flex;align-items:center;gap:10px;padding:8px 12px;cursor:pointer;transition:background 0.1s;';
+            item.innerHTML = `${renderAvatar(m.avatar, 32)}<div><div style="font-size:13px;font-weight:600;color:var(--text-primary);">${escapeHtml(m.displayName)}</div><div style="font-size:11px;color:var(--text-secondary);">@${escapeHtml(m.username)}</div></div>`;
+            item.onmouseenter = () => item.style.background = 'rgba(255,255,255,0.07)';
+            item.onmouseleave = () => item.style.background = '';
+            item.onmousedown = (e) => {
+                e.preventDefault();
+                const val = input.value;
+                const before = val.slice(0, mentionStart);
+                const after = val.slice(mentionStart + mentionQuery.length + 1);
+                input.value = before + '@' + m.username + ' ' + after;
+                input.focus();
+                const pos = (before + '@' + m.username + ' ').length;
+                input.setSelectionRange(pos, pos);
+                hideMentions();
+            };
+            mentionBox.appendChild(item);
+        });
+        input.parentElement.style.position = 'relative';
+        input.parentElement.appendChild(mentionBox);
+    }
+
+    function hideMentions() {
+        if (mentionBox) { mentionBox.remove(); mentionBox = null; }
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+        const inp = document.getElementById('messageInput');
+        if (!inp) return;
+        inp.addEventListener('input', () => {
+            const val = inp.value;
+            const cursor = inp.selectionStart;
+            const before = val.slice(0, cursor);
+            const atIdx = before.lastIndexOf('@');
+            if (atIdx === -1 || (atIdx > 0 && /\S/.test(before[atIdx - 1]))) { hideMentions(); return; }
+            const q = before.slice(atIdx + 1);
+            if (/\s/.test(q)) { hideMentions(); return; }
+            mentionQuery = q;
+            mentionStart = atIdx;
+            showMentions(q);
+        });
+        inp.addEventListener('blur', () => setTimeout(hideMentions, 150));
+        inp.addEventListener('keydown', (e) => {
+            if (!mentionBox) return;
+            const items = mentionBox.querySelectorAll('div[style*="cursor:pointer"]');
+            if (e.key === 'Escape') { hideMentions(); e.preventDefault(); }
+        });
+    });
+})();
