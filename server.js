@@ -327,7 +327,9 @@ app.post('/api/me/update', authenticateJWT, async (req, res) => {
 app.get('/api/users/:username/profile', authenticateJWT, async (req, res) => {
   const user = await User.findOne({ username: req.params.username });
   if (!user) return res.status(404).json({ error: 'Not found' });
-  res.json({ username: user.username, displayName: user.displayName || '', bio: user.bio || '', birthdate: user.birthdateVisible ? (user.birthdate || '') : '', avatar: user.avatar, bannerColor: user.bannerColor || '', color: user.color, online: user.online, lastSeen: user.lastSeen });
+  const me = await User.findOne({ username: req.user.username });
+  const isFriend = me && me.friends.includes(req.params.username);
+  res.json({ username: user.username, displayName: user.displayName || '', bio: user.bio || '', birthdate: user.birthdateVisible ? (user.birthdate || '') : '', avatar: user.avatar, bannerColor: user.bannerColor || '', color: user.color, online: user.online, lastSeen: user.lastSeen, isFriend });
 });
 
 // Сброс пароля — шаг 1: отправить код
@@ -467,6 +469,14 @@ app.post('/api/friend/remove', authenticateJWT, async (req, res) => {
   if (!username) return res.status(400).json({ error: 'Username required' });
   await User.updateOne({ username: req.user.username }, { $pull: { friends: username } });
   await User.updateOne({ username }, { $pull: { friends: req.user.username } });
+  // Delete message history between the two users
+  await Message.deleteMany({
+    groupId: null,
+    $or: [
+      { from: req.user.username, to: username },
+      { from: username, to: req.user.username }
+    ]
+  });
   res.json({ ok: true });
 });
 
