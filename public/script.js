@@ -1385,7 +1385,7 @@ document.getElementById('searchUserInput').addEventListener('input', async (e) =
             const isFriend = window._friendsCache?.some(f => f.username === u.username);
             const btnHtml = isFriend
                 ? `<span style="font-size:11px;color:var(--text-secondary);padding:4px 8px;">Друг</span>`
-                : `<button class="friend-request-btn" onclick="event.stopPropagation();sendFriendRequest('${escapeHtml(u.username)}')" style="font-size:12px;padding:4px 10px;">+ Добавить</button>`;
+                : `<button class="friend-request-btn" data-send-fr="${escapeHtml(u.username)}" onclick="event.stopPropagation();sendFriendRequest('${escapeHtml(u.username)}')" style="font-size:12px;padding:4px 10px;">+ Добавить</button>`;
             div.innerHTML = `${renderAvatar(u.avatar||'😀',40)}<div class="user-item-info"><span class="user-item-name" style="color:${u.color}">${escapeHtml(u.displayName||u.username)}</span><span class="user-item-status">@${escapeHtml(u.username)} · ${u.online ? 'онлайн' : 'оффлайн'}</span></div>${btnHtml}`;
             div.onclick = () => openUserProfile(u.username);
             results.appendChild(div);
@@ -1423,6 +1423,26 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 });
+
+// Global sendFriendRequest for dynamic buttons
+async function sendFriendRequest(username) {
+    const token = localStorage.getItem('token');
+    const res = await fetch('/api/friend-request', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        body: JSON.stringify({ to: username })
+    });
+    if (res.ok) {
+        showToast('Запрос отправлен');
+        // Update any visible buttons for this user
+        document.querySelectorAll(`[data-send-fr="${username}"]`).forEach(btn => {
+            btn.textContent = '✓ Отправлено'; btn.disabled = true;
+        });
+    } else {
+        const d = await res.json();
+        showToast(d.error || 'Ошибка', true);
+    }
+}
 
 // ========== Группы ==========
 async function loadGroups() {
@@ -2214,12 +2234,12 @@ const splash = document.getElementById('splashScreen');
 if (splash) {
     // Запускаем анимацию входа
     requestAnimationFrame(() => {
-        document.getElementById('splashLogo').style.opacity = '1';
-        document.getElementById('splashLogo').style.transform = 'scale(1) translateY(0)';
-        document.getElementById('splashTitle').style.opacity = '1';
-        document.getElementById('splashTitle').style.transform = 'translateY(0)';
-        document.getElementById('splashSub').style.opacity = '1';
-        document.getElementById('splashSub').style.transform = 'translateY(0)';
+        const logo = document.getElementById('splashLogo');
+        const title = document.getElementById('splashTitle');
+        const sub = document.getElementById('splashSub');
+        if (logo) { logo.style.opacity = '1'; logo.style.transform = 'scale(1) translateY(0)'; }
+        if (title) { title.style.opacity = '1'; title.style.transform = 'translateY(0)'; }
+        if (sub) { sub.style.opacity = '1'; sub.style.transform = 'translateY(0)'; }
         document.getElementById('splashDots').style.opacity = '1';
     });
     // Убираем через 1.8 сек
@@ -4314,12 +4334,28 @@ async function openUserProfile(username) {
         const actions = document.getElementById('upActions');
         actions.innerHTML = '';
         if (username !== currentUser?.username) {
-            const msgBtn = document.createElement('button');
-            msgBtn.className = 'primary-btn';
-            msgBtn.style.cssText = 'flex:1;margin-bottom:0;padding:10px;';
-            msgBtn.textContent = 'Написать';
-            msgBtn.onclick = () => { closeUserProfile(); switchChat(username); };
-            actions.appendChild(msgBtn);
+            if (data.isFriend) {
+                // Friend: show Write button
+                const msgBtn = document.createElement('button');
+                msgBtn.className = 'primary-btn';
+                msgBtn.style.cssText = 'flex:1;margin-bottom:0;padding:10px;';
+                msgBtn.textContent = 'Написать';
+                msgBtn.onclick = () => { closeUserProfile(); switchChat(username); };
+                actions.appendChild(msgBtn);
+            } else {
+                // Not friend: show Add button
+                const addBtn = document.createElement('button');
+                addBtn.className = 'primary-btn';
+                addBtn.style.cssText = 'flex:1;margin-bottom:0;padding:10px;';
+                addBtn.textContent = '+ Добавить в друзья';
+                addBtn.dataset.sendFr = username;
+                addBtn.onclick = async () => {
+                    await sendFriendRequest(username);
+                    addBtn.textContent = '✓ Запрос отправлен';
+                    addBtn.disabled = true;
+                };
+                actions.appendChild(addBtn);
+            }
         }
     } catch(e) {
         console.error('Profile load error', e);
