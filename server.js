@@ -1107,7 +1107,7 @@ app.get('/api/search', authenticateJWT, async (req, res) => {
   const q = req.query.q || '';
   if (!q) return res.json({ users: [], groups: [], channels: [] });
   const re = new RegExp(q, 'i');
-  const users = await User.find({ $or: [{ username: re }, { displayName: re }], emailVerified: true }).select('username displayName avatar color online').limit(10);
+  const users = await User.find({ username: { $ne: req.user.username }, $or: [{ username: re }, { displayName: re }], emailVerified: true }).select('username displayName avatar color online').limit(10);
   const groups = await Group.find({ name: re, type: 'public' }).limit(10);
   const channels = await Channel.find({ name: re }).limit(10);
   res.json({ users, groups, channels });
