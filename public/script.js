@@ -2,6 +2,9 @@ let socket;
 const mutedGroups = new Set(JSON.parse(localStorage.getItem('mutedGroups') || '[]'));
 const mutedChannels = new Set(JSON.parse(localStorage.getItem('mutedChannels') || '[]'));
 
+// Global cache for up-to-date user avatars (populated when profiles are loaded)
+window._userAvatarCache = {};
+
 function closeModal(id) {
     const el = document.getElementById(id);
     if (el) el.classList.remove('open');
@@ -648,9 +651,9 @@ function addMessageToChat(msg) {
         }
     }
 
-    // Аватарка: берём из кэша друзей для актуальности
+    // Аватарка: берём из кэша друзей или глобального кеша для актуальности
     const cachedSender = window._friendsCache?.find(f => f.username === msg.from);
-    const senderAvatar = cachedSender?.avatar || msg.avatar || '😀';
+    const senderAvatar = cachedSender?.avatar || window._userAvatarCache?.[msg.from] || msg.avatar || '😀';
 
     div.innerHTML = `
         <div class="msg-avatar-wrap">
@@ -1247,6 +1250,8 @@ async function loadFriends() {
     const res = await fetch('/api/friends', { headers: { 'Authorization': `Bearer ${token}` } });
     const friends = await res.json();
     window._friendsCache = Array.isArray(friends) ? friends : [];
+    // Keep avatar cache up to date with fresh friend data
+    window._friendsCache.forEach(f => { if (f.username && f.avatar) window._userAvatarCache[f.username] = f.avatar; });
     // Refresh DM title if open
     if (currentChat) {
         const fd = window._friendsCache.find(f => f.username === currentChat);
@@ -1380,13 +1385,16 @@ document.getElementById('searchUserInput').addEventListener('input', async (e) =
     if (showUsers && data.users.length > 0) {
         results.innerHTML += `<div class="search-section-title">Люди</div>`;
         data.users.forEach(u => {
+            // Cache fresh avatar data from server
+            if (u.username && u.avatar) window._userAvatarCache[u.username] = u.avatar;
             const div = document.createElement('div');
             div.className = 'user-item search-result-item';
             const isFriend = window._friendsCache?.some(f => f.username === u.username);
             const btnHtml = isFriend
                 ? `<span style="font-size:11px;color:var(--text-secondary);padding:4px 8px;">Друг</span>`
                 : `<button class="friend-request-btn" data-send-fr="${escapeHtml(u.username)}" onclick="event.stopPropagation();sendFriendRequest('${escapeHtml(u.username)}')" style="font-size:12px;padding:4px 10px;">+ Добавить</button>`;
-            div.innerHTML = `${renderAvatar(u.avatar||'😀',40)}<div class="user-item-info"><span class="user-item-name" style="color:${u.color}">${escapeHtml(u.displayName||u.username)}</span><span class="user-item-status">@${escapeHtml(u.username)} · ${u.online ? 'онлайн' : 'оффлайн'}</span></div>${btnHtml}`;
+            const freshAvatar = window._userAvatarCache[u.username] || u.avatar || '😀';
+            div.innerHTML = `${renderAvatar(freshAvatar,40)}<div class="user-item-info"><span class="user-item-name" style="color:${u.color}">${escapeHtml(u.displayName||u.username)}</span><span class="user-item-status">@${escapeHtml(u.username)} · ${u.online ? 'онлайн' : 'оффлайн'}</span></div>${btnHtml}`;
             div.onclick = () => openUserProfile(u.username);
             results.appendChild(div);
         });
@@ -4289,6 +4297,11 @@ async function openUserProfile(username) {
         if (upBanner && data.bannerColor) upBanner.style.background = data.bannerColor;
         else if (upBanner) upBanner.style.background = 'linear-gradient(135deg,#5588cc,#7c6eaf)';
 
+        // Cache avatar for use in message rendering
+        if (data.username && data.avatar) {
+            window._userAvatarCache[data.username] = data.avatar;
+        }
+
         // Avatar
         const avEl = document.getElementById('upAvatar');
         if (isImgAvatar(data.avatar)) {
@@ -4400,15 +4413,20 @@ document.addEventListener('DOMContentLoaded', () => {
     let mentionStart = -1;
 
     function getMentionMembers() {
-        // Friends + group members
-        const names = new Set();
-        (window._friendsCache || []).forEach(f => names.add({ username: f.username, displayName: f.displayName || f.username, avatar: f.avatar }));
-        // If in group, also group members from last loaded messages
+        // Friends + group members — deduplicated by username, excluding self
+        const map = new Map();
+        (window._friendsCache || []).forEach(f => {
+            if (f.username !== currentUser?.username)
+                map.set(f.username, { username: f.username, displayName: f.displayName || f.username, avatar: f.avatar });
+        });
+        // If in group, also collect members from rendered messages (may not be friends)
         document.querySelectorAll('.msg-sender[onclick]').forEach(el => {
             const m = el.getAttribute('onclick')?.match(/openUserProfile\('([^']+)'\)/);
-            if (m) names.add({ username: m[1], displayName: m[1], avatar: '😀' });
+            if (m && m[1] !== currentUser?.username && !map.has(m[1])) {
+                map.set(m[1], { username: m[1], displayName: m[1], avatar: '😀' });
+            }
         });
-        return [...names];
+        return [...map.values()];
     }
 
     function showMentions(query) {
