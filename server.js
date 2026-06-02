@@ -119,6 +119,7 @@ const UserSchema = new mongoose.Schema({
   resetExpires: { type: Date, default: null },
   avatar: { type: String, default: '😀' },
   bannerColor: { type: String, default: '' },
+  bannerImage: { type: String, default: '' },
   color: { type: String, default: '#6ab0f3' },
   online: { type: Boolean, default: false },
   socketId: { type: String, default: null },
@@ -301,11 +302,11 @@ app.post('/api/login', async (req, res) => {
 
 app.get('/api/me', authenticateJWT, async (req, res) => {
   const user = await User.findOne({ username: req.user.username });
-  res.json({ username: user.username, displayName: user.displayName || '', bio: user.bio || '', birthdate: user.birthdate || '', birthdateVisible: !!user.birthdateVisible, avatar: user.avatar, bannerColor: user.bannerColor || '', color: user.color, email: user.email });
+  res.json({ username: user.username, displayName: user.displayName || '', bio: user.bio || '', birthdate: user.birthdate || '', birthdateVisible: !!user.birthdateVisible, avatar: user.avatar, bannerColor: user.bannerColor || '', bannerImage: user.bannerImage || '', color: user.color, email: user.email });
 });
 
 app.post('/api/me/update', authenticateJWT, async (req, res) => {
-  const { avatar, color, displayName, bio, birthdate, birthdateVisible, bannerColor } = req.body;
+  const { avatar, color, displayName, bio, birthdate, birthdateVisible, bannerColor, bannerImage } = req.body;
   const update = {};
   if (avatar !== undefined) update.avatar = avatar;
   if (color) update.color = color;
@@ -314,6 +315,7 @@ app.post('/api/me/update', authenticateJWT, async (req, res) => {
   if (birthdate !== undefined) update.birthdate = birthdate;
   if (birthdateVisible !== undefined) update.birthdateVisible = birthdateVisible;
   if (bannerColor !== undefined) update.bannerColor = bannerColor;
+  if (bannerImage !== undefined) update.bannerImage = bannerImage;
   await User.updateOne({ username: req.user.username }, update);
   if (color || avatar) {
     const msgUpdate = {};
@@ -329,7 +331,7 @@ app.get('/api/users/:username/profile', authenticateJWT, async (req, res) => {
   if (!user) return res.status(404).json({ error: 'Not found' });
   const me = await User.findOne({ username: req.user.username });
   const isFriend = me && me.friends.includes(req.params.username);
-  res.json({ username: user.username, displayName: user.displayName || '', bio: user.bio || '', birthdate: user.birthdateVisible ? (user.birthdate || '') : '', avatar: user.avatar, bannerColor: user.bannerColor || '', color: user.color, online: user.online, lastSeen: user.lastSeen, isFriend });
+  res.json({ username: user.username, displayName: user.displayName || '', bio: user.bio || '', birthdate: user.birthdateVisible ? (user.birthdate || '') : '', avatar: user.avatar, bannerColor: user.bannerColor || '', bannerImage: user.bannerImage || '', color: user.color, online: user.online, lastSeen: user.lastSeen, isFriend });
 });
 
 // Сброс пароля — шаг 1: отправить код
