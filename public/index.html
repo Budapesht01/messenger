@@ -1043,11 +1043,8 @@
         <!-- Banner -->
         <div id="opBanner" style="height:90px;background:linear-gradient(135deg,#5588cc,#7c6eaf);position:relative;flex-shrink:0;">
             <button onclick="closeOwnProfile()" style="position:absolute;top:10px;right:12px;background:rgba(0,0,0,0.35);border:none;color:#fff;width:28px;height:28px;border-radius:50%;cursor:pointer;font-size:15px;display:flex;align-items:center;justify-content:center;z-index:3;">✕</button>
-            <!-- Banner color picker -->
-            <button onclick="toggleOpBannerPicker()" style="position:absolute;top:10px;right:50px;background:rgba(0,0,0,0.35);border:none;color:#fff;width:28px;height:28px;border-radius:50%;cursor:pointer;font-size:13px;display:flex;align-items:center;justify-content:center;z-index:3;" title="Цвет баннера">🎨</button>
-            <div id="opBannerPicker" style="display:none;position:absolute;top:46px;right:10px;background:var(--glass-card);border:1px solid var(--border);border-radius:14px;padding:10px;z-index:10;display:none;flex-wrap:wrap;gap:8px;width:220px;">
-                <!-- filled by JS -->
-            </div>
+            <!-- Banner paint button -->
+            <button onclick="openBannerPaint()" style="position:absolute;top:10px;right:50px;background:rgba(0,0,0,0.35);border:none;color:#fff;width:28px;height:28px;border-radius:50%;cursor:pointer;font-size:13px;display:flex;align-items:center;justify-content:center;z-index:3;" title="Нарисовать баннер">🎨</button>
             <!-- Avatar -->
             <div style="position:absolute;bottom:-40px;left:20px;z-index:2;">
                 <div style="position:relative;display:inline-block;">
@@ -1115,6 +1112,39 @@
 <!-- Hidden inputs for profile editing (used by settings saveBtn) -->
 <input type="file" id="avatarPhotoInput" accept="image/*" style="display:none;">
 <div id="avatarEmojiPanel" style="display:none;"></div>
+
+<!-- Banner Paint Modal -->
+<div id="bannerPaintModal" style="display:none;position:fixed;inset:0;z-index:5000;background:rgba(0,0,0,0.75);align-items:center;justify-content:center;">
+  <div style="background:var(--glass-sidebar);border:1px solid var(--border);border-radius:20px;padding:20px;display:flex;flex-direction:column;gap:14px;width:520px;max-width:95vw;">
+    <div style="display:flex;align-items:center;justify-content:space-between;">
+      <span style="font-size:16px;font-weight:700;color:var(--text-primary);">🎨 Нарисуй баннер</span>
+      <button onclick="closeBannerPaint()" style="background:none;border:none;color:var(--text-secondary);font-size:20px;cursor:pointer;line-height:1;">✕</button>
+    </div>
+    <!-- Tools -->
+    <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+      <label style="font-size:12px;color:var(--text-secondary);">Цвет</label>
+      <input type="color" id="bpColor" value="#ffffff" style="width:36px;height:30px;border:none;border-radius:6px;cursor:pointer;background:none;">
+      <label style="font-size:12px;color:var(--text-secondary);">Размер</label>
+      <input type="range" id="bpSize" min="2" max="40" value="8" style="width:90px;">
+      <span id="bpSizeVal" style="font-size:12px;color:var(--text-secondary);min-width:24px;">8</span>
+      <button id="bpEraserBtn" onclick="toggleBpEraser()" style="background:var(--glass-card);border:1px solid var(--border);color:var(--text-primary);border-radius:8px;padding:4px 12px;cursor:pointer;font-size:13px;">Ластик</button>
+      <button onclick="clearBpCanvas()" style="background:var(--glass-card);border:1px solid var(--border);color:var(--text-primary);border-radius:8px;padding:4px 12px;cursor:pointer;font-size:13px;">Очистить</button>
+      <button onclick="undoBpCanvas()" style="background:var(--glass-card);border:1px solid var(--border);color:var(--text-primary);border-radius:8px;padding:4px 12px;cursor:pointer;font-size:13px;">↩ Отмена</button>
+    </div>
+    <!-- Canvas -->
+    <canvas id="bpCanvas" width="480" height="120" style="border-radius:12px;cursor:crosshair;touch-action:none;width:100%;"></canvas>
+    <!-- Background color row -->
+    <div style="display:flex;align-items:center;gap:8px;">
+      <label style="font-size:12px;color:var(--text-secondary);">Фон:</label>
+      <div id="bpBgColors" style="display:flex;gap:6px;flex-wrap:wrap;"></div>
+    </div>
+    <!-- Actions -->
+    <div style="display:flex;gap:10px;justify-content:flex-end;">
+      <button onclick="closeBannerPaint()" style="background:var(--glass-card);border:1px solid var(--border);color:var(--text-primary);border-radius:10px;padding:8px 20px;cursor:pointer;">Отмена</button>
+      <button onclick="saveBannerPaint()" style="background:var(--accent);border:none;color:#fff;border-radius:10px;padding:8px 20px;cursor:pointer;font-weight:600;">Сохранить</button>
+    </div>
+  </div>
+</div>
 
 </body>
 </html>
