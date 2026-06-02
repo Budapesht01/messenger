@@ -1114,34 +1114,377 @@
 <div id="avatarEmojiPanel" style="display:none;"></div>
 
 <!-- Banner Paint Modal -->
-<div id="bannerPaintModal" style="display:none;position:fixed;inset:0;z-index:5000;background:rgba(0,0,0,0.75);align-items:center;justify-content:center;">
-  <div style="background:var(--glass-sidebar);border:1px solid var(--border);border-radius:20px;padding:20px;display:flex;flex-direction:column;gap:14px;width:520px;max-width:95vw;">
-    <div style="display:flex;align-items:center;justify-content:space-between;">
-      <span style="font-size:16px;font-weight:700;color:var(--text-primary);">🎨 Нарисуй баннер</span>
-      <button onclick="closeBannerPaint()" style="background:none;border:none;color:var(--text-secondary);font-size:20px;cursor:pointer;line-height:1;">✕</button>
+<div id="bannerPaintModal" style="display:none;position:fixed;inset:0;z-index:5000;background:rgba(0,0,0,0);align-items:center;justify-content:center;backdrop-filter:blur(0px);transition:background 0.25s,backdrop-filter 0.25s;">
+  <style>
+    #bpWrap {
+      background: #0e0e14;
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 24px;
+      padding: 0;
+      display: flex;
+      flex-direction: column;
+      width: 580px;
+      max-width: 96vw;
+      box-shadow: 0 32px 80px rgba(0,0,0,0.7), 0 0 0 1px rgba(255,255,255,0.04);
+      transform: scale(0.92) translateY(16px);
+      opacity: 0;
+      transition: transform 0.3s cubic-bezier(0.34,1.15,0.64,1), opacity 0.25s ease;
+      overflow: hidden;
+    }
+    #bpWrap.bp-open { transform: scale(1) translateY(0); opacity: 1; }
+
+    .bp-header {
+      padding: 18px 20px 14px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid rgba(255,255,255,0.06);
+    }
+    .bp-title {
+      font-size: 15px;
+      font-weight: 700;
+      color: #fff;
+      letter-spacing: 0.02em;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .bp-title-icon {
+      width: 28px; height: 28px;
+      background: linear-gradient(135deg,#a855f7,#ec4899);
+      border-radius: 8px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 14px;
+    }
+    .bp-close {
+      width: 28px; height: 28px;
+      background: rgba(255,255,255,0.06);
+      border: none; color: rgba(255,255,255,0.5);
+      border-radius: 8px; cursor: pointer; font-size: 14px;
+      display: flex; align-items: center; justify-content: center;
+      transition: background 0.15s, color 0.15s;
+    }
+    .bp-close:hover { background: rgba(255,255,255,0.12); color: #fff; }
+
+    .bp-body { padding: 16px 18px; display: flex; flex-direction: column; gap: 14px; }
+
+    /* Canvas area */
+    #bpCanvasWrap {
+      position: relative;
+      border-radius: 14px;
+      overflow: hidden;
+      box-shadow: 0 4px 24px rgba(0,0,0,0.5), inset 0 0 0 1px rgba(255,255,255,0.07);
+      cursor: crosshair;
+    }
+    #bpCanvas { display: block; width: 100%; touch-action: none; }
+    #bpCursorPreview {
+      position: absolute;
+      border: 2px solid rgba(255,255,255,0.8);
+      border-radius: 50%;
+      pointer-events: none;
+      transform: translate(-50%,-50%);
+      transition: width 0.1s, height 0.1s, border-color 0.15s;
+      box-shadow: 0 0 6px rgba(0,0,0,0.4);
+    }
+
+    /* Toolbar */
+    .bp-toolbar {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.06);
+      border-radius: 14px;
+      padding: 8px 10px;
+      flex-wrap: wrap;
+    }
+    .bp-tool-btn {
+      width: 34px; height: 34px;
+      background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(255,255,255,0.06);
+      border-radius: 9px;
+      color: rgba(255,255,255,0.6);
+      cursor: pointer;
+      font-size: 15px;
+      display: flex; align-items: center; justify-content: center;
+      transition: all 0.15s;
+      flex-shrink: 0;
+    }
+    .bp-tool-btn:hover { background: rgba(255,255,255,0.1); color: #fff; transform: translateY(-1px); }
+    .bp-tool-btn.active {
+      background: linear-gradient(135deg,#a855f7,#ec4899);
+      border-color: transparent;
+      color: #fff;
+      box-shadow: 0 2px 12px rgba(168,85,247,0.4);
+    }
+    .bp-sep { width: 1px; height: 24px; background: rgba(255,255,255,0.08); flex-shrink: 0; margin: 0 2px; }
+
+    /* Size slider */
+    .bp-size-wrap { display: flex; align-items: center; gap: 7px; flex: 1; min-width: 110px; }
+    .bp-size-label { font-size: 11px; color: rgba(255,255,255,0.35); white-space: nowrap; }
+    #bpSize {
+      flex: 1;
+      -webkit-appearance: none;
+      height: 4px;
+      border-radius: 2px;
+      background: rgba(255,255,255,0.1);
+      outline: none;
+      cursor: pointer;
+    }
+    #bpSize::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 14px; height: 14px;
+      border-radius: 50%;
+      background: linear-gradient(135deg,#a855f7,#ec4899);
+      cursor: pointer;
+      box-shadow: 0 0 6px rgba(168,85,247,0.5);
+    }
+    #bpSizeVal {
+      font-size: 11px;
+      color: rgba(255,255,255,0.4);
+      min-width: 18px;
+      text-align: center;
+    }
+
+    /* Opacity slider */
+    .bp-opacity-wrap { display: flex; align-items: center; gap: 7px; }
+    #bpOpacity {
+      width: 70px;
+      -webkit-appearance: none;
+      height: 4px;
+      border-radius: 2px;
+      background: rgba(255,255,255,0.1);
+      outline: none;
+      cursor: pointer;
+    }
+    #bpOpacity::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 14px; height: 14px;
+      border-radius: 50%;
+      background: #fff;
+      cursor: pointer;
+    }
+
+    /* Color section */
+    .bp-colors-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    /* RGB spectrum */
+    .bp-spectrum-wrap { position: relative; flex-shrink: 0; }
+    #bpSpectrum {
+      width: 180px; height: 20px;
+      border-radius: 10px;
+      cursor: pointer;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+    }
+    #bpSpectrumThumb {
+      position: absolute;
+      width: 18px; height: 18px;
+      border: 2px solid #fff;
+      border-radius: 50%;
+      top: 1px;
+      transform: translateX(-50%);
+      pointer-events: none;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.5);
+      transition: left 0.08s;
+    }
+
+    /* Brightness bar */
+    #bpBrightness {
+      width: 100px; height: 12px;
+      border-radius: 6px;
+      cursor: pointer;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+      flex-shrink: 0;
+    }
+
+    /* Current color swatch + hex input */
+    .bp-color-preview {
+      width: 32px; height: 32px;
+      border-radius: 9px;
+      border: 2px solid rgba(255,255,255,0.15);
+      flex-shrink: 0;
+      cursor: pointer;
+      transition: transform 0.15s;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+    }
+    .bp-color-preview:hover { transform: scale(1.1); }
+    #bpColorHex {
+      width: 68px;
+      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 8px;
+      color: rgba(255,255,255,0.8);
+      font-size: 12px;
+      font-family: monospace;
+      padding: 4px 8px;
+      outline: none;
+    }
+    #bpColorHex:focus { border-color: rgba(168,85,247,0.5); }
+
+    /* Palette swatches */
+    .bp-palette { display: flex; gap: 5px; flex-wrap: wrap; align-items: center; }
+    .bp-swatch {
+      width: 20px; height: 20px;
+      border-radius: 5px;
+      cursor: pointer;
+      border: 2px solid transparent;
+      transition: transform 0.12s, border-color 0.12s;
+      flex-shrink: 0;
+    }
+    .bp-swatch:hover { transform: scale(1.2); border-color: rgba(255,255,255,0.4); }
+    .bp-swatch.selected { border-color: #fff; transform: scale(1.15); }
+
+    /* Backgrounds */
+    .bp-bg-section { display: flex; align-items: center; gap: 8px; }
+    .bp-bg-label { font-size: 11px; color: rgba(255,255,255,0.35); white-space: nowrap; flex-shrink: 0; }
+    .bp-bg-list { display: flex; gap: 5px; flex-wrap: wrap; }
+    .bp-bg-btn {
+      width: 28px; height: 28px;
+      border-radius: 8px;
+      cursor: pointer;
+      border: 2px solid rgba(255,255,255,0.1);
+      transition: transform 0.12s, border-color 0.15s;
+      flex-shrink: 0;
+    }
+    .bp-bg-btn:hover { transform: scale(1.15); border-color: rgba(255,255,255,0.35); }
+
+    /* Footer */
+    .bp-footer {
+      padding: 12px 18px 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-top: 1px solid rgba(255,255,255,0.06);
+      gap: 8px;
+    }
+    .bp-footer-left { display: flex; gap: 6px; }
+    .bp-footer-right { display: flex; gap: 8px; }
+    .bp-btn-secondary {
+      padding: 8px 16px;
+      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 10px;
+      color: rgba(255,255,255,0.7);
+      cursor: pointer;
+      font-size: 13px;
+      font-weight: 500;
+      transition: all 0.15s;
+    }
+    .bp-btn-secondary:hover { background: rgba(255,255,255,0.1); color: #fff; }
+    .bp-btn-primary {
+      padding: 8px 22px;
+      background: linear-gradient(135deg,#a855f7,#ec4899);
+      border: none;
+      border-radius: 10px;
+      color: #fff;
+      cursor: pointer;
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: 0.02em;
+      transition: all 0.15s;
+      box-shadow: 0 4px 16px rgba(168,85,247,0.35);
+    }
+    .bp-btn-primary:hover { transform: translateY(-1px); box-shadow: 0 6px 20px rgba(168,85,247,0.5); }
+    .bp-btn-primary:active { transform: translateY(0); }
+    .bp-btn-danger {
+      padding: 8px 14px;
+      background: rgba(239,68,68,0.1);
+      border: 1px solid rgba(239,68,68,0.2);
+      border-radius: 10px;
+      color: rgba(239,68,68,0.8);
+      cursor: pointer;
+      font-size: 13px;
+      transition: all 0.15s;
+    }
+    .bp-btn-danger:hover { background: rgba(239,68,68,0.2); color: #ef4444; }
+
+    /* Save animation */
+    @keyframes bp-save-pulse {
+      0% { box-shadow: 0 4px 16px rgba(168,85,247,0.35); }
+      50% { box-shadow: 0 4px 32px rgba(168,85,247,0.7), 0 0 0 4px rgba(168,85,247,0.15); }
+      100% { box-shadow: 0 4px 16px rgba(168,85,247,0.35); }
+    }
+    .bp-saving { animation: bp-save-pulse 0.6s ease; }
+  </style>
+
+  <div id="bpWrap">
+    <!-- Header -->
+    <div class="bp-header">
+      <div class="bp-title">
+        <div class="bp-title-icon">🎨</div>
+        Редактор баннера
+      </div>
+      <button class="bp-close" onclick="closeBannerPaint()">✕</button>
     </div>
-    <!-- Tools -->
-    <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
-      <label style="font-size:12px;color:var(--text-secondary);">Цвет</label>
-      <input type="color" id="bpColor" value="#ffffff" style="width:36px;height:30px;border:none;border-radius:6px;cursor:pointer;background:none;">
-      <label style="font-size:12px;color:var(--text-secondary);">Размер</label>
-      <input type="range" id="bpSize" min="2" max="40" value="8" style="width:90px;">
-      <span id="bpSizeVal" style="font-size:12px;color:var(--text-secondary);min-width:24px;">8</span>
-      <button id="bpEraserBtn" onclick="toggleBpEraser()" style="background:var(--glass-card);border:1px solid var(--border);color:var(--text-primary);border-radius:8px;padding:4px 12px;cursor:pointer;font-size:13px;">Ластик</button>
-      <button onclick="clearBpCanvas()" style="background:var(--glass-card);border:1px solid var(--border);color:var(--text-primary);border-radius:8px;padding:4px 12px;cursor:pointer;font-size:13px;">Очистить</button>
-      <button onclick="undoBpCanvas()" style="background:var(--glass-card);border:1px solid var(--border);color:var(--text-primary);border-radius:8px;padding:4px 12px;cursor:pointer;font-size:13px;">↩ Отмена</button>
+
+    <div class="bp-body">
+      <!-- Canvas -->
+      <div id="bpCanvasWrap">
+        <canvas id="bpCanvas" width="544" height="136"></canvas>
+        <div id="bpCursorPreview" style="width:16px;height:16px;display:none;"></div>
+      </div>
+
+      <!-- Toolbar -->
+      <div class="bp-toolbar">
+        <button class="bp-tool-btn active" id="bpToolBrush" onclick="setBpTool('brush')" title="Кисть">✏️</button>
+        <button class="bp-tool-btn" id="bpToolLine" onclick="setBpTool('line')" title="Линия">📏</button>
+        <button class="bp-tool-btn" id="bpToolRect" onclick="setBpTool('rect')" title="Прямоугольник">⬜</button>
+        <button class="bp-tool-btn" id="bpToolCircle" onclick="setBpTool('circle')" title="Круг">⭕</button>
+        <button class="bp-tool-btn" id="bpToolFill" onclick="setBpTool('fill')" title="Заливка">🪣</button>
+        <button class="bp-tool-btn" id="bpToolEraser" onclick="setBpTool('eraser')" title="Ластик">🧹</button>
+        <div class="bp-sep"></div>
+        <div class="bp-size-wrap">
+          <span class="bp-size-label">Размер</span>
+          <input type="range" id="bpSize" min="1" max="60" value="8">
+          <span id="bpSizeVal">8</span>
+        </div>
+        <div class="bp-sep"></div>
+        <div class="bp-opacity-wrap">
+          <span class="bp-size-label">Прозр.</span>
+          <input type="range" id="bpOpacity" min="1" max="100" value="100">
+        </div>
+      </div>
+
+      <!-- Colors row -->
+      <div class="bp-colors-row">
+        <!-- Spectrum -->
+        <div class="bp-spectrum-wrap">
+          <canvas id="bpSpectrum" width="180" height="20"></canvas>
+          <div id="bpSpectrumThumb" style="left:0px;"></div>
+        </div>
+        <!-- Brightness -->
+        <canvas id="bpBrightness" width="100" height="12"></canvas>
+        <!-- Preview + hex -->
+        <div class="bp-color-preview" id="bpColorPreview" onclick="document.getElementById('bpColorHidden').click()"></div>
+        <input type="color" id="bpColorHidden" style="display:none" oninput="onBpColorPicker(this.value)">
+        <input type="text" id="bpColorHex" value="#ffffff" maxlength="7" onchange="onBpHexInput(this.value)" spellcheck="false">
+      </div>
+
+      <!-- Palette -->
+      <div class="bp-palette" id="bpPalette"></div>
+
+      <!-- Backgrounds -->
+      <div class="bp-bg-section">
+        <span class="bp-bg-label">Фон:</span>
+        <div class="bp-bg-list" id="bpBgColors"></div>
+      </div>
     </div>
-    <!-- Canvas -->
-    <canvas id="bpCanvas" width="480" height="120" style="border-radius:12px;cursor:crosshair;touch-action:none;width:100%;"></canvas>
-    <!-- Background color row -->
-    <div style="display:flex;align-items:center;gap:8px;">
-      <label style="font-size:12px;color:var(--text-secondary);">Фон:</label>
-      <div id="bpBgColors" style="display:flex;gap:6px;flex-wrap:wrap;"></div>
-    </div>
-    <!-- Actions -->
-    <div style="display:flex;gap:10px;justify-content:flex-end;">
-      <button onclick="closeBannerPaint()" style="background:var(--glass-card);border:1px solid var(--border);color:var(--text-primary);border-radius:10px;padding:8px 20px;cursor:pointer;">Отмена</button>
-      <button onclick="saveBannerPaint()" style="background:var(--accent);border:none;color:#fff;border-radius:10px;padding:8px 20px;cursor:pointer;font-weight:600;">Сохранить</button>
+
+    <!-- Footer -->
+    <div class="bp-footer">
+      <div class="bp-footer-left">
+        <button class="bp-btn-secondary" onclick="undoBpCanvas()" title="Ctrl+Z">↩ Отмена</button>
+        <button class="bp-btn-danger" onclick="clearBpCanvas()">🗑 Очистить</button>
+      </div>
+      <div class="bp-footer-right">
+        <button class="bp-btn-secondary" onclick="closeBannerPaint()">Закрыть</button>
+        <button class="bp-btn-primary" id="bpSaveBtn" onclick="saveBannerPaint()">Сохранить</button>
+      </div>
     </div>
   </div>
 </div>
