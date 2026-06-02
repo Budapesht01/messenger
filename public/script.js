@@ -4493,71 +4493,125 @@ document.addEventListener('DOMContentLoaded', () => {
 })();
 
 // ===================== BANNER PAINT =====================
-(function() {
-    const BG_COLORS = [
-        'linear-gradient(135deg,#5588cc,#7c6eaf)',
-        'linear-gradient(135deg,#cc5588,#af6e7c)',
-        'linear-gradient(135deg,#55cc88,#6eaf7c)',
-        'linear-gradient(135deg,#cc8855,#af9a6e)',
-        'linear-gradient(135deg,#7755cc,#7c6eaf)',
-        '#1a1a2e','#0d1117','#16213e',
+(function () {
+    // ---- Constants ----
+    const PALETTE = [
+        '#ffffff','#000000','#ff3b3b','#ff8c00','#ffd600',
+        '#4cff72','#00d4ff','#4d79ff','#c44dff','#ff4da6',
+        '#7f8c8d','#2c3e50','#e74c3c','#e67e22','#f1c40f',
+        '#2ecc71','#1abc9c','#3498db','#9b59b6','#fd79a8',
+    ];
+    const BG_PRESETS = [
+        { label: 'Фиолет', v: 'linear-gradient(135deg,#5588cc,#7c6eaf)' },
+        { label: 'Роза',   v: 'linear-gradient(135deg,#cc5588,#af6e7c)' },
+        { label: 'Зелень', v: 'linear-gradient(135deg,#11998e,#38ef7d)' },
+        { label: 'Закат',  v: 'linear-gradient(135deg,#f7971e,#ffd200)' },
+        { label: 'Космос', v: 'linear-gradient(135deg,#0f0c29,#302b63,#24243e)' },
+        { label: 'Огонь',  v: 'linear-gradient(135deg,#f12711,#f5af19)' },
+        { label: 'Тёмный', v: '#0d1117' },
+        { label: 'Уголь',  v: '#1a1a2e' },
+        { label: 'Белый',  v: '#f0f0f0' },
     ];
 
+    // ---- State ----
+    let _canvas, _ctx, _wrap;
+    let _tool = 'brush';
     let _painting = false;
-    let _eraser = false;
     let _history = [];
-    let _canvas, _ctx;
+    let _currentColor = '#ffffff';
+    let _brightness = 1.0;
+    let _spectrumHue = 0;
+    let _startX = 0, _startY = 0;
+    let _snapshot = null;
 
-    function _getCtx() {
-        if (!_canvas) {
-            _canvas = document.getElementById('bpCanvas');
-            _ctx = _canvas.getContext('2d');
-            _initEvents();
-        }
-        return _ctx;
+    // ---- Init ----
+    function _init() {
+        if (_canvas) return;
+        _canvas = document.getElementById('bpCanvas');
+        _ctx = _canvas.getContext('2d');
+        _wrap = document.getElementById('bpCanvasWrap');
+        _initCanvasEvents();
+        _initSpectrumCanvas();
+        _initBrightnessCanvas();
+        _initPalette();
+        _initBgPresets();
+        _initSliders();
+        _initKeyboard();
+        _updateColorUI(_currentColor);
     }
 
-    function _initEvents() {
+    // ---- Canvas Events ----
+    function _getPos(e) {
+        const r = _canvas.getBoundingClientRect();
+        const sx = _canvas.width / r.width;
+        const sy = _canvas.height / r.height;
+        const src = e.touches ? e.touches[0] : e;
+        return { x: (src.clientX - r.left) * sx, y: (src.clientY - r.top) * sy };
+    }
+
+    function _initCanvasEvents() {
         const c = _canvas;
-        const getPos = (e) => {
-            const r = c.getBoundingClientRect();
-            const scaleX = c.width / r.width;
-            const scaleY = c.height / r.height;
-            const src = e.touches ? e.touches[0] : e;
-            return { x: (src.clientX - r.left) * scaleX, y: (src.clientY - r.top) * scaleY };
-        };
+        const cursor = document.getElementById('bpCursorPreview');
+
+        // cursor preview
+        _wrap.addEventListener('mousemove', (e) => {
+            const r = _wrap.getBoundingClientRect();
+            const size = +document.getElementById('bpSize').value;
+            const displaySize = size * (_wrap.offsetWidth / _canvas.width);
+            cursor.style.display = 'block';
+            cursor.style.left = (e.clientX - r.left) + 'px';
+            cursor.style.top = (e.clientY - r.top) + 'px';
+            cursor.style.width = displaySize + 'px';
+            cursor.style.height = displaySize + 'px';
+            cursor.style.borderColor = _tool === 'eraser' ? 'rgba(255,100,100,0.8)' : 'rgba(255,255,255,0.8)';
+        });
+        _wrap.addEventListener('mouseleave', () => { cursor.style.display = 'none'; });
+
         const down = (e) => {
             e.preventDefault();
+            const pos = _getPos(e);
+            _startX = pos.x; _startY = pos.y;
+            if (_tool === 'fill') { _floodFill(pos.x, pos.y, _currentColor); return; }
             _saveHistory();
+            _snapshot = _ctx.getImageData(0, 0, _canvas.width, _canvas.height);
             _painting = true;
-            const ctx = _ctx;
-            const { x, y } = getPos(e);
-            ctx.beginPath();
-            ctx.moveTo(x, y);
+            if (_tool === 'brush' || _tool === 'eraser') {
+                _ctx.beginPath();
+                _ctx.moveTo(pos.x, pos.y);
+                // draw a dot on click
+                _ctx.arc(pos.x, pos.y, _brushSize() / 2, 0, Math.PI * 2);
+                _applyStyle();
+                _ctx.fill();
+                _ctx.beginPath();
+                _ctx.moveTo(pos.x, pos.y);
+            }
         };
         const move = (e) => {
             if (!_painting) return;
             e.preventDefault();
-            const ctx = _ctx;
-            const size = +document.getElementById('bpSize').value;
-            const color = document.getElementById('bpColor').value;
-            const { x, y } = getPos(e);
-            ctx.lineWidth = size;
-            ctx.lineCap = 'round';
-            ctx.lineJoin = 'round';
-            if (_eraser) {
-                ctx.globalCompositeOperation = 'destination-out';
-                ctx.strokeStyle = 'rgba(0,0,0,1)';
-            } else {
-                ctx.globalCompositeOperation = 'source-over';
-                ctx.strokeStyle = color;
+            const pos = _getPos(e);
+            if (_tool === 'brush' || _tool === 'eraser') {
+                _applyStyle();
+                _ctx.lineTo(pos.x, pos.y);
+                _ctx.stroke();
+                _ctx.beginPath();
+                _ctx.moveTo(pos.x, pos.y);
+            } else if (_snapshot) {
+                _ctx.putImageData(_snapshot, 0, 0);
+                _drawShape(_startX, _startY, pos.x, pos.y);
             }
-            ctx.lineTo(x, y);
-            ctx.stroke();
-            ctx.beginPath();
-            ctx.moveTo(x, y);
         };
-        const up = () => { _painting = false; _ctx && _ctx.beginPath(); };
+        const up = (e) => {
+            if (!_painting) return;
+            _painting = false;
+            if (_snapshot && (_tool === 'line' || _tool === 'rect' || _tool === 'circle')) {
+                const pos = _getPos(e);
+                _ctx.putImageData(_snapshot, 0, 0);
+                _drawShape(_startX, _startY, pos.x, pos.y);
+            }
+            _ctx.beginPath();
+            _snapshot = null;
+        };
 
         c.addEventListener('mousedown', down);
         c.addEventListener('mousemove', move);
@@ -4568,26 +4622,202 @@ document.addEventListener('DOMContentLoaded', () => {
         c.addEventListener('touchend', up);
     }
 
-    function _saveHistory() {
-        const ctx = _getCtx();
-        _history.push(ctx.getImageData(0, 0, _canvas.width, _canvas.height));
-        if (_history.length > 30) _history.shift();
+    function _brushSize() { return +document.getElementById('bpSize').value; }
+    function _opacityVal() { return (+document.getElementById('bpOpacity').value) / 100; }
+
+    function _applyStyle() {
+        const ctx = _ctx;
+        const size = _brushSize();
+        ctx.lineWidth = size;
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+        if (_tool === 'eraser') {
+            ctx.globalCompositeOperation = 'destination-out';
+            ctx.strokeStyle = 'rgba(0,0,0,1)';
+            ctx.fillStyle = 'rgba(0,0,0,1)';
+        } else {
+            ctx.globalCompositeOperation = 'source-over';
+            const hex = _currentColor;
+            const r = parseInt(hex.slice(1,3),16);
+            const g = parseInt(hex.slice(3,5),16);
+            const b = parseInt(hex.slice(5,7),16);
+            const a = _opacityVal();
+            ctx.strokeStyle = `rgba(${r},${g},${b},${a})`;
+            ctx.fillStyle = `rgba(${r},${g},${b},${a})`;
+        }
+    }
+
+    function _drawShape(x1, y1, x2, y2) {
+        _applyStyle();
+        _ctx.beginPath();
+        if (_tool === 'line') {
+            _ctx.moveTo(x1, y1);
+            _ctx.lineTo(x2, y2);
+            _ctx.stroke();
+        } else if (_tool === 'rect') {
+            _ctx.strokeRect(x1, y1, x2 - x1, y2 - y1);
+        } else if (_tool === 'circle') {
+            const rx = (x2 - x1) / 2, ry = (y2 - y1) / 2;
+            _ctx.ellipse(x1 + rx, y1 + ry, Math.abs(rx), Math.abs(ry), 0, 0, Math.PI * 2);
+            _ctx.stroke();
+        }
+    }
+
+    // ---- Flood fill ----
+    function _floodFill(px, py, fillColor) {
+        _saveHistory();
+        const idata = _ctx.getImageData(0, 0, _canvas.width, _canvas.height);
+        const data = idata.data;
+        const x = Math.round(px), y = Math.round(py);
+        const w = _canvas.width, h = _canvas.height;
+        const idx = (y * w + x) * 4;
+        const tr = data[idx], tg = data[idx+1], tb = data[idx+2], ta = data[idx+3];
+        const fc = _hexToRgb(fillColor);
+        if (!fc) return;
+        if (tr === fc.r && tg === fc.g && tb === fc.b && ta === 255) return;
+        const stack = [[x, y]];
+        const visited = new Uint8Array(w * h);
+        while (stack.length) {
+            const [cx, cy] = stack.pop();
+            if (cx < 0 || cx >= w || cy < 0 || cy >= h) continue;
+            const i = (cy * w + cx) * 4;
+            if (visited[cy * w + cx]) continue;
+            if (data[i] !== tr || data[i+1] !== tg || data[i+2] !== tb || data[i+3] !== ta) continue;
+            visited[cy * w + cx] = 1;
+            data[i] = fc.r; data[i+1] = fc.g; data[i+2] = fc.b; data[i+3] = 255;
+            stack.push([cx+1,cy],[cx-1,cy],[cx,cy+1],[cx,cy-1]);
+        }
+        _ctx.putImageData(idata, 0, 0);
+    }
+
+    function _hexToRgb(hex) {
+        const r = parseInt(hex.slice(1,3),16);
+        const g = parseInt(hex.slice(3,5),16);
+        const b = parseInt(hex.slice(5,7),16);
+        return isNaN(r) ? null : { r, g, b };
+    }
+
+    // ---- Spectrum (RGB rainbow) ----
+    function _initSpectrumCanvas() {
+        const sc = document.getElementById('bpSpectrum');
+        const sctx = sc.getContext('2d');
+        const grad = sctx.createLinearGradient(0, 0, sc.width, 0);
+        for (let i = 0; i <= 360; i += 30) grad.addColorStop(i/360, `hsl(${i},100%,50%)`);
+        sctx.fillStyle = grad;
+        sctx.fillRect(0, 0, sc.width, sc.height);
+
+        const thumb = document.getElementById('bpSpectrumThumb');
+        const pick = (e) => {
+            const r = sc.getBoundingClientRect();
+            const x = Math.max(0, Math.min(e.clientX - r.left, sc.offsetWidth));
+            const pct = x / sc.offsetWidth;
+            _spectrumHue = pct * 360;
+            thumb.style.left = x + 'px';
+            _updateBrightnessCanvas();
+            _setColorFromHueBrightness();
+        };
+        let down = false;
+        sc.addEventListener('mousedown', (e) => { down = true; pick(e); });
+        document.addEventListener('mousemove', (e) => { if (down) pick(e); });
+        document.addEventListener('mouseup', () => { down = false; });
+        sc.addEventListener('touchstart', (e) => { pick(e.touches[0]); }, { passive: true });
+        sc.addEventListener('touchmove', (e) => { pick(e.touches[0]); e.preventDefault(); }, { passive: false });
+    }
+
+    function _initBrightnessCanvas() {
+        _updateBrightnessCanvas();
+        const bc = document.getElementById('bpBrightness');
+        let down = false;
+        const pick = (e) => {
+            const r = bc.getBoundingClientRect();
+            const x = Math.max(0, Math.min(e.clientX - r.left, bc.offsetWidth));
+            _brightness = x / bc.offsetWidth;
+            _setColorFromHueBrightness();
+        };
+        bc.addEventListener('mousedown', (e) => { down = true; pick(e); });
+        document.addEventListener('mousemove', (e) => { if (down) pick(e); });
+        document.addEventListener('mouseup', () => { down = false; });
+        bc.addEventListener('touchstart', (e) => { pick(e.touches[0]); }, { passive: true });
+        bc.addEventListener('touchmove', (e) => { pick(e.touches[0]); e.preventDefault(); }, { passive: false });
+    }
+
+    function _updateBrightnessCanvas() {
+        const bc = document.getElementById('bpBrightness');
+        const bctx = bc.getContext('2d');
+        const grad = bctx.createLinearGradient(0, 0, bc.width, 0);
+        grad.addColorStop(0, '#000');
+        grad.addColorStop(0.5, `hsl(${_spectrumHue},100%,50%)`);
+        grad.addColorStop(1, '#fff');
+        bctx.fillStyle = grad;
+        bctx.fillRect(0, 0, bc.width, bc.height);
+    }
+
+    function _setColorFromHueBrightness() {
+        const l = _brightness < 0.5
+            ? _brightness * 100
+            : 50 + (_brightness - 0.5) * 100;
+        const s = _brightness < 0.5 ? 100 : 100 - (_brightness - 0.5) * 200;
+        const hex = _hslToHex(_spectrumHue, Math.max(0, s), Math.min(100, l));
+        _setColor(hex);
+    }
+
+    function _hslToHex(h, s, l) {
+        s /= 100; l /= 100;
+        const a = s * Math.min(l, 1 - l);
+        const f = n => {
+            const k = (n + h / 30) % 12;
+            const c = l - a * Math.max(-1, Math.min(k - 3, 9 - k, 1));
+            return Math.round(255 * c).toString(16).padStart(2, '0');
+        };
+        return '#' + f(0) + f(8) + f(4);
+    }
+
+    // ---- Palette ----
+    function _initPalette() {
+        const p = document.getElementById('bpPalette');
+        PALETTE.forEach(col => {
+            const sw = document.createElement('div');
+            sw.className = 'bp-swatch';
+            sw.style.background = col;
+            sw.dataset.color = col;
+            sw.onclick = () => { _setColor(col); _updateSwatchSelected(col); };
+            p.appendChild(sw);
+        });
+    }
+    function _updateSwatchSelected(col) {
+        document.querySelectorAll('.bp-swatch').forEach(s => s.classList.toggle('selected', s.dataset.color === col));
+    }
+
+    // ---- BG Presets ----
+    function _initBgPresets() {
+        const list = document.getElementById('bpBgColors');
+        BG_PRESETS.forEach(preset => {
+            const btn = document.createElement('div');
+            btn.className = 'bp-bg-btn';
+            btn.style.background = preset.v;
+            btn.title = preset.label;
+            btn.onclick = () => _applyBg(preset.v);
+            list.appendChild(btn);
+        });
     }
 
     function _applyBg(bg) {
-        const ctx = _getCtx();
         _saveHistory();
+        const ctx = _ctx;
         ctx.globalCompositeOperation = 'source-over';
-        if (bg.startsWith('linear-gradient')) {
-            // Parse gradient colors and apply
-            const matches = bg.match(/#[0-9a-fA-F]{6}/g);
-            if (matches && matches.length >= 2) {
+        const matches = bg.match(/#[0-9a-fA-F]{6}/g);
+        if (bg.includes('gradient') && matches && matches.length >= 2) {
+            if (matches.length >= 3) {
+                const grad = ctx.createLinearGradient(0, 0, _canvas.width, _canvas.height);
+                grad.addColorStop(0, matches[0]);
+                grad.addColorStop(0.5, matches[1]);
+                grad.addColorStop(1, matches[2]);
+                ctx.fillStyle = grad;
+            } else {
                 const grad = ctx.createLinearGradient(0, 0, _canvas.width, _canvas.height);
                 grad.addColorStop(0, matches[0]);
                 grad.addColorStop(1, matches[1]);
                 ctx.fillStyle = grad;
-            } else {
-                ctx.fillStyle = '#1a1a2e';
             }
         } else {
             ctx.fillStyle = bg;
@@ -4595,82 +4825,121 @@ document.addEventListener('DOMContentLoaded', () => {
         ctx.fillRect(0, 0, _canvas.width, _canvas.height);
     }
 
-    window.openBannerPaint = async function() {
-        const modal = document.getElementById('bannerPaintModal');
-        modal.style.display = 'flex';
-        const ctx = _getCtx();
-        _history = [];
-        _eraser = false;
-        document.getElementById('bpEraserBtn').style.background = 'var(--glass-card)';
-
-        // Size label
+    // ---- Sliders ----
+    function _initSliders() {
         const sizeInput = document.getElementById('bpSize');
         const sizeVal = document.getElementById('bpSizeVal');
         sizeInput.oninput = () => { sizeVal.textContent = sizeInput.value; };
+    }
 
-        // Build bg color buttons
-        const bgRow = document.getElementById('bpBgColors');
-        bgRow.innerHTML = '';
-        BG_COLORS.forEach(bg => {
-            const btn = document.createElement('div');
-            btn.style.cssText = `width:26px;height:26px;border-radius:6px;cursor:pointer;background:${bg};border:2px solid var(--border);flex-shrink:0;`;
-            btn.title = 'Залить фон';
-            btn.onclick = () => _applyBg(bg);
-            bgRow.appendChild(btn);
+    // ---- Color helpers ----
+    function _setColor(hex) {
+        _currentColor = hex;
+        _updateColorUI(hex);
+    }
+
+    function _updateColorUI(hex) {
+        document.getElementById('bpColorPreview').style.background = hex;
+        document.getElementById('bpColorHex').value = hex;
+        document.getElementById('bpColorHidden').value = hex;
+    }
+
+    window.onBpColorPicker = function(hex) { _setColor(hex); _updateSwatchSelected(hex); };
+    window.onBpHexInput = function(val) {
+        if (/^#[0-9a-fA-F]{6}$/.test(val)) { _setColor(val); _updateSwatchSelected(val); }
+    };
+
+    // ---- Tools ----
+    window.setBpTool = function(tool) {
+        _tool = tool;
+        ['brush','line','rect','circle','fill','eraser'].forEach(t => {
+            const btn = document.getElementById('bpTool' + t.charAt(0).toUpperCase() + t.slice(1));
+            if (btn) btn.classList.toggle('active', t === tool);
+        });
+        document.getElementById('bpCanvasWrap').style.cursor = tool === 'fill' ? 'cell' : 'crosshair';
+    };
+
+    // ---- History ----
+    function _saveHistory() {
+        _history.push(_ctx.getImageData(0, 0, _canvas.width, _canvas.height));
+        if (_history.length > 40) _history.shift();
+    }
+
+    // ---- Keyboard ----
+    function _initKeyboard() {
+        document.addEventListener('keydown', (e) => {
+            if (document.getElementById('bannerPaintModal').style.display !== 'flex') return;
+            if ((e.ctrlKey || e.metaKey) && e.key === 'z') { undoBpCanvas(); e.preventDefault(); }
+        });
+    }
+
+    // ---- Public API ----
+    window.openBannerPaint = async function() {
+        _init();
+        const modal = document.getElementById('bannerPaintModal');
+        const wrap = document.getElementById('bpWrap');
+        modal.style.display = 'flex';
+        modal.style.background = 'rgba(0,0,0,0)';
+        modal.style.backdropFilter = 'blur(0px)';
+        requestAnimationFrame(() => {
+            modal.style.background = 'rgba(0,0,0,0.7)';
+            modal.style.backdropFilter = 'blur(8px)';
+            requestAnimationFrame(() => wrap.classList.add('bp-open'));
         });
 
-        // Load existing banner if any
+        _tool = 'brush';
+        setBpTool('brush');
+        _history = [];
+
+        // Load existing banner
         const token = localStorage.getItem('token');
         const data = await (await fetch('/api/me', { headers: { Authorization: 'Bearer ' + token } })).json();
-
-        // Clear canvas first
-        ctx.clearRect(0, 0, _canvas.width, _canvas.height);
-        ctx.globalCompositeOperation = 'source-over';
+        _ctx.clearRect(0, 0, _canvas.width, _canvas.height);
+        _ctx.globalCompositeOperation = 'source-over';
 
         if (data.bannerImage) {
             const img = new Image();
-            img.onload = () => { ctx.drawImage(img, 0, 0, _canvas.width, _canvas.height); };
+            img.onload = () => { _ctx.drawImage(img, 0, 0, _canvas.width, _canvas.height); };
             img.src = data.bannerImage;
         } else {
-            // Apply current bannerColor as starting bg
-            const bg = data.bannerColor || 'linear-gradient(135deg,#5588cc,#7c6eaf)';
-            _applyBg(bg);
-            _history = []; // don't count initial fill as undo step
+            _applyBg(data.bannerColor || 'linear-gradient(135deg,#5588cc,#7c6eaf)');
+            _history = [];
         }
     };
 
     window.closeBannerPaint = function() {
-        document.getElementById('bannerPaintModal').style.display = 'none';
+        const modal = document.getElementById('bannerPaintModal');
+        const wrap = document.getElementById('bpWrap');
+        wrap.classList.remove('bp-open');
+        modal.style.background = 'rgba(0,0,0,0)';
+        modal.style.backdropFilter = 'blur(0px)';
+        setTimeout(() => { modal.style.display = 'none'; }, 280);
     };
 
     window.clearBpCanvas = function() {
         _saveHistory();
-        const ctx = _getCtx();
-        ctx.globalCompositeOperation = 'source-over';
-        ctx.clearRect(0, 0, _canvas.width, _canvas.height);
+        _ctx.globalCompositeOperation = 'source-over';
+        _ctx.clearRect(0, 0, _canvas.width, _canvas.height);
     };
 
     window.undoBpCanvas = function() {
         if (!_history.length) return;
-        const ctx = _getCtx();
-        ctx.putImageData(_history.pop(), 0, 0);
+        _ctx.putImageData(_history.pop(), 0, 0);
     };
 
-    window.toggleBpEraser = function() {
-        _eraser = !_eraser;
-        document.getElementById('bpEraserBtn').style.background = _eraser ? 'var(--accent)' : 'var(--glass-card)';
-    };
+    window.toggleBpEraser = function() { setBpTool(_tool === 'eraser' ? 'brush' : 'eraser'); };
 
     window.saveBannerPaint = async function() {
-        const ctx = _getCtx();
+        const saveBtn = document.getElementById('bpSaveBtn');
+        saveBtn.textContent = '⏳ Сохранение...';
+        saveBtn.disabled = true;
+        saveBtn.classList.add('bp-saving');
+
         const dataUrl = _canvas.toDataURL('image/png');
         const token = localStorage.getItem('token');
-
-        // Apply to banner visually
         const banner = document.getElementById('opBanner');
         banner.style.background = `url(${dataUrl}) center/cover no-repeat`;
 
-        // Save to server
         await fetch('/api/me/update', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
@@ -4678,6 +4947,12 @@ document.addEventListener('DOMContentLoaded', () => {
         });
         localStorage.removeItem('ownBanner');
 
-        closeBannerPaint();
+        saveBtn.textContent = '✓ Сохранено!';
+        setTimeout(() => {
+            saveBtn.textContent = 'Сохранить';
+            saveBtn.disabled = false;
+            saveBtn.classList.remove('bp-saving');
+            closeBannerPaint();
+        }, 800);
     };
 })();
