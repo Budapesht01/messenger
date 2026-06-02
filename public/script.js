@@ -3644,11 +3644,15 @@ async function openOwnProfile() {
         avEl.textContent = data.avatar || '😀';
     }
 
-    // Banner color - load from DB first, fallback to localStorage
+    // Banner — image has priority over color
     const savedBanner = data.bannerColor || localStorage.getItem('ownBanner') || '';
     const banner = document.getElementById('opBanner');
-    if (savedBanner) banner.style.background = savedBanner;
-    if (savedBanner) localStorage.setItem('ownBanner', savedBanner);
+    if (data.bannerImage) {
+        banner.style.background = `url(${data.bannerImage}) center/cover no-repeat`;
+    } else if (savedBanner) {
+        banner.style.background = savedBanner;
+        localStorage.setItem('ownBanner', savedBanner);
+    }
 
     // Name
     document.getElementById('opDisplayName').textContent = data.displayName || data.username;
@@ -3717,10 +3721,6 @@ function closeOwnProfile() {
     setTimeout(() => { modal.style.display = 'none'; }, 200);
 }
 
-function toggleOpBannerPicker() {
-    const p = document.getElementById('opBannerPicker');
-    p.style.display = p.style.display === 'flex' ? 'none' : 'flex';
-}
 
 function openOpAvatarPicker() {
     const p = document.getElementById('opAvatarPickerPanel');
@@ -4294,7 +4294,8 @@ async function openUserProfile(username) {
 
         // Apply banner color
         const upBanner = document.getElementById('upBanner');
-        if (upBanner && data.bannerColor) upBanner.style.background = data.bannerColor;
+        if (upBanner && data.bannerImage) upBanner.style.background = `url(${data.bannerImage}) center/cover no-repeat`;
+        else if (upBanner && data.bannerColor) upBanner.style.background = data.bannerColor;
         else if (upBanner) upBanner.style.background = 'linear-gradient(135deg,#5588cc,#7c6eaf)';
 
         // Cache avatar for use in message rendering
@@ -4489,4 +4490,194 @@ document.addEventListener('DOMContentLoaded', () => {
             if (e.key === 'Escape') { hideMentions(); e.preventDefault(); }
         });
     });
+})();
+
+// ===================== BANNER PAINT =====================
+(function() {
+    const BG_COLORS = [
+        'linear-gradient(135deg,#5588cc,#7c6eaf)',
+        'linear-gradient(135deg,#cc5588,#af6e7c)',
+        'linear-gradient(135deg,#55cc88,#6eaf7c)',
+        'linear-gradient(135deg,#cc8855,#af9a6e)',
+        'linear-gradient(135deg,#7755cc,#7c6eaf)',
+        '#1a1a2e','#0d1117','#16213e',
+    ];
+
+    let _painting = false;
+    let _eraser = false;
+    let _history = [];
+    let _canvas, _ctx;
+
+    function _getCtx() {
+        if (!_canvas) {
+            _canvas = document.getElementById('bpCanvas');
+            _ctx = _canvas.getContext('2d');
+            _initEvents();
+        }
+        return _ctx;
+    }
+
+    function _initEvents() {
+        const c = _canvas;
+        const getPos = (e) => {
+            const r = c.getBoundingClientRect();
+            const scaleX = c.width / r.width;
+            const scaleY = c.height / r.height;
+            const src = e.touches ? e.touches[0] : e;
+            return { x: (src.clientX - r.left) * scaleX, y: (src.clientY - r.top) * scaleY };
+        };
+        const down = (e) => {
+            e.preventDefault();
+            _saveHistory();
+            _painting = true;
+            const ctx = _ctx;
+            const { x, y } = getPos(e);
+            ctx.beginPath();
+            ctx.moveTo(x, y);
+        };
+        const move = (e) => {
+            if (!_painting) return;
+            e.preventDefault();
+            const ctx = _ctx;
+            const size = +document.getElementById('bpSize').value;
+            const color = document.getElementById('bpColor').value;
+            const { x, y } = getPos(e);
+            ctx.lineWidth = size;
+            ctx.lineCap = 'round';
+            ctx.lineJoin = 'round';
+            if (_eraser) {
+                ctx.globalCompositeOperation = 'destination-out';
+                ctx.strokeStyle = 'rgba(0,0,0,1)';
+            } else {
+                ctx.globalCompositeOperation = 'source-over';
+                ctx.strokeStyle = color;
+            }
+            ctx.lineTo(x, y);
+            ctx.stroke();
+            ctx.beginPath();
+            ctx.moveTo(x, y);
+        };
+        const up = () => { _painting = false; _ctx && _ctx.beginPath(); };
+
+        c.addEventListener('mousedown', down);
+        c.addEventListener('mousemove', move);
+        c.addEventListener('mouseup', up);
+        c.addEventListener('mouseleave', up);
+        c.addEventListener('touchstart', down, { passive: false });
+        c.addEventListener('touchmove', move, { passive: false });
+        c.addEventListener('touchend', up);
+    }
+
+    function _saveHistory() {
+        const ctx = _getCtx();
+        _history.push(ctx.getImageData(0, 0, _canvas.width, _canvas.height));
+        if (_history.length > 30) _history.shift();
+    }
+
+    function _applyBg(bg) {
+        const ctx = _getCtx();
+        _saveHistory();
+        ctx.globalCompositeOperation = 'source-over';
+        if (bg.startsWith('linear-gradient')) {
+            // Parse gradient colors and apply
+            const matches = bg.match(/#[0-9a-fA-F]{6}/g);
+            if (matches && matches.length >= 2) {
+                const grad = ctx.createLinearGradient(0, 0, _canvas.width, _canvas.height);
+                grad.addColorStop(0, matches[0]);
+                grad.addColorStop(1, matches[1]);
+                ctx.fillStyle = grad;
+            } else {
+                ctx.fillStyle = '#1a1a2e';
+            }
+        } else {
+            ctx.fillStyle = bg;
+        }
+        ctx.fillRect(0, 0, _canvas.width, _canvas.height);
+    }
+
+    window.openBannerPaint = async function() {
+        const modal = document.getElementById('bannerPaintModal');
+        modal.style.display = 'flex';
+        const ctx = _getCtx();
+        _history = [];
+        _eraser = false;
+        document.getElementById('bpEraserBtn').style.background = 'var(--glass-card)';
+
+        // Size label
+        const sizeInput = document.getElementById('bpSize');
+        const sizeVal = document.getElementById('bpSizeVal');
+        sizeInput.oninput = () => { sizeVal.textContent = sizeInput.value; };
+
+        // Build bg color buttons
+        const bgRow = document.getElementById('bpBgColors');
+        bgRow.innerHTML = '';
+        BG_COLORS.forEach(bg => {
+            const btn = document.createElement('div');
+            btn.style.cssText = `width:26px;height:26px;border-radius:6px;cursor:pointer;background:${bg};border:2px solid var(--border);flex-shrink:0;`;
+            btn.title = 'Залить фон';
+            btn.onclick = () => _applyBg(bg);
+            bgRow.appendChild(btn);
+        });
+
+        // Load existing banner if any
+        const token = localStorage.getItem('token');
+        const data = await (await fetch('/api/me', { headers: { Authorization: 'Bearer ' + token } })).json();
+
+        // Clear canvas first
+        ctx.clearRect(0, 0, _canvas.width, _canvas.height);
+        ctx.globalCompositeOperation = 'source-over';
+
+        if (data.bannerImage) {
+            const img = new Image();
+            img.onload = () => { ctx.drawImage(img, 0, 0, _canvas.width, _canvas.height); };
+            img.src = data.bannerImage;
+        } else {
+            // Apply current bannerColor as starting bg
+            const bg = data.bannerColor || 'linear-gradient(135deg,#5588cc,#7c6eaf)';
+            _applyBg(bg);
+            _history = []; // don't count initial fill as undo step
+        }
+    };
+
+    window.closeBannerPaint = function() {
+        document.getElementById('bannerPaintModal').style.display = 'none';
+    };
+
+    window.clearBpCanvas = function() {
+        _saveHistory();
+        const ctx = _getCtx();
+        ctx.globalCompositeOperation = 'source-over';
+        ctx.clearRect(0, 0, _canvas.width, _canvas.height);
+    };
+
+    window.undoBpCanvas = function() {
+        if (!_history.length) return;
+        const ctx = _getCtx();
+        ctx.putImageData(_history.pop(), 0, 0);
+    };
+
+    window.toggleBpEraser = function() {
+        _eraser = !_eraser;
+        document.getElementById('bpEraserBtn').style.background = _eraser ? 'var(--accent)' : 'var(--glass-card)';
+    };
+
+    window.saveBannerPaint = async function() {
+        const ctx = _getCtx();
+        const dataUrl = _canvas.toDataURL('image/png');
+        const token = localStorage.getItem('token');
+
+        // Apply to banner visually
+        const banner = document.getElementById('opBanner');
+        banner.style.background = `url(${dataUrl}) center/cover no-repeat`;
+
+        // Save to server
+        await fetch('/api/me/update', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+            body: JSON.stringify({ bannerImage: dataUrl, bannerColor: '' })
+        });
+        localStorage.removeItem('ownBanner');
+
+        closeBannerPaint();
+    };
 })();
